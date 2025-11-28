@@ -1,8 +1,9 @@
 'use client';
 
-import { UmpireStage, Construct, SparringPartner, DojoConfig, BalanceState } from '@/lib/types';
+import { UmpireStage, Construct, SparringPartner, DojoConfig, BalanceState, DIKWState } from '@/lib/types';
 import { UmpireTracker } from './UmpireTracker';
 import { CreatingConsumingBalance } from './CreatingConsumingBalance';
+import { DIKWPyramid } from './DIKWPyramid';
 
 interface StatusPanelProps {
   config: DojoConfig;
@@ -11,6 +12,7 @@ interface StatusPanelProps {
   umpireStage: UmpireStage;
   onUmpireStageChange: (stage: UmpireStage) => void;
   balance: BalanceState;
+  dikw: DIKWState;
   hasStartedConversation: boolean;
 }
 
@@ -21,6 +23,7 @@ export function StatusPanel({
   umpireStage,
   onUmpireStageChange,
   balance,
+  dikw,
   hasStartedConversation,
 }: StatusPanelProps) {
   const construct = config.constructs.find(c => c.id === activeConstruct);
@@ -57,16 +60,19 @@ export function StatusPanel({
         </div>
       </div>
 
-      {/* Creating-Consuming Balance */}
-      <CreatingConsumingBalance
-        balance={balance}
-        hasStartedConversation={hasStartedConversation}
-      />
+      {/* DIKW Pyramid */}
+      <DIKWPyramid dikwState={dikw} />
 
       {/* UMPIRE Tracker */}
       <UmpireTracker
         currentStage={umpireStage}
         onStageChange={onUmpireStageChange}
+      />
+
+      {/* Creating-Consuming Balance */}
+      <CreatingConsumingBalance
+        balance={balance}
+        hasStartedConversation={hasStartedConversation}
       />
     </aside>
   );

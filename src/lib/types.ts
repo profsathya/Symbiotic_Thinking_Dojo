@@ -119,3 +119,66 @@ export const INITIAL_BALANCE_STATE: BalanceState = {
 // Balance marker regex pattern - Sensei includes this in responses
 // Format: [BALANCE: +2] or [BALANCE: -1]
 export const BALANCE_MARKER_REGEX = /\[BALANCE:\s*([+-]?\d+)\]/;
+
+// DIKW Pyramid types
+// Data → Information → Knowledge → Wisdom
+export type DIKWLevel = 'data' | 'information' | 'knowledge' | 'wisdom';
+
+export interface DIKWState {
+  current: DIKWLevel;      // Current level of the conversation
+  highWaterMark: DIKWLevel; // Highest level reached in this session
+  history: DIKWLevel[];    // History of levels through the session
+}
+
+export const DIKW_LEVELS: { id: DIKWLevel; name: string; description: string; questions: string }[] = [
+  {
+    id: 'data',
+    name: 'Data',
+    description: 'Raw facts and content',
+    questions: 'What is it? Give me the answer.'
+  },
+  {
+    id: 'information',
+    name: 'Information',
+    description: 'Organized, connected data',
+    questions: 'How does it work? Show me the steps.'
+  },
+  {
+    id: 'knowledge',
+    name: 'Knowledge',
+    description: 'Understanding why and when to apply',
+    questions: 'Why does this work? What are the assumptions?'
+  },
+  {
+    id: 'wisdom',
+    name: 'Wisdom',
+    description: 'Judgment for novel situations',
+    questions: 'What are the tradeoffs? How would this change if...?'
+  },
+];
+
+export const INITIAL_DIKW_STATE: DIKWState = {
+  current: 'data',
+  highWaterMark: 'data',
+  history: [],
+};
+
+// DIKW marker regex pattern - AI includes this in responses
+// Format: [DIKW: K] or [DIKW: W]
+export const DIKW_MARKER_REGEX = /\[DIKW:\s*([DIKW])\]/;
+
+// Helper to convert marker letter to level
+export const DIKW_MARKER_MAP: Record<string, DIKWLevel> = {
+  'D': 'data',
+  'I': 'information',
+  'K': 'knowledge',
+  'W': 'wisdom',
+};
+
+// Helper to get numeric order for comparison
+export const DIKW_ORDER: Record<DIKWLevel, number> = {
+  'data': 0,
+  'information': 1,
+  'knowledge': 2,
+  'wisdom': 3,
+};

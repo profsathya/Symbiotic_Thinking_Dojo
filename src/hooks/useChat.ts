@@ -9,6 +9,12 @@ import {
   BalanceState,
   INITIAL_BALANCE_STATE,
   BALANCE_MARKER_REGEX,
+  DIKWState,
+  DIKWLevel,
+  INITIAL_DIKW_STATE,
+  DIKW_MARKER_REGEX,
+  DIKW_MARKER_MAP,
+  DIKW_ORDER,
 } from '@/lib/types';
 import { createWelcomeMessage } from '@/lib/prompts';
 
@@ -23,6 +29,7 @@ interface UseChatReturn {
   isLoading: boolean;
   error: string | null;
   balance: BalanceState;
+  dikw: DIKWState;
   sendMessage: (content: string) => Promise<void>;
   resetChat: () => void;
 }
@@ -61,6 +68,35 @@ function updateBalanceState(current: BalanceState, delta: number): BalanceState 
   };
 }
 
+// Parse DIKW marker from content and return the level
+function parseDIKWMarker(content: string): DIKWLevel | null {
+  const match = content.match(DIKW_MARKER_REGEX);
+  if (match) {
+    const letter = match[1].toUpperCase();
+    if (letter in DIKW_MARKER_MAP) {
+      return DIKW_MARKER_MAP[letter];
+    }
+  }
+  return null;
+}
+
+// Strip DIKW marker from content for display
+function stripDIKWMarker(content: string): string {
+  return content.replace(DIKW_MARKER_REGEX, '').trim();
+}
+
+// Update DIKW state based on new level
+function updateDIKWState(current: DIKWState, newLevel: DIKWLevel): DIKWState {
+  const newOrder = DIKW_ORDER[newLevel];
+  const highWaterOrder = DIKW_ORDER[current.highWaterMark];
+
+  return {
+    current: newLevel,
+    highWaterMark: newOrder > highWaterOrder ? newLevel : current.highWaterMark,
+    history: [...current.history, newLevel],
+  };
+}
+
 export function useChat({ config, activeConstruct, activePartners }: UseChatOptions): UseChatReturn {
   // Initialize with welcome message
   const getInitialMessages = useCallback((): Message[] => {
@@ -80,6 +116,7 @@ export function useChat({ config, activeConstruct, activePartners }: UseChatOpti
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [balance, setBalance] = useState<BalanceState>(INITIAL_BALANCE_STATE);
+  const [dikw, setDikw] = useState<DIKWState>(INITIAL_DIKW_STATE);
 
   // Track if we should abort current request
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -160,8 +197,9 @@ export function useChat({ config, activeConstruct, activePartners }: UseChatOpti
               const data = JSON.parse(line.slice(6));
               if (data.content) {
                 accumulatedContent += data.content;
-                // Strip balance marker for display during streaming
-                const displayContent = stripBalanceMarker(accumulatedContent);
+                // Strip markers for display during streaming
+                let displayContent = stripBalanceMarker(accumulatedContent);
+                displayContent = stripDIKWMarker(displayContent);
                 setMessages(current =>
                   current.map(msg =>
                     msg.id === assistantMessageId
@@ -188,8 +226,15 @@ export function useChat({ config, activeConstruct, activePartners }: UseChatOpti
         setBalance(current => updateBalanceState(current, balanceDelta));
       }
 
-      // Strip balance marker from final content
-      const cleanContent = stripBalanceMarker(accumulatedContent);
+      // Parse DIKW marker and update DIKW state
+      const dikwLevel = parseDIKWMarker(accumulatedContent);
+      if (dikwLevel !== null) {
+        setDikw(current => updateDIKWState(current, dikwLevel));
+      }
+
+      // Strip markers from final content
+      let cleanContent = stripBalanceMarker(accumulatedContent);
+      cleanContent = stripDIKWMarker(cleanContent);
 
       // Determine speaker based on content
       const speaker = determineSpeaker(cleanContent, activePartners);
@@ -222,6 +267,7 @@ export function useChat({ config, activeConstruct, activePartners }: UseChatOpti
     }
     setMessages(getInitialMessages());
     setBalance(INITIAL_BALANCE_STATE);
+    setDikw(INITIAL_DIKW_STATE);
     setError(null);
     setIsLoading(false);
   }, [getInitialMessages]);
@@ -231,6 +277,7 @@ export function useChat({ config, activeConstruct, activePartners }: UseChatOpti
     isLoading,
     error,
     balance,
+    dikw,
     sendMessage,
     resetChat,
   };

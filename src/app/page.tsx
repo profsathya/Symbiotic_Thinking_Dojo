@@ -36,6 +36,7 @@ export default function Home() {
     isLoading,
     error,
     balance,
+    dikw,
     sendMessage,
     resetChat,
   } = useChat({
@@ -96,6 +97,7 @@ export default function Home() {
         umpireStage={umpireStage}
         onUmpireStageChange={setUmpireStage}
         balance={balance}
+        dikw={dikw}
         hasStartedConversation={hasStartedConversation}
       />
 
