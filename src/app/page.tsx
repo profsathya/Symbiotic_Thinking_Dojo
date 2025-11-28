@@ -37,8 +37,10 @@ export default function Home() {
     error,
     balance,
     dikw,
+    isGuidedPractice,
     sendMessage,
     resetChat,
+    startGuidedPractice,
   } = useChat({
     config,
     activeConstruct,
@@ -78,6 +80,7 @@ export default function Home() {
         onTogglePartner={togglePartner}
         onOpenConfig={() => setIsConfigOpen(true)}
         onNewSession={resetChat}
+        onGuidedPractice={startGuidedPractice}
       />
 
       {/* Main Chat Area */}

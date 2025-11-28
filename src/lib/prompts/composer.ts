@@ -1,13 +1,19 @@
 import { DojoConfig, Construct, SparringPartner } from '../types';
 
+export interface ComposeOptions {
+  isGuidedPractice?: boolean;
+}
+
 /**
  * Composes the complete system prompt from configuration and active selections
  */
 export function composeSystemPrompt(
   config: DojoConfig,
   activeConstruct: Construct,
-  activePartners: SparringPartner[]
+  activePartners: SparringPartner[],
+  options: ComposeOptions = {}
 ): string {
+  const { isGuidedPractice = false } = options;
   const parts: string[] = [];
 
   // 1. Base Dojo philosophy (always present)
@@ -15,6 +21,11 @@ export function composeSystemPrompt(
 
   // 2. Sensei layer (always present)
   parts.push('# SENSEI GUIDANCE\n\n' + config.senseiPrompt);
+
+  // 2b. Ikigai guided practice (if active)
+  if (isGuidedPractice) {
+    parts.push('# GUIDED PRACTICE: IKIGAI DISCOVERY\n\n' + config.ikigaiPrompt);
+  }
 
   // 3. Active construct prompt
   const construct = config.constructs.find(c => c.id === activeConstruct);
@@ -56,8 +67,33 @@ Remember: The goal is to develop the student's judgment and cognitive skills, no
 export function createWelcomeMessage(
   activeConstruct: Construct,
   activePartners: SparringPartner[],
-  config: DojoConfig
+  config: DojoConfig,
+  options: ComposeOptions = {}
 ): string {
+  const { isGuidedPractice = false } = options;
+
+  // Guided Practice welcome message
+  if (isGuidedPractice) {
+    let message = `**Sensei:** Welcome to Guided Practice — your journey of self-discovery.
+
+Let's explore your **ikigai** — your reason for being. This is about understanding what genuinely interests you, what you're naturally good at, what matters to you, and where these might intersect.
+
+This isn't about finding the "right" answer. It's about developing self-awareness through reflection.`;
+
+    if (activePartners.length > 0) {
+      const partnerNames = activePartners.map(id => {
+        const partner = config.partners.find(p => p.id === id);
+        return partner?.name || id;
+      });
+      message += `\n\n${partnerNames.join(' and ')} ${activePartners.length > 1 ? 'are' : 'is'} here to help challenge and deepen your thinking.`;
+    }
+
+    message += `\n\n**Let's start with curiosity:** What's something you find yourself drawn to learning about or doing, even when no one is asking you to? It could be anything — a hobby, a topic, a type of problem, a way of spending time...`;
+
+    return message;
+  }
+
+  // Standard welcome message
   const construct = config.constructs.find(c => c.id === activeConstruct);
   const constructName = construct?.name || 'Learn';
 

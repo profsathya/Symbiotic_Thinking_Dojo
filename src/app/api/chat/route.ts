@@ -6,10 +6,10 @@ import { ChatRequest } from '@/lib/types';
 export async function POST(request: NextRequest) {
   try {
     const body: ChatRequest = await request.json();
-    const { messages, config, activeConstruct, activePartners } = body;
+    const { messages, config, activeConstruct, activePartners, isGuidedPractice } = body;
 
     // Compose the system prompt from configuration
-    const systemPrompt = composeSystemPrompt(config, activeConstruct, activePartners);
+    const systemPrompt = composeSystemPrompt(config, activeConstruct, activePartners, { isGuidedPractice });
 
     // Get the LLM provider (currently Claude)
     const provider = getProvider('claude');

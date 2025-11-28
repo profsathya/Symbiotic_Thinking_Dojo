@@ -22,6 +22,7 @@ interface UseChatOptions {
   config: DojoConfig;
   activeConstruct: Construct;
   activePartners: SparringPartner[];
+  isGuidedPractice?: boolean;
 }
 
 interface UseChatReturn {
@@ -30,8 +31,10 @@ interface UseChatReturn {
   error: string | null;
   balance: BalanceState;
   dikw: DIKWState;
+  isGuidedPractice: boolean;
   sendMessage: (content: string) => Promise<void>;
   resetChat: () => void;
+  startGuidedPractice: () => void;
 }
 
 function generateId(): string {
@@ -98,9 +101,11 @@ function updateDIKWState(current: DIKWState, newLevel: DIKWLevel): DIKWState {
 }
 
 export function useChat({ config, activeConstruct, activePartners }: UseChatOptions): UseChatReturn {
+  const [isGuidedPractice, setIsGuidedPractice] = useState(false);
+
   // Initialize with welcome message
-  const getInitialMessages = useCallback((): Message[] => {
-    const welcomeContent = createWelcomeMessage(activeConstruct, activePartners, config);
+  const getInitialMessages = useCallback((guidedPractice: boolean = false): Message[] => {
+    const welcomeContent = createWelcomeMessage(activeConstruct, activePartners, config, { isGuidedPractice: guidedPractice });
     return [
       {
         id: generateId(),
@@ -112,7 +117,7 @@ export function useChat({ config, activeConstruct, activePartners }: UseChatOpti
     ];
   }, [activeConstruct, activePartners, config]);
 
-  const [messages, setMessages] = useState<Message[]>(getInitialMessages);
+  const [messages, setMessages] = useState<Message[]>(() => getInitialMessages(false));
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [balance, setBalance] = useState<BalanceState>(INITIAL_BALANCE_STATE);
@@ -168,6 +173,7 @@ export function useChat({ config, activeConstruct, activePartners }: UseChatOpti
           config,
           activeConstruct,
           activePartners,
+          isGuidedPractice,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -265,7 +271,21 @@ export function useChat({ config, activeConstruct, activePartners }: UseChatOpti
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    setMessages(getInitialMessages());
+    setIsGuidedPractice(false);
+    setMessages(getInitialMessages(false));
+    setBalance(INITIAL_BALANCE_STATE);
+    setDikw(INITIAL_DIKW_STATE);
+    setError(null);
+    setIsLoading(false);
+  }, [getInitialMessages]);
+
+  const startGuidedPractice = useCallback(() => {
+    // Cancel any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    setIsGuidedPractice(true);
+    setMessages(getInitialMessages(true));
     setBalance(INITIAL_BALANCE_STATE);
     setDikw(INITIAL_DIKW_STATE);
     setError(null);
@@ -278,8 +298,10 @@ export function useChat({ config, activeConstruct, activePartners }: UseChatOpti
     error,
     balance,
     dikw,
+    isGuidedPractice,
     sendMessage,
     resetChat,
+    startGuidedPractice,
   };
 }
 

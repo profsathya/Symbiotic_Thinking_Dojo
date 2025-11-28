@@ -13,6 +13,7 @@ interface SidebarProps {
   onTogglePartner: (partner: SparringPartner) => void;
   onOpenConfig: () => void;
   onNewSession: () => void;
+  onGuidedPractice: () => void;
 }
 
 export function Sidebar({
@@ -23,6 +24,7 @@ export function Sidebar({
   onTogglePartner,
   onOpenConfig,
   onNewSession,
+  onGuidedPractice,
 }: SidebarProps) {
   return (
     <aside className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col h-full">
@@ -38,8 +40,23 @@ export function Sidebar({
           />
           <div>
             <h1 className="text-base font-bold text-gray-100">Symbiotic Thinking Dojo</h1>
+            <span className="text-[10px] font-medium text-amber-500 uppercase tracking-wider">Beta</span>
           </div>
         </div>
+      </div>
+
+      {/* Guided Practice */}
+      <div className="px-4 pt-4">
+        <button
+          onClick={onGuidedPractice}
+          className="w-full px-3 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-900/20"
+        >
+          <span>🧭</span>
+          Guided Practice
+        </button>
+        <p className="text-[10px] text-gray-500 mt-1.5 text-center">
+          Discover your ikigai through reflection
+        </p>
       </div>
 
       {/* Scrollable content */}

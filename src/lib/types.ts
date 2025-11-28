@@ -42,6 +42,7 @@ export interface PartnerConfig {
 export interface DojoConfig {
   dojoPrompt: string;
   senseiPrompt: string;
+  ikigaiPrompt: string;
   constructs: ConstructConfig[];
   partners: PartnerConfig[];
 }
@@ -68,6 +69,7 @@ export interface ChatRequest {
   config: DojoConfig;
   activeConstruct: Construct;
   activePartners: SparringPartner[];
+  isGuidedPractice?: boolean;
 }
 
 // Chat response

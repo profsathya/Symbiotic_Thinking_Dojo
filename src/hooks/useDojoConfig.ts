@@ -26,6 +26,7 @@ interface UseDojoConfigReturn {
   // Config modification actions
   updateDojoPrompt: (prompt: string) => void;
   updateSenseiPrompt: (prompt: string) => void;
+  updateIkigaiPrompt: (prompt: string) => void;
   updateConstructPrompt: (id: Construct, prompt: string) => void;
   updatePartnerPrompt: (id: SparringPartner, prompt: string) => void;
   updatePartnerName: (id: SparringPartner, name: string) => void;
@@ -37,6 +38,7 @@ interface UseDojoConfigReturn {
   resetToDefaults: () => void;
   resetDojoPrompt: () => void;
   resetSenseiPrompt: () => void;
+  resetIkigaiPrompt: () => void;
   resetConstructPrompt: (id: Construct) => void;
   resetPartnerPrompt: (id: SparringPartner) => void;
 }
@@ -67,6 +69,11 @@ export function useDojoConfig(): UseDojoConfigReturn {
   // Update Sensei prompt
   const updateSenseiPrompt = useCallback((prompt: string) => {
     setConfig(current => ({ ...current, senseiPrompt: prompt }));
+  }, []);
+
+  // Update Ikigai prompt
+  const updateIkigaiPrompt = useCallback((prompt: string) => {
+    setConfig(current => ({ ...current, ikigaiPrompt: prompt }));
   }, []);
 
   // Update a construct's prompt
@@ -149,6 +156,13 @@ export function useDojoConfig(): UseDojoConfigReturn {
     }));
   }, []);
 
+  const resetIkigaiPrompt = useCallback(() => {
+    setConfig(current => ({
+      ...current,
+      ikigaiPrompt: DEFAULT_DOJO_CONFIG.ikigaiPrompt,
+    }));
+  }, []);
+
   const resetConstructPrompt = useCallback((id: Construct) => {
     const defaultConstruct = DEFAULT_DOJO_CONFIG.constructs.find(c => c.id === id);
     if (defaultConstruct) {
@@ -183,6 +197,7 @@ export function useDojoConfig(): UseDojoConfigReturn {
     setUmpireStage,
     updateDojoPrompt,
     updateSenseiPrompt,
+    updateIkigaiPrompt,
     updateConstructPrompt,
     updatePartnerPrompt,
     updatePartnerName,
@@ -192,6 +207,7 @@ export function useDojoConfig(): UseDojoConfigReturn {
     resetToDefaults,
     resetDojoPrompt,
     resetSenseiPrompt,
+    resetIkigaiPrompt,
     resetConstructPrompt,
     resetPartnerPrompt,
   };
