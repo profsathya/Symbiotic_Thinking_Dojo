@@ -37,8 +37,7 @@ export function Sidebar({
             className="rounded"
           />
           <div>
-            <h1 className="text-lg font-bold text-gray-100">Thinking Dojo</h1>
-            <p className="text-xs text-gray-500">Symbiotic AI Practice</p>
+            <h1 className="text-base font-bold text-gray-100">Symbiotic Thinking Dojo</h1>
           </div>
         </div>
       </div>
