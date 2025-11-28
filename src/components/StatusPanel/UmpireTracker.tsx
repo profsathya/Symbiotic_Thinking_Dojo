@@ -160,10 +160,10 @@ export function UmpireTracker({ currentStage, onStageChange }: UmpireTrackerProp
 
               {/* Loop arrows between groups */}
               {groupIdx === 1 && (
-                <LoopArrow from="R" to="P" label="iterate" />
+                <LoopArrow from="P" to="R" label="iterate" />
               )}
               {groupIdx === 2 && (
-                <LoopArrow from="E" to="U" label="restart" />
+                <LoopArrow from="U" to="E" label="restart" />
               )}
             </div>
           );
