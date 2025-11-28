@@ -7,9 +7,11 @@ import { Sidebar } from '@/components/Sidebar';
 import { ChatContainer } from '@/components/Chat';
 import { StatusPanel } from '@/components/StatusPanel';
 import { ConfigPanel } from '@/components/ConfigPanel';
+import { HelpButtons, HelpModal } from '@/components/HelpPanel';
 
 export default function Home() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [helpModalType, setHelpModalType] = useState<'philosophy' | 'interface' | null>(null);
   const [mounted, setMounted] = useState(false);
 
   const {
@@ -104,6 +106,12 @@ export default function Home() {
         hasStartedConversation={hasStartedConversation}
       />
 
+      {/* Help Buttons (top right) */}
+      <HelpButtons
+        onOpenPhilosophy={() => setHelpModalType('philosophy')}
+        onOpenInterface={() => setHelpModalType('interface')}
+      />
+
       {/* Configuration Modal */}
       <ConfigPanel
         isOpen={isConfigOpen}
@@ -118,6 +126,13 @@ export default function Home() {
         onResetConstructPrompt={resetConstructPrompt}
         onResetPartnerPrompt={resetPartnerPrompt}
         onResetAll={resetToDefaults}
+      />
+
+      {/* Help Modal */}
+      <HelpModal
+        isOpen={helpModalType !== null}
+        onClose={() => setHelpModalType(null)}
+        type={helpModalType || 'philosophy'}
       />
     </div>
   );
