@@ -35,6 +35,7 @@ export default function Home() {
     messages,
     isLoading,
     error,
+    balance,
     sendMessage,
     resetChat,
   } = useChat({
@@ -53,6 +54,9 @@ export default function Home() {
     setActiveConstruct(construct);
     resetChat();
   };
+
+  // Check if user has started a conversation (more than just the welcome message)
+  const hasStartedConversation = messages.length > 1;
 
   if (!mounted) {
     return (
@@ -81,6 +85,7 @@ export default function Home() {
         isLoading={isLoading}
         error={error}
         onSendMessage={sendMessage}
+        balance={balance}
       />
 
       {/* Status Panel */}
@@ -90,6 +95,8 @@ export default function Home() {
         activePartners={activePartners}
         umpireStage={umpireStage}
         onUmpireStageChange={setUmpireStage}
+        balance={balance}
+        hasStartedConversation={hasStartedConversation}
       />
 
       {/* Configuration Modal */}

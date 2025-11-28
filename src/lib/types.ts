@@ -92,3 +92,23 @@ export const UMPIRE_STAGES: { id: UmpireStage; name: string }[] = [
   { id: 'review', name: 'Review' },
   { id: 'extend', name: 'Extend' },
 ];
+
+// Creating-Consuming Balance types
+// Positive = Creating (engaging critically), Negative = Consuming (offloading to AI)
+export interface BalanceState {
+  score: number;           // Current cumulative score (-10 to +10 range, clamped)
+  lastDelta: number;       // Last change (-3 to +3)
+  consecutiveConsuming: number;  // Count of consecutive consuming interactions
+  history: number[];       // History of deltas for this session
+}
+
+export const INITIAL_BALANCE_STATE: BalanceState = {
+  score: 0,
+  lastDelta: 0,
+  consecutiveConsuming: 0,
+  history: [],
+};
+
+// Balance marker regex pattern - Sensei includes this in responses
+// Format: [BALANCE: +2] or [BALANCE: -1]
+export const BALANCE_MARKER_REGEX = /\[BALANCE:\s*([+-]?\d+)\]/;

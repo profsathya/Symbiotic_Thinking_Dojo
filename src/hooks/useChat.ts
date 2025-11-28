@@ -1,7 +1,15 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { Message, DojoConfig, Construct, SparringPartner } from '@/lib/types';
+import {
+  Message,
+  DojoConfig,
+  Construct,
+  SparringPartner,
+  BalanceState,
+  INITIAL_BALANCE_STATE,
+  BALANCE_MARKER_REGEX,
+} from '@/lib/types';
 import { createWelcomeMessage } from '@/lib/prompts';
 
 interface UseChatOptions {
@@ -14,12 +22,43 @@ interface UseChatReturn {
   messages: Message[];
   isLoading: boolean;
   error: string | null;
+  balance: BalanceState;
   sendMessage: (content: string) => Promise<void>;
   resetChat: () => void;
 }
 
 function generateId(): string {
   return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// Parse balance marker from content and return the delta value
+function parseBalanceMarker(content: string): number | null {
+  const match = content.match(BALANCE_MARKER_REGEX);
+  if (match) {
+    const value = parseInt(match[1], 10);
+    if (!isNaN(value) && value >= -3 && value <= 3) {
+      return value;
+    }
+  }
+  return null;
+}
+
+// Strip balance marker from content for display
+function stripBalanceMarker(content: string): string {
+  return content.replace(BALANCE_MARKER_REGEX, '').trim();
+}
+
+// Update balance state based on new delta
+function updateBalanceState(current: BalanceState, delta: number): BalanceState {
+  const newScore = Math.max(-10, Math.min(10, current.score + delta));
+  const newConsecutiveConsuming = delta < 0 ? current.consecutiveConsuming + 1 : 0;
+
+  return {
+    score: newScore,
+    lastDelta: delta,
+    consecutiveConsuming: newConsecutiveConsuming,
+    history: [...current.history, delta],
+  };
 }
 
 export function useChat({ config, activeConstruct, activePartners }: UseChatOptions): UseChatReturn {
@@ -40,6 +79,7 @@ export function useChat({ config, activeConstruct, activePartners }: UseChatOpti
   const [messages, setMessages] = useState<Message[]>(getInitialMessages);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [balance, setBalance] = useState<BalanceState>(INITIAL_BALANCE_STATE);
 
   // Track if we should abort current request
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -120,10 +160,12 @@ export function useChat({ config, activeConstruct, activePartners }: UseChatOpti
               const data = JSON.parse(line.slice(6));
               if (data.content) {
                 accumulatedContent += data.content;
+                // Strip balance marker for display during streaming
+                const displayContent = stripBalanceMarker(accumulatedContent);
                 setMessages(current =>
                   current.map(msg =>
                     msg.id === assistantMessageId
-                      ? { ...msg, content: accumulatedContent }
+                      ? { ...msg, content: displayContent }
                       : msg
                   )
                 );
@@ -140,12 +182,21 @@ export function useChat({ config, activeConstruct, activePartners }: UseChatOpti
         }
       }
 
+      // Parse balance marker and update balance state
+      const balanceDelta = parseBalanceMarker(accumulatedContent);
+      if (balanceDelta !== null) {
+        setBalance(current => updateBalanceState(current, balanceDelta));
+      }
+
+      // Strip balance marker from final content
+      const cleanContent = stripBalanceMarker(accumulatedContent);
+
       // Determine speaker based on content
-      const speaker = determineSpeaker(accumulatedContent, activePartners);
+      const speaker = determineSpeaker(cleanContent, activePartners);
       setMessages(current =>
         current.map(msg =>
           msg.id === assistantMessageId
-            ? { ...msg, speaker }
+            ? { ...msg, content: cleanContent, speaker }
             : msg
         )
       );
@@ -170,6 +221,7 @@ export function useChat({ config, activeConstruct, activePartners }: UseChatOpti
       abortControllerRef.current.abort();
     }
     setMessages(getInitialMessages());
+    setBalance(INITIAL_BALANCE_STATE);
     setError(null);
     setIsLoading(false);
   }, [getInitialMessages]);
@@ -178,6 +230,7 @@ export function useChat({ config, activeConstruct, activePartners }: UseChatOpti
     messages,
     isLoading,
     error,
+    balance,
     sendMessage,
     resetChat,
   };

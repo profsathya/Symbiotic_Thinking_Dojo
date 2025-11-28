@@ -1,7 +1,8 @@
 'use client';
 
-import { UmpireStage, Construct, SparringPartner, DojoConfig } from '@/lib/types';
+import { UmpireStage, Construct, SparringPartner, DojoConfig, BalanceState } from '@/lib/types';
 import { UmpireTracker } from './UmpireTracker';
+import { CreatingConsumingBalance } from './CreatingConsumingBalance';
 
 interface StatusPanelProps {
   config: DojoConfig;
@@ -9,6 +10,8 @@ interface StatusPanelProps {
   activePartners: SparringPartner[];
   umpireStage: UmpireStage;
   onUmpireStageChange: (stage: UmpireStage) => void;
+  balance: BalanceState;
+  hasStartedConversation: boolean;
 }
 
 export function StatusPanel({
@@ -17,6 +20,8 @@ export function StatusPanel({
   activePartners,
   umpireStage,
   onUmpireStageChange,
+  balance,
+  hasStartedConversation,
 }: StatusPanelProps) {
   const construct = config.constructs.find(c => c.id === activeConstruct);
   const partners = config.partners.filter(p => activePartners.includes(p.id));
@@ -52,29 +57,17 @@ export function StatusPanel({
         </div>
       </div>
 
+      {/* Creating-Consuming Balance */}
+      <CreatingConsumingBalance
+        balance={balance}
+        hasStartedConversation={hasStartedConversation}
+      />
+
       {/* UMPIRE Tracker */}
       <UmpireTracker
         currentStage={umpireStage}
         onStageChange={onUmpireStageChange}
       />
-
-      {/* Tips */}
-      <div className="space-y-2">
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-          Tips
-        </h3>
-        <div className="bg-gray-800/50 rounded-lg p-3 text-xs text-gray-400 space-y-2">
-          <p>
-            <span className="text-emerald-400">•</span> The Sensei guides through questions, not answers.
-          </p>
-          <p>
-            <span className="text-purple-400">•</span> Activate Sparring Partners to challenge specific aspects of your thinking.
-          </p>
-          <p>
-            <span className="text-blue-400">•</span> Track your UMPIRE stage to stay oriented in the problem-solving process.
-          </p>
-        </div>
-      </div>
     </aside>
   );
 }
