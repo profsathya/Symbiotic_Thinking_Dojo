@@ -42,8 +42,11 @@ export async function POST(request: NextRequest) {
           }
         } catch (error) {
           console.error('Stream error:', error);
+          const errorMessage = error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred';
           controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ error: 'Stream error occurred' })}\n\n`)
+            encoder.encode(`data: ${JSON.stringify({ error: errorMessage })}\n\n`)
           );
         } finally {
           controller.close();
