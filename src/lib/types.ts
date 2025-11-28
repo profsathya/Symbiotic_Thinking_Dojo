@@ -7,7 +7,7 @@ export type Construct = 'learn' | 'learn-solve' | 'learn-solve-build';
 export type SparringPartner = 'framer' | 'auditor' | 'connector' | 'challenger';
 
 // UMPIRE stages for tracking progress
-export type UmpireStage = 'understand' | 'model' | 'plan' | 'implement' | 'review' | 'extend';
+export type UmpireStage = 'understand' | 'map' | 'plan' | 'implement' | 'review' | 'evaluate';
 
 // Message speaker types
 export type Speaker = 'user' | 'sensei' | SparringPartner;
@@ -84,14 +84,21 @@ export const CONSTRUCT_INFO: Record<Construct, { name: string; stakes: string }>
 };
 
 // Utility type for UMPIRE stage display
-export const UMPIRE_STAGES: { id: UmpireStage; name: string }[] = [
-  { id: 'understand', name: 'Understand' },
-  { id: 'model', name: 'Model' },
-  { id: 'plan', name: 'Plan' },
-  { id: 'implement', name: 'Implement' },
-  { id: 'review', name: 'Review' },
-  { id: 'extend', name: 'Extend' },
+export const UMPIRE_STAGES: { id: UmpireStage; name: string; description: string }[] = [
+  { id: 'understand', name: 'Understand', description: 'Grasp the problem deeply' },
+  { id: 'map', name: 'Map', description: 'Connect to prior experience' },
+  { id: 'plan', name: 'Plan', description: 'Design your approach' },
+  { id: 'implement', name: 'Implement', description: 'Execute with intention' },
+  { id: 'review', name: 'Review', description: 'Check results and process' },
+  { id: 'evaluate', name: 'Evaluate', description: 'Align with goals and values' },
 ];
+
+// 3Cs mapping to UMPIRE stages
+export const THREE_CS_MAPPING = {
+  context: ['understand', 'map'] as UmpireStage[],
+  choices: ['plan', 'implement'] as UmpireStage[],
+  confirmation: ['review', 'evaluate'] as UmpireStage[],
+};
 
 // Creating-Consuming Balance types
 // Positive = Creating (engaging critically), Negative = Consuming (offloading to AI)
