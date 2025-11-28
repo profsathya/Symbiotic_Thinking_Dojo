@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Construct, SparringPartner, DojoConfig } from '@/lib/types';
 import { ConstructSelector } from './ConstructSelector';
 import { PartnerSelector } from './PartnerSelector';
@@ -27,8 +28,14 @@ export function Sidebar({
     <aside className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col h-full">
       {/* Header */}
       <div className="p-4 border-b border-gray-800">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">🥋</span>
+        <div className="flex items-center gap-3">
+          <Image
+            src="/CTI.png"
+            alt="CTI Logo"
+            width={40}
+            height={40}
+            className="rounded"
+          />
           <div>
             <h1 className="text-lg font-bold text-gray-100">Thinking Dojo</h1>
             <p className="text-xs text-gray-500">Symbiotic AI Practice</p>
