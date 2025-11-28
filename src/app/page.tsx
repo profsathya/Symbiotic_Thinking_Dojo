@@ -92,6 +92,12 @@ export default function Home() {
         error={error}
         onSendMessage={sendMessage}
         balance={balance}
+        headerContent={
+          <HelpButtons
+            onOpenPhilosophy={() => setHelpModalType('philosophy')}
+            onOpenInterface={() => setHelpModalType('interface')}
+          />
+        }
       />
 
       {/* Status Panel */}
@@ -104,12 +110,6 @@ export default function Home() {
         balance={balance}
         dikw={dikw}
         hasStartedConversation={hasStartedConversation}
-      />
-
-      {/* Help Buttons (top right) */}
-      <HelpButtons
-        onOpenPhilosophy={() => setHelpModalType('philosophy')}
-        onOpenInterface={() => setHelpModalType('interface')}
       />
 
       {/* Configuration Modal */}

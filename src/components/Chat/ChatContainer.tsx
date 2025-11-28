@@ -1,5 +1,6 @@
 'use client';
 
+import { ReactNode } from 'react';
 import { Message, BalanceState } from '@/lib/types';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
@@ -10,6 +11,7 @@ interface ChatContainerProps {
   error: string | null;
   onSendMessage: (message: string) => void;
   balance: BalanceState;
+  headerContent?: ReactNode;
 }
 
 // Calculate background hue based on balance state
@@ -65,6 +67,7 @@ export function ChatContainer({
   error,
   onSendMessage,
   balance,
+  headerContent,
 }: ChatContainerProps) {
   const overlayOpacity = getOverlayOpacity(balance);
   const isConsuming = balance.score < 0 && balance.history.length >= 2;
@@ -80,6 +83,13 @@ export function ChatContainer({
           }`}
           style={{ opacity: overlayOpacity }}
         />
+      )}
+
+      {/* Header bar with help buttons */}
+      {headerContent && (
+        <div className="relative z-10 flex justify-end px-4 py-2 border-b border-gray-800/50">
+          {headerContent}
+        </div>
       )}
 
       {/* Error banner */}
