@@ -11,7 +11,7 @@ import { HelpButtons, HelpModal } from '@/components/HelpPanel';
 
 export default function Home() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const [helpModalType, setHelpModalType] = useState<'philosophy' | 'interface' | null>(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   const {
@@ -93,10 +93,7 @@ export default function Home() {
         onSendMessage={sendMessage}
         balance={balance}
         headerContent={
-          <HelpButtons
-            onOpenPhilosophy={() => setHelpModalType('philosophy')}
-            onOpenInterface={() => setHelpModalType('interface')}
-          />
+          <HelpButtons onOpen={() => setIsHelpOpen(true)} />
         }
       />
 
@@ -130,9 +127,8 @@ export default function Home() {
 
       {/* Help Modal */}
       <HelpModal
-        isOpen={helpModalType !== null}
-        onClose={() => setHelpModalType(null)}
-        type={helpModalType || 'philosophy'}
+        isOpen={isHelpOpen}
+        onClose={() => setIsHelpOpen(false)}
       />
     </div>
   );
