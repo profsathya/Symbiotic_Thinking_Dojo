@@ -2,15 +2,20 @@
 
 import Image from 'next/image';
 import { Construct, SparringPartner, DojoConfig } from '@/lib/types';
+import { Model } from '@/hooks/useDojoConfig';
 import { ConstructSelector } from './ConstructSelector';
 import { PartnerSelector } from './PartnerSelector';
+import { ModelSelector } from './ModelSelector';
 
 interface SidebarProps {
   config: DojoConfig;
   activeConstruct: Construct;
   activePartners: SparringPartner[];
+  activeModel: string;
+  availableModels: Model[];
   onSelectConstruct: (construct: Construct) => void;
   onTogglePartner: (partner: SparringPartner) => void;
+  onSelectModel: (modelId: string) => void;
   onOpenConfig: () => void;
   onNewSession: () => void;
   onGuidedPractice: () => void;
@@ -20,8 +25,11 @@ export function Sidebar({
   config,
   activeConstruct,
   activePartners,
+  activeModel,
+  availableModels,
   onSelectConstruct,
   onTogglePartner,
+  onSelectModel,
   onOpenConfig,
   onNewSession,
   onGuidedPractice,
@@ -61,6 +69,12 @@ export function Sidebar({
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        <ModelSelector
+          activeModel={activeModel}
+          availableModels={availableModels}
+          setActiveModel={onSelectModel}
+        />
+
         <ConstructSelector
           constructs={config.constructs}
           activeConstruct={activeConstruct}

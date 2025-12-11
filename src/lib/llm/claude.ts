@@ -20,7 +20,7 @@ export const claudeProvider: LLMProvider = {
   async chat(request: LLMRequest): Promise<LLMResponse> {
     const anthropic = getClient();
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: request.modelName,
       max_tokens: 4096,
       system: request.systemPrompt,
       messages: request.messages.map(msg => ({
@@ -40,9 +40,8 @@ export const claudeProvider: LLMProvider = {
     const anthropic = getClient();
 
     try {
-      const stream = await anthropic.messages.stream({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4096,
+          const stream = await anthropic.messages.stream({
+            model: request.modelName,        max_tokens: 4096,
         system: request.systemPrompt,
         messages: request.messages.map(msg => ({
           role: msg.role,

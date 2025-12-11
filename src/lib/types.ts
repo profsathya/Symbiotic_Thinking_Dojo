@@ -69,6 +69,7 @@ export interface ChatRequest {
   config: DojoConfig;
   activeConstruct: Construct;
   activePartners: SparringPartner[];
+  activeModel: string;
   isGuidedPractice?: boolean;
 }
 

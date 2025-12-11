@@ -19,9 +19,12 @@ export default function Home() {
     activeConstruct,
     activePartners,
     umpireStage,
+    activeModel,
+    availableModels,
     setActiveConstruct,
     togglePartner,
     setUmpireStage,
+    setActiveModel,
     updateDojoPrompt,
     updateSenseiPrompt,
     updateConstructPrompt,
@@ -47,6 +50,7 @@ export default function Home() {
     config,
     activeConstruct,
     activePartners,
+    activeModel,
   });
 
   // Handle hydration
@@ -59,6 +63,12 @@ export default function Home() {
     setActiveConstruct(construct);
     resetChat();
   };
+  
+  // Reset chat when model changes
+  const handleModelChange = (modelId: string) => {
+    setActiveModel(modelId);
+    resetChat();
+  }
 
   // Check if user has started a conversation (more than just the welcome message)
   const hasStartedConversation = messages.length > 1;
@@ -78,8 +88,11 @@ export default function Home() {
         config={config}
         activeConstruct={activeConstruct}
         activePartners={activePartners}
+        activeModel={activeModel}
+        availableModels={availableModels}
         onSelectConstruct={handleConstructChange}
         onTogglePartner={togglePartner}
+        onSelectModel={handleModelChange}
         onOpenConfig={() => setIsConfigOpen(true)}
         onNewSession={resetChat}
         onGuidedPractice={startGuidedPractice}

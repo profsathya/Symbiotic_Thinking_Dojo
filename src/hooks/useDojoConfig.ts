@@ -9,6 +9,28 @@ import {
 } from '@/lib/types';
 import { DEFAULT_DOJO_CONFIG } from '@/lib/prompts';
 
+// Represents an available LLM model
+export interface Model {
+  id: string; // The unique model ID used by the API
+  name: string; // The user-friendly display name
+  provider: 'claude' | 'gemini' | 'openai';
+  isDefault?: boolean; // To mark the default model
+}
+
+// Mapping from simplified provider ID to the actual model name for the API
+export const MODEL_ID_MAP: Record<string, string> = {
+  claude: 'claude-sonnet-4-5-20250929',
+  gemini: 'gemini-2.5-pro',
+};
+
+// Simplified list of available models for the user to choose from in the UI
+export const AVAILABLE_MODELS: Model[] = [
+  { id: 'claude', name: 'Claude', provider: 'claude', isDefault: true },
+  { id: 'gemini', name: 'Gemini', provider: 'gemini' },
+];
+
+const defaultModelId = AVAILABLE_MODELS.find(m => m.isDefault)?.id || AVAILABLE_MODELS[0].id;
+
 interface UseDojoConfigReturn {
   // Current configuration
   config: DojoConfig;
@@ -17,11 +39,14 @@ interface UseDojoConfigReturn {
   activeConstruct: Construct;
   activePartners: SparringPartner[];
   umpireStage: UmpireStage;
+  activeModel: string;
+  availableModels: Model[];
 
   // Selection actions
   setActiveConstruct: (construct: Construct) => void;
   togglePartner: (partner: SparringPartner) => void;
   setUmpireStage: (stage: UmpireStage) => void;
+  setActiveModel: (modelId: string) => void;
 
   // Config modification actions
   updateDojoPrompt: (prompt: string) => void;
@@ -51,6 +76,7 @@ export function useDojoConfig(): UseDojoConfigReturn {
   const [activeConstruct, setActiveConstruct] = useState<Construct>('learn');
   const [activePartners, setActivePartners] = useState<SparringPartner[]>([]);
   const [umpireStage, setUmpireStage] = useState<UmpireStage>('understand');
+  const [activeModel, setActiveModel] = useState<string>(defaultModelId);
 
   // Toggle a sparring partner on/off
   const togglePartner = useCallback((partner: SparringPartner) => {
@@ -192,9 +218,12 @@ export function useDojoConfig(): UseDojoConfigReturn {
     activeConstruct,
     activePartners,
     umpireStage,
+    activeModel,
+    availableModels: AVAILABLE_MODELS,
     setActiveConstruct,
     togglePartner,
     setUmpireStage,
+    setActiveModel,
     updateDojoPrompt,
     updateSenseiPrompt,
     updateIkigaiPrompt,

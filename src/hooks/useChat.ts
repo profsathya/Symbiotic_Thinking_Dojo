@@ -17,11 +17,13 @@ import {
   DIKW_ORDER,
 } from '@/lib/types';
 import { createWelcomeMessage } from '@/lib/prompts';
+import { MODEL_ID_MAP } from './useDojoConfig';
 
 interface UseChatOptions {
   config: DojoConfig;
   activeConstruct: Construct;
   activePartners: SparringPartner[];
+  activeModel: string;
   isGuidedPractice?: boolean;
 }
 
@@ -100,7 +102,7 @@ function updateDIKWState(current: DIKWState, newLevel: DIKWLevel): DIKWState {
   };
 }
 
-export function useChat({ config, activeConstruct, activePartners }: UseChatOptions): UseChatReturn {
+export function useChat({ config, activeConstruct, activePartners, activeModel }: UseChatOptions): UseChatReturn {
   const [isGuidedPractice, setIsGuidedPractice] = useState(false);
 
   // Initialize with welcome message
@@ -162,6 +164,10 @@ export function useChat({ config, activeConstruct, activePartners }: UseChatOpti
 
     setMessages([...updatedMessages, assistantMessage]);
 
+    const apiMessages = updatedMessages.slice(1);
+
+    const resolvedModelName = MODEL_ID_MAP[activeModel] || Object.values(MODEL_ID_MAP)[0];
+
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -169,17 +175,19 @@ export function useChat({ config, activeConstruct, activePartners }: UseChatOpti
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: updatedMessages,
+          messages: apiMessages,
           config,
           activeConstruct,
           activePartners,
+          activeModel: resolvedModelName,
           isGuidedPractice,
         }),
         signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
-        throw new Error('Failed to send message');
+        const errorBody = await response.json();
+        throw new Error(errorBody.error || 'Failed to send message');
       }
 
       const reader = response.body?.getReader();
@@ -258,13 +266,18 @@ export function useChat({ config, activeConstruct, activePartners }: UseChatOpti
         return;
       }
       console.error('Chat error:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      // Remove the empty assistant message on error
-      setMessages(current => current.filter(msg => msg.id !== assistantMessageId));
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+      setError(errorMessage);
+      // Update the placeholder message to show the error
+      setMessages(current => current.map(msg =>
+        msg.id === assistantMessageId
+          ? { ...msg, content: `🚨 **Error:** ${errorMessage}`, speaker: 'sensei' }
+          : msg
+      ));
     } finally {
       setIsLoading(false);
     }
-  }, [messages, config, activeConstruct, activePartners, isLoading]);
+  }, [messages, config, activeConstruct, activePartners, activeModel, isLoading]);
 
   const resetChat = useCallback(() => {
     // Cancel any existing request

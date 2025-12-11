@@ -7,6 +7,7 @@ export interface LLMMessage {
 }
 
 export interface LLMRequest {
+  modelName: string;
   messages: LLMMessage[];
   systemPrompt: string;
   stream?: boolean;

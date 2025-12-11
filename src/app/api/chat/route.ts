@@ -6,13 +6,13 @@ import { ChatRequest } from '@/lib/types';
 export async function POST(request: NextRequest) {
   try {
     const body: ChatRequest = await request.json();
-    const { messages, config, activeConstruct, activePartners, isGuidedPractice } = body;
+    const { messages, config, activeConstruct, activePartners, activeModel, isGuidedPractice } = body;
 
     // Compose the system prompt from configuration
     const systemPrompt = composeSystemPrompt(config, activeConstruct, activePartners, { isGuidedPractice });
 
-    // Get the LLM provider (currently Claude)
-    const provider = getProvider('claude');
+    // Get the LLM provider based on the active model from the client
+    const provider = getProvider(activeModel);
 
     // Create a readable stream for the response
     const encoder = new TextEncoder();
@@ -27,9 +27,9 @@ export async function POST(request: NextRequest) {
 
           // Stream the response
           const generator = provider.streamChat({
+            modelName: activeModel,
             messages: llmMessages,
             systemPrompt,
-            stream: true,
           });
 
           for await (const chunk of generator) {
