@@ -3,28 +3,31 @@
 import { useState, useEffect } from 'react';
 import { useDojoConfig } from '@/hooks/useDojoConfig';
 import { useChat } from '@/hooks/useChat';
+import { useApiKey } from '@/hooks/useApiKey';
 import { Sidebar } from '@/components/Sidebar';
 import { ChatContainer } from '@/components/Chat';
 import { StatusPanel } from '@/components/StatusPanel';
 import { ConfigPanel } from '@/components/ConfigPanel';
 import { HelpButtons, HelpModal } from '@/components/HelpPanel';
+import { ApiKeyModal } from '@/components/ApiKeyModal';
 
 export default function Home() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // API Key management (stored in browser localStorage)
+  const { apiKey, isKeySet, setApiKey, clearApiKey } = useApiKey();
 
   const {
     config,
     activeConstruct,
     activePartners,
     umpireStage,
-    activeModel,
-    availableModels,
     setActiveConstruct,
     togglePartner,
     setUmpireStage,
-    setActiveModel,
     updateDojoPrompt,
     updateSenseiPrompt,
     updateConstructPrompt,
@@ -50,7 +53,7 @@ export default function Home() {
     config,
     activeConstruct,
     activePartners,
-    activeModel,
+    apiKey,
   });
 
   // Handle hydration
@@ -63,12 +66,6 @@ export default function Home() {
     setActiveConstruct(construct);
     resetChat();
   };
-  
-  // Reset chat when model changes
-  const handleModelChange = (modelId: string) => {
-    setActiveModel(modelId);
-    resetChat();
-  }
 
   // Check if user has started a conversation (more than just the welcome message)
   const hasStartedConversation = messages.length > 1;
@@ -88,11 +85,10 @@ export default function Home() {
         config={config}
         activeConstruct={activeConstruct}
         activePartners={activePartners}
-        activeModel={activeModel}
-        availableModels={availableModels}
+        isApiKeySet={isKeySet}
         onSelectConstruct={handleConstructChange}
         onTogglePartner={togglePartner}
-        onSelectModel={handleModelChange}
+        onOpenApiKeySettings={() => setIsApiKeyModalOpen(true)}
         onOpenConfig={() => setIsConfigOpen(true)}
         onNewSession={resetChat}
         onGuidedPractice={startGuidedPractice}
@@ -120,6 +116,15 @@ export default function Home() {
         balance={balance}
         dikw={dikw}
         hasStartedConversation={hasStartedConversation}
+      />
+
+      {/* API Key Modal */}
+      <ApiKeyModal
+        isOpen={isApiKeyModalOpen}
+        onClose={() => setIsApiKeyModalOpen(false)}
+        currentKey={apiKey}
+        onSaveKey={setApiKey}
+        onClearKey={clearApiKey}
       />
 
       {/* Configuration Modal */}

@@ -16,14 +16,17 @@ import {
   DIKW_MARKER_MAP,
   DIKW_ORDER,
 } from '@/lib/types';
-import { createWelcomeMessage } from '@/lib/prompts';
-import { MODEL_ID_MAP } from './useDojoConfig';
+import { createWelcomeMessage, composeSystemPrompt } from '@/lib/prompts';
+import { streamGeminiChat } from '@/lib/gemini-client';
+
+// Default model for Gemini
+const DEFAULT_MODEL = 'gemini-2.0-flash';
 
 interface UseChatOptions {
   config: DojoConfig;
   activeConstruct: Construct;
   activePartners: SparringPartner[];
-  activeModel: string;
+  apiKey: string | null;
   isGuidedPractice?: boolean;
 }
 
@@ -102,7 +105,7 @@ function updateDIKWState(current: DIKWState, newLevel: DIKWLevel): DIKWState {
   };
 }
 
-export function useChat({ config, activeConstruct, activePartners, activeModel }: UseChatOptions): UseChatReturn {
+export function useChat({ config, activeConstruct, activePartners, apiKey }: UseChatOptions): UseChatReturn {
   const [isGuidedPractice, setIsGuidedPractice] = useState(false);
 
   // Initialize with welcome message
@@ -130,6 +133,12 @@ export function useChat({ config, activeConstruct, activePartners, activeModel }
 
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || isLoading) return;
+
+    // Check for API key
+    if (!apiKey) {
+      setError('Please set your Gemini API key in Settings to start chatting.');
+      return;
+    }
 
     // Cancel any existing request
     if (abortControllerRef.current) {
@@ -159,107 +168,80 @@ export function useChat({ config, activeConstruct, activePartners, activeModel }
       role: 'assistant',
       content: '',
       timestamp: new Date(),
-      speaker: 'sensei', // Default, could be updated based on content
+      speaker: 'sensei',
     };
 
     setMessages([...updatedMessages, assistantMessage]);
 
-    const apiMessages = updatedMessages.slice(1);
+    // Build messages for API (skip initial welcome message)
+    const apiMessages = updatedMessages.slice(1).map(msg => ({
+      role: msg.role as 'user' | 'assistant',
+      content: msg.content,
+    }));
 
-    const resolvedModelName = MODEL_ID_MAP[activeModel] || Object.values(MODEL_ID_MAP)[0];
+    // Compose system prompt
+    const systemPrompt = composeSystemPrompt(config, activeConstruct, activePartners, { isGuidedPractice });
 
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: apiMessages,
-          config,
-          activeConstruct,
-          activePartners,
-          activeModel: resolvedModelName,
-          isGuidedPractice,
-        }),
-        signal: abortControllerRef.current.signal,
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.json();
-        throw new Error(errorBody.error || 'Failed to send message');
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('No response body');
-      }
-
-      const decoder = new TextDecoder();
       let accumulatedContent = '';
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.content) {
-                accumulatedContent += data.content;
-                // Strip markers for display during streaming
-                let displayContent = stripBalanceMarker(accumulatedContent);
-                displayContent = stripDIKWMarker(displayContent);
-                setMessages(current =>
-                  current.map(msg =>
-                    msg.id === assistantMessageId
-                      ? { ...msg, content: displayContent }
-                      : msg
-                  )
-                );
-              }
-              if (data.error) {
-                throw new Error(data.error);
-              }
-            } catch (e) {
-              // Ignore JSON parse errors for incomplete chunks
-              if (e instanceof SyntaxError) continue;
-              throw e;
-            }
+      await streamGeminiChat({
+        apiKey,
+        modelName: DEFAULT_MODEL,
+        systemPrompt,
+        messages: apiMessages,
+        signal: abortControllerRef.current.signal,
+        onChunk: (chunk) => {
+          accumulatedContent += chunk;
+          // Strip markers for display during streaming
+          let displayContent = stripBalanceMarker(accumulatedContent);
+          displayContent = stripDIKWMarker(displayContent);
+          setMessages(current =>
+            current.map(msg =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: displayContent }
+                : msg
+            )
+          );
+        },
+        onComplete: () => {
+          // Parse balance marker and update balance state
+          const balanceDelta = parseBalanceMarker(accumulatedContent);
+          if (balanceDelta !== null) {
+            setBalance(current => updateBalanceState(current, balanceDelta));
           }
-        }
-      }
 
-      // Parse balance marker and update balance state
-      const balanceDelta = parseBalanceMarker(accumulatedContent);
-      if (balanceDelta !== null) {
-        setBalance(current => updateBalanceState(current, balanceDelta));
-      }
+          // Parse DIKW marker and update DIKW state
+          const dikwLevel = parseDIKWMarker(accumulatedContent);
+          if (dikwLevel !== null) {
+            setDikw(current => updateDIKWState(current, dikwLevel));
+          }
 
-      // Parse DIKW marker and update DIKW state
-      const dikwLevel = parseDIKWMarker(accumulatedContent);
-      if (dikwLevel !== null) {
-        setDikw(current => updateDIKWState(current, dikwLevel));
-      }
+          // Strip markers from final content
+          let cleanContent = stripBalanceMarker(accumulatedContent);
+          cleanContent = stripDIKWMarker(cleanContent);
 
-      // Strip markers from final content
-      let cleanContent = stripBalanceMarker(accumulatedContent);
-      cleanContent = stripDIKWMarker(cleanContent);
-
-      // Determine speaker based on content
-      const speaker = determineSpeaker(cleanContent, activePartners);
-      setMessages(current =>
-        current.map(msg =>
-          msg.id === assistantMessageId
-            ? { ...msg, content: cleanContent, speaker }
-            : msg
-        )
-      );
-
+          // Determine speaker based on content
+          const speaker = determineSpeaker(cleanContent, activePartners);
+          setMessages(current =>
+            current.map(msg =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: cleanContent, speaker }
+                : msg
+            )
+          );
+        },
+        onError: (err) => {
+          setError(err.message);
+          setMessages(current =>
+            current.map(msg =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: `**Error:** ${err.message}`, speaker: 'sensei' }
+                : msg
+            )
+          );
+        },
+      });
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
         // Request was cancelled, don't show error
@@ -268,16 +250,10 @@ export function useChat({ config, activeConstruct, activePartners, activeModel }
       console.error('Chat error:', err);
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
       setError(errorMessage);
-      // Update the placeholder message to show the error
-      setMessages(current => current.map(msg =>
-        msg.id === assistantMessageId
-          ? { ...msg, content: `🚨 **Error:** ${errorMessage}`, speaker: 'sensei' }
-          : msg
-      ));
     } finally {
       setIsLoading(false);
     }
-  }, [messages, config, activeConstruct, activePartners, activeModel, isLoading]);
+  }, [messages, config, activeConstruct, activePartners, apiKey, isLoading, isGuidedPractice]);
 
   const resetChat = useCallback(() => {
     // Cancel any existing request

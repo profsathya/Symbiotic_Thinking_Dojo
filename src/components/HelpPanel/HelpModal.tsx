@@ -7,7 +7,7 @@ interface HelpModalProps {
   onClose: () => void;
 }
 
-type TabType = 'philosophy' | 'interface';
+type TabType = 'philosophy' | 'interface' | 'privacy';
 
 export function HelpModal({ isOpen, onClose }: HelpModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>('philosophy');
@@ -81,12 +81,29 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
                 Interface
               </span>
             </button>
+            <button
+              onClick={() => setActiveTab('privacy')}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                activeTab === 'privacy'
+                  ? 'bg-gray-800 text-gray-100 border-b-2 border-emerald-500'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                Privacy & Setup
+              </span>
+            </button>
           </div>
         </div>
 
         {/* Content */}
         <div className="px-6 py-4 overflow-y-auto max-h-[calc(80vh-160px)]">
-          {activeTab === 'philosophy' ? <PhilosophyContent /> : <InterfaceContent />}
+          {activeTab === 'philosophy' && <PhilosophyContent />}
+          {activeTab === 'interface' && <InterfaceContent />}
+          {activeTab === 'privacy' && <PrivacyContent />}
         </div>
 
         {/* Footer */}
@@ -229,6 +246,101 @@ function InterfaceContent() {
             <span>Watch the <strong>DIKW Pyramid</strong> — try to climb it by asking deeper questions.</span>
           </li>
         </ul>
+      </section>
+    </div>
+  );
+}
+
+function PrivacyContent() {
+  return (
+    <div className="space-y-6 text-gray-300 text-sm">
+      {/* Privacy Notice */}
+      <section>
+        <div className="bg-emerald-900/30 border border-emerald-700/50 rounded-lg p-4 mb-4">
+          <div className="flex gap-3">
+            <svg className="w-6 h-6 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <div>
+              <h3 className="text-base font-semibold text-emerald-300 mb-1">Your Privacy is Protected</h3>
+              <p className="text-emerald-200/80">
+                This app is designed with <strong>privacy-first architecture</strong>. Your conversations go directly from your browser to Google&apos;s Gemini API — our servers never see your messages or API key.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h3 className="text-base font-semibold text-gray-100 mb-3">How It Works</h3>
+        <div className="space-y-3">
+          <div className="bg-gray-800/50 rounded-lg p-3">
+            <h4 className="font-medium text-purple-400 mb-1">1. Your API Key Stays Local</h4>
+            <p className="text-gray-400">Your Gemini API key is stored in your browser&apos;s localStorage. It never leaves your device or passes through our servers.</p>
+          </div>
+          <div className="bg-gray-800/50 rounded-lg p-3">
+            <h4 className="font-medium text-blue-400 mb-1">2. Direct Connection to Google</h4>
+            <p className="text-gray-400">When you chat, your messages go directly from your browser to Google&apos;s Gemini API. We have zero access to your conversation content.</p>
+          </div>
+          <div className="bg-gray-800/50 rounded-lg p-3">
+            <h4 className="font-medium text-emerald-400 mb-1">3. Nothing Stored on Our End</h4>
+            <p className="text-gray-400">We don&apos;t store messages, API keys, or any personal data. The only thing we serve is the app code itself.</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h3 className="text-base font-semibold text-gray-100 mb-3">Getting Started</h3>
+        <div className="bg-gray-800/50 rounded-lg p-4">
+          <h4 className="font-medium text-gray-200 mb-3">Get a Free Gemini API Key</h4>
+          <ol className="space-y-2 text-gray-400">
+            <li className="flex gap-2">
+              <span className="text-purple-400 font-medium">1.</span>
+              <span>
+                Go to{' '}
+                <a
+                  href="https://makersuite.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-purple-400 hover:text-purple-300 underline"
+                >
+                  Google AI Studio
+                </a>
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-purple-400 font-medium">2.</span>
+              <span>Sign in with your Google account</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-purple-400 font-medium">3.</span>
+              <span>Click &quot;Create API Key&quot;</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-purple-400 font-medium">4.</span>
+              <span>Copy the key and paste it into the &quot;Set API Key&quot; button in the sidebar</span>
+            </li>
+          </ol>
+          <p className="text-xs text-gray-500 mt-3 border-t border-gray-700 pt-3">
+            The free tier includes generous usage limits (~15 requests/min, ~1M tokens/day) — more than enough for personal learning.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h3 className="text-base font-semibold text-gray-100 mb-2">What Google Sees</h3>
+        <p className="text-gray-400">
+          When you use the Dojo, your conversations are sent to Google&apos;s Gemini API under your own API key. Google&apos;s{' '}
+          <a
+            href="https://ai.google.dev/gemini-api/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-purple-400 hover:text-purple-300 underline"
+          >
+            API terms
+          </a>
+          {' '}apply to that data. We recommend reviewing their privacy practices if you have concerns.
+        </p>
       </section>
     </div>
   );
