@@ -19,8 +19,8 @@ import {
 import { createWelcomeMessage, composeSystemPrompt } from '@/lib/prompts';
 import { streamGeminiChat } from '@/lib/gemini-client';
 
-// Default model for Gemini (using stable version for broad compatibility)
-const DEFAULT_MODEL = 'gemini-1.5-flash-002';
+// Default model for Gemini
+const DEFAULT_MODEL = 'gemini-2.5-flash';
 
 interface UseChatOptions {
   config: DojoConfig;
