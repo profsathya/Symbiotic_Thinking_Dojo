@@ -299,7 +299,7 @@ function PrivacyContent() {
               <span>
                 Go to{' '}
                 <a
-                  href="https://makersuite.google.com/app/apikey"
+                  href="https://aistudio.google.com/apikey"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-purple-400 hover:text-purple-300 underline"
@@ -314,11 +314,15 @@ function PrivacyContent() {
             </li>
             <li className="flex gap-2">
               <span className="text-purple-400 font-medium">3.</span>
-              <span>Click &quot;Create API Key&quot;</span>
+              <span>Click &quot;Create API key&quot;</span>
             </li>
             <li className="flex gap-2">
               <span className="text-purple-400 font-medium">4.</span>
-              <span>Copy the key and paste it into the &quot;Set API Key&quot; button in the sidebar</span>
+              <span>Select &quot;Create API key in new project&quot; (or choose an existing project)</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-purple-400 font-medium">5.</span>
+              <span>Copy the generated key and paste it into the &quot;Set API Key&quot; button in the sidebar</span>
             </li>
           </ol>
           <p className="text-xs text-gray-500 mt-3 border-t border-gray-700 pt-3">
