@@ -18,6 +18,7 @@ import {
 } from '@/lib/types';
 import { createWelcomeMessage, composeSystemPrompt } from '@/lib/prompts';
 import { streamGeminiChat } from '@/lib/gemini-client';
+import { parseMentions } from '@/lib/mentions';
 
 // Default model for Gemini
 const DEFAULT_MODEL = 'gemini-2.5-flash';
@@ -173,14 +174,20 @@ export function useChat({ config, activeConstruct, activePartners, apiKey }: Use
 
     setMessages([...updatedMessages, assistantMessage]);
 
+    // Parse @ mentions from the user's message
+    const { mentionedPartners } = parseMentions(content);
+
     // Build messages for API (skip initial welcome message)
     const apiMessages = updatedMessages.slice(1).map(msg => ({
       role: msg.role as 'user' | 'assistant',
       content: msg.content,
     }));
 
-    // Compose system prompt
-    const systemPrompt = composeSystemPrompt(config, activeConstruct, activePartners, { isGuidedPractice });
+    // Compose system prompt with mentioned partners
+    const systemPrompt = composeSystemPrompt(config, activeConstruct, activePartners, {
+      isGuidedPractice,
+      mentionedPartners,
+    });
 
     try {
       let accumulatedContent = '';
@@ -310,6 +317,9 @@ function determineSpeaker(content: string, activePartners: SparringPartner[]): M
   }
   if (lowerContent.includes('**the challenger:**') || lowerContent.includes('the challenger:')) {
     return 'challenger';
+  }
+  if (lowerContent.includes('**the reflector:**') || lowerContent.includes('the reflector:')) {
+    return 'reflector';
   }
 
   // Default to sensei

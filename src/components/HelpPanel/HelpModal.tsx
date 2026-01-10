@@ -172,9 +172,16 @@ function PhilosophyContent() {
         <p className="mb-2">
           The <strong>Sensei</strong> is your metacognitive coach — asking questions to help you reflect on your own thinking.
         </p>
-        <p>
-          <strong>Sparring Partners</strong> challenge you from different angles: The Framer helps scope problems, the Auditor checks your reasoning, the Connector links ideas, and the Challenger pushes you deeper.
+        <p className="mb-3">
+          <strong>Sparring Partners</strong> challenge you from different angles:
         </p>
+        <ul className="space-y-1 ml-4 text-gray-400">
+          <li><span className="text-amber-400">The Framer</span> — helps scope problems before jumping to solutions</li>
+          <li><span className="text-amber-400">The Auditor</span> — checks your reasoning with Context, Choices, Confirmation</li>
+          <li><span className="text-amber-400">The Connector</span> — links ideas across domains and finds patterns</li>
+          <li><span className="text-amber-400">The Challenger</span> — pressure-tests your thinking with tough questions</li>
+          <li><span className="text-amber-400">The Reflector</span> — guides self-evaluation and helps summarize your work</li>
+        </ul>
       </section>
     </div>
   );
@@ -198,6 +205,25 @@ function InterfaceContent() {
             <h4 className="font-medium text-amber-400 mb-1">Sparring Partners</h4>
             <p className="text-gray-400">Toggle partners on/off. Each brings a different perspective to challenge and deepen your thinking.</p>
           </div>
+        </div>
+      </section>
+
+      <section>
+        <h3 className="text-base font-semibold text-gray-100 mb-2">@ Mentions</h3>
+        <div className="bg-gray-800/50 rounded-lg p-3">
+          <p className="text-gray-400 mb-2">
+            You can invoke any sparring partner for a single message by typing their @ mention:
+          </p>
+          <div className="flex flex-wrap gap-2 text-xs">
+            <code className="bg-gray-900 text-purple-400 px-2 py-1 rounded">@framer</code>
+            <code className="bg-gray-900 text-purple-400 px-2 py-1 rounded">@auditor</code>
+            <code className="bg-gray-900 text-purple-400 px-2 py-1 rounded">@connector</code>
+            <code className="bg-gray-900 text-purple-400 px-2 py-1 rounded">@challenger</code>
+            <code className="bg-gray-900 text-purple-400 px-2 py-1 rounded">@reflector</code>
+          </div>
+          <p className="text-gray-500 text-xs mt-2">
+            <strong>Toggle</strong> = partner is always active • <strong>@ mention</strong> = partner is invoked for just this message
+          </p>
         </div>
       </section>
 

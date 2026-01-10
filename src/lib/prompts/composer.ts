@@ -2,6 +2,7 @@ import { DojoConfig, Construct, SparringPartner } from '../types';
 
 export interface ComposeOptions {
   isGuidedPractice?: boolean;
+  mentionedPartners?: SparringPartner[];  // Partners invoked via @ mention for this message
 }
 
 /**
@@ -13,7 +14,7 @@ export function composeSystemPrompt(
   activePartners: SparringPartner[],
   options: ComposeOptions = {}
 ): string {
-  const { isGuidedPractice = false } = options;
+  const { isGuidedPractice = false, mentionedPartners = [] } = options;
   const parts: string[] = [];
 
   // 1. Base Dojo philosophy (always present)
@@ -33,11 +34,28 @@ export function composeSystemPrompt(
     parts.push('# ACTIVE CONSTRUCT\n\n' + construct.prompt);
   }
 
-  // 4. Active partner prompts
-  if (activePartners.length > 0) {
+  // 4. Combine toggled partners + mentioned partners (deduplicated)
+  const allPartners = [...activePartners];
+  for (const mentioned of mentionedPartners) {
+    if (!allPartners.includes(mentioned)) {
+      allPartners.push(mentioned);
+    }
+  }
+
+  // 4b. Active partner prompts
+  if (allPartners.length > 0) {
     const partnerSection: string[] = ['# ACTIVE SPARRING PARTNERS\n'];
 
-    for (const partnerId of activePartners) {
+    // Note if any partners were invoked via @ mention
+    if (mentionedPartners.length > 0) {
+      const mentionedNames = mentionedPartners.map(id => {
+        const partner = config.partners.find(p => p.id === id);
+        return partner?.name || id;
+      });
+      partnerSection.push(`*${mentionedNames.join(' and ')} ${mentionedPartners.length > 1 ? 'were' : 'was'} invoked via @ mention for this message.*\n`);
+    }
+
+    for (const partnerId of allPartners) {
       const partner = config.partners.find(p => p.id === partnerId);
       if (partner) {
         partnerSection.push(partner.prompt);

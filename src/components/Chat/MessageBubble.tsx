@@ -43,6 +43,12 @@ const SPEAKER_STYLES: Record<Speaker, { bg: string; border: string; label: strin
     label: 'The Challenger',
     icon: '⚔️',
   },
+  reflector: {
+    bg: 'bg-rose-600/20',
+    border: 'border-rose-500/30',
+    label: 'The Reflector',
+    icon: '🪞',
+  },
 };
 
 export function MessageBubble({ message }: MessageBubbleProps) {
