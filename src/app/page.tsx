@@ -9,6 +9,7 @@ import { ChatContainer } from '@/components/Chat';
 import { StatusPanel } from '@/components/StatusPanel';
 import { ConfigPanel } from '@/components/ConfigPanel';
 import { HelpButtons, HelpModal } from '@/components/HelpPanel';
+import { ExportButton } from '@/components/ExportButton';
 import { ApiKeyModal } from '@/components/ApiKeyModal';
 
 export default function Home() {
@@ -102,7 +103,17 @@ export default function Home() {
         onSendMessage={sendMessage}
         balance={balance}
         headerContent={
-          <HelpButtons onOpen={() => setIsHelpOpen(true)} />
+          <div className="flex items-center gap-2">
+            <ExportButton
+              messages={messages}
+              construct={activeConstruct}
+              activePartners={activePartners}
+              balance={balance}
+              dikw={dikw}
+              disabled={isLoading}
+            />
+            <HelpButtons onOpen={() => setIsHelpOpen(true)} />
+          </div>
         }
       />
 
