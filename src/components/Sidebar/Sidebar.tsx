@@ -1,9 +1,11 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import Image from 'next/image';
 import { Construct, SparringPartner, DojoConfig } from '@/lib/types';
 import { ConstructSelector } from './ConstructSelector';
 import { PartnerSelector } from './PartnerSelector';
+import { parseImportedSession, readFileAsText, ImportedSession } from '@/lib/export';
 
 interface SidebarProps {
   config: DojoConfig;
@@ -16,6 +18,7 @@ interface SidebarProps {
   onOpenConfig: () => void;
   onNewSession: () => void;
   onGuidedPractice: () => void;
+  onImportSession: (session: ImportedSession) => void;
 }
 
 export function Sidebar({
@@ -29,7 +32,40 @@ export function Sidebar({
   onOpenConfig,
   onNewSession,
   onGuidedPractice,
+  onImportSession,
 }: SidebarProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportError(null);
+
+    try {
+      const content = await readFileAsText(file);
+      const result = parseImportedSession(content);
+
+      if (result.success) {
+        onImportSession(result.data);
+      } else {
+        setImportError(result.error.message);
+        setTimeout(() => setImportError(null), 5000);
+      }
+    } catch {
+      setImportError('Failed to read file');
+      setTimeout(() => setImportError(null), 5000);
+    }
+
+    // Reset file input so same file can be selected again
+    e.target.value = '';
+  };
+
   return (
     <aside className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col h-full">
       {/* Header */}
@@ -116,18 +152,54 @@ export function Sidebar({
 
       {/* Footer actions */}
       <div className="p-4 border-t border-gray-800 space-y-2">
-        <button
-          onClick={onNewSession}
-          className="w-full px-3 py-2 text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors flex items-center justify-center gap-2"
-        >
-          <span>↻</span>
-          New Session
-        </button>
+        {/* Hidden file input for import */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+
+        {/* Import error message */}
+        {importError && (
+          <div className="px-3 py-2 text-xs text-red-300 bg-red-900/30 border border-red-700/50 rounded-lg">
+            {importError}
+          </div>
+        )}
+
+        {/* Session buttons row */}
+        <div className="flex gap-2">
+          <button
+            onClick={onNewSession}
+            className="flex-1 px-3 py-2 text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+            title="Start a new session"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            New
+          </button>
+          <button
+            onClick={handleImportClick}
+            className="flex-1 px-3 py-2 text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors flex items-center justify-center gap-1.5"
+            title="Import a saved session"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Import
+          </button>
+        </div>
+
         <button
           onClick={onOpenConfig}
           className="w-full px-3 py-2 text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors flex items-center justify-center gap-2"
         >
-          <span>⚙</span>
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
           Configure Prompts
         </button>
       </div>

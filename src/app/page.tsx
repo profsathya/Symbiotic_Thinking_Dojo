@@ -50,6 +50,7 @@ export default function Home() {
     sendMessage,
     resetChat,
     startGuidedPractice,
+    importSession,
   } = useChat({
     config,
     activeConstruct,
@@ -93,6 +94,7 @@ export default function Home() {
         onOpenConfig={() => setIsConfigOpen(true)}
         onNewSession={resetChat}
         onGuidedPractice={startGuidedPractice}
+        onImportSession={importSession}
       />
 
       {/* Main Chat Area */}

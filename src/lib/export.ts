@@ -197,3 +197,201 @@ export function generateFilename(construct: Construct, extension: 'json' | 'md')
 
   return `dojo-session-${constructName}-${dateStr}-${timeStr}.${extension}`;
 }
+
+// ============================================================================
+// Import Utilities
+// ============================================================================
+
+export interface ImportedSession {
+  messages: Message[];
+  construct: Construct;
+  activePartners: SparringPartner[];
+  balance: BalanceState;
+  dikw: DIKWState;
+  exportedAt: Date;
+  originalStartedAt: Date;
+}
+
+export interface ImportError {
+  type: 'parse' | 'validation' | 'version';
+  message: string;
+}
+
+export type ImportResult =
+  | { success: true; data: ImportedSession }
+  | { success: false; error: ImportError };
+
+/**
+ * Validate that a value is a valid Construct
+ */
+function isValidConstruct(value: unknown): value is Construct {
+  return value === 'learn' || value === 'learn-solve' || value === 'learn-solve-build';
+}
+
+/**
+ * Validate that a value is a valid SparringPartner
+ */
+function isValidPartner(value: unknown): value is SparringPartner {
+  return (
+    value === 'framer' ||
+    value === 'auditor' ||
+    value === 'connector' ||
+    value === 'challenger' ||
+    value === 'reflector'
+  );
+}
+
+/**
+ * Validate that a value is a valid DIKWLevel
+ */
+function isValidDIKWLevel(value: unknown): value is DIKWState['current'] {
+  return value === 'data' || value === 'information' || value === 'knowledge' || value === 'wisdom';
+}
+
+/**
+ * Parse and validate an imported JSON session file
+ */
+export function parseImportedSession(jsonContent: string): ImportResult {
+  // Try to parse JSON
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonContent);
+  } catch {
+    return {
+      success: false,
+      error: { type: 'parse', message: 'Invalid JSON format. Please select a valid Dojo session file.' },
+    };
+  }
+
+  // Type guard for basic structure
+  if (typeof parsed !== 'object' || parsed === null) {
+    return {
+      success: false,
+      error: { type: 'validation', message: 'Invalid file structure.' },
+    };
+  }
+
+  const data = parsed as Record<string, unknown>;
+
+  // Check version
+  if (data.version !== '1.0') {
+    return {
+      success: false,
+      error: {
+        type: 'version',
+        message: `Unsupported file version: ${data.version}. This app supports version 1.0.`,
+      },
+    };
+  }
+
+  // Validate session object
+  const session = data.session as Record<string, unknown> | undefined;
+  if (!session || typeof session !== 'object') {
+    return {
+      success: false,
+      error: { type: 'validation', message: 'Missing session data.' },
+    };
+  }
+
+  // Validate construct
+  if (!isValidConstruct(session.construct)) {
+    return {
+      success: false,
+      error: { type: 'validation', message: 'Invalid or missing construct type.' },
+    };
+  }
+
+  // Validate partners
+  const partners = session.activePartners;
+  if (!Array.isArray(partners)) {
+    return {
+      success: false,
+      error: { type: 'validation', message: 'Invalid partners data.' },
+    };
+  }
+  const validPartners = partners.filter(isValidPartner);
+
+  // Validate messages
+  const messages = data.messages;
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return {
+      success: false,
+      error: { type: 'validation', message: 'No messages found in session.' },
+    };
+  }
+
+  // Validate metrics
+  const metrics = data.metrics as Record<string, unknown> | undefined;
+  if (!metrics || typeof metrics !== 'object') {
+    return {
+      success: false,
+      error: { type: 'validation', message: 'Missing metrics data.' },
+    };
+  }
+
+  const balanceData = metrics.balance as Record<string, unknown> | undefined;
+  const dikwData = metrics.dikw as Record<string, unknown> | undefined;
+
+  if (!balanceData || !dikwData) {
+    return {
+      success: false,
+      error: { type: 'validation', message: 'Missing balance or DIKW metrics.' },
+    };
+  }
+
+  // Convert messages to Message type
+  const convertedMessages: Message[] = messages.map((msg: Record<string, unknown>, index: number) => ({
+    id: `imported_${index}_${Date.now()}`,
+    role: msg.role as 'user' | 'assistant',
+    content: String(msg.content || ''),
+    timestamp: new Date(String(msg.timestamp) || new Date()),
+    speaker: (msg.speaker as Message['speaker']) || (msg.role === 'user' ? 'user' : 'sensei'),
+  }));
+
+  // Reconstruct balance state
+  const balanceHistory = Array.isArray(balanceData.history) ? balanceData.history.map(Number) : [];
+  const balance: BalanceState = {
+    score: Number(balanceData.finalScore) || 0,
+    lastDelta: balanceHistory[balanceHistory.length - 1] || 0,
+    consecutiveConsuming: 0, // Reset on import
+    history: balanceHistory,
+  };
+
+  // Reconstruct DIKW state
+  const dikwHistory = Array.isArray(dikwData.history)
+    ? dikwData.history.filter(isValidDIKWLevel)
+    : [];
+  const currentDikw = isValidDIKWLevel(dikwData.finalLevel) ? dikwData.finalLevel : 'data';
+  const highWaterDikw = isValidDIKWLevel(dikwData.highWaterMark) ? dikwData.highWaterMark : currentDikw;
+
+  const dikw: DIKWState = {
+    current: currentDikw,
+    highWaterMark: highWaterDikw,
+    history: dikwHistory,
+  };
+
+  return {
+    success: true,
+    data: {
+      messages: convertedMessages,
+      construct: session.construct,
+      activePartners: validPartners,
+      balance,
+      dikw,
+      exportedAt: new Date(String(data.exportedAt) || new Date()),
+      originalStartedAt: new Date(String(session.startedAt) || new Date()),
+    },
+  };
+}
+
+/**
+ * Read a file and return its contents as a string
+ */
+export function readFileAsText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsText(file);
+  });
+}

@@ -19,6 +19,7 @@ import {
 import { createWelcomeMessage, composeSystemPrompt } from '@/lib/prompts';
 import { streamGeminiChat } from '@/lib/gemini-client';
 import { parseMentions } from '@/lib/mentions';
+import { ImportedSession } from '@/lib/export';
 
 // Default model for Gemini
 const DEFAULT_MODEL = 'gemini-2.5-flash';
@@ -38,9 +39,11 @@ interface UseChatReturn {
   balance: BalanceState;
   dikw: DIKWState;
   isGuidedPractice: boolean;
+  isImportedSession: boolean;
   sendMessage: (content: string) => Promise<void>;
   resetChat: () => void;
   startGuidedPractice: () => void;
+  importSession: (session: ImportedSession) => void;
 }
 
 function generateId(): string {
@@ -108,6 +111,7 @@ function updateDIKWState(current: DIKWState, newLevel: DIKWLevel): DIKWState {
 
 export function useChat({ config, activeConstruct, activePartners, apiKey }: UseChatOptions): UseChatReturn {
   const [isGuidedPractice, setIsGuidedPractice] = useState(false);
+  const [isImportedSession, setIsImportedSession] = useState(false);
 
   // Initialize with welcome message
   const getInitialMessages = useCallback((guidedPractice: boolean = false): Message[] => {
@@ -268,6 +272,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey }: Use
       abortControllerRef.current.abort();
     }
     setIsGuidedPractice(false);
+    setIsImportedSession(false);
     setMessages(getInitialMessages(false));
     setBalance(INITIAL_BALANCE_STATE);
     setDikw(INITIAL_DIKW_STATE);
@@ -281,12 +286,43 @@ export function useChat({ config, activeConstruct, activePartners, apiKey }: Use
       abortControllerRef.current.abort();
     }
     setIsGuidedPractice(true);
+    setIsImportedSession(false);
     setMessages(getInitialMessages(true));
     setBalance(INITIAL_BALANCE_STATE);
     setDikw(INITIAL_DIKW_STATE);
     setError(null);
     setIsLoading(false);
   }, [getInitialMessages]);
+
+  const importSession = useCallback((session: ImportedSession) => {
+    // Cancel any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Add a system message indicating this is an imported session
+    const importNotice: Message = {
+      id: generateId(),
+      role: 'assistant',
+      content: `📂 **Imported Session**\n\nThis session was originally started on ${session.originalStartedAt.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })}.\n\nYou can continue the conversation from where you left off, or use \`@reflector\` to review what was discussed.`,
+      timestamp: new Date(),
+      speaker: 'sensei',
+    };
+
+    setIsGuidedPractice(false);
+    setIsImportedSession(true);
+    setMessages([...session.messages, importNotice]);
+    setBalance(session.balance);
+    setDikw(session.dikw);
+    setError(null);
+    setIsLoading(false);
+  }, []);
 
   return {
     messages,
@@ -295,9 +331,11 @@ export function useChat({ config, activeConstruct, activePartners, apiKey }: Use
     balance,
     dikw,
     isGuidedPractice,
+    isImportedSession,
     sendMessage,
     resetChat,
     startGuidedPractice,
+    importSession,
   };
 }
 
