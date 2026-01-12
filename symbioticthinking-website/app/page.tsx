@@ -10,7 +10,7 @@ export default function HomePage() {
           <div className="max-w-3xl">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
               Learn to think <span className="text-emerald-600">with</span> AI,
-              <br />not <span className="text-gray-400">instead of</span> thinking
+              <br />not <span className="text-gray-400">let it</span> think for you
             </h1>
             <p className="mt-6 text-xl text-gray-600 leading-relaxed">
               The Symbiotic Thinking Dojo is an AI-powered practice environment that builds your
