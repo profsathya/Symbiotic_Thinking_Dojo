@@ -70,15 +70,27 @@ Start with an Ikigai discovery session — a structured journey to explore your 
 
 **This application uses a privacy-first, client-side architecture. Your API key and conversations never pass through our servers.**
 
-### The Privacy Guarantee
+### The Privacy Guarantee (Our Servers)
 
 | What | Where It Lives | Our Access |
 |------|----------------|------------|
 | Your API key | Browser localStorage | **None** |
-| Your conversations | Browser memory → Google API | **None** |
-| Chat history | Not persisted | **None** |
+| Your conversations | Browser memory only | **None** |
+| Chat history | Not persisted anywhere | **None** |
 
 We serve the application code. That's it. Your data flows directly between your browser and Google's Gemini API.
+
+> **Important: Conversations are not saved.** When you close or refresh the browser, your conversation is gone. There is no session persistence — each visit starts fresh. If you want to keep a record of your session, use `@reflector` to generate a summary before leaving.
+
+### What the AI Provider Sees
+
+When you use the Dojo, your conversations are sent to **Google's Gemini API** under your own API key. This means:
+
+- Google receives and processes your messages according to their [Gemini API Terms of Service](https://ai.google.dev/gemini-api/terms)
+- Google's privacy policies apply to data sent to their API
+- We have no access to or control over data once it reaches Google
+
+**Our privacy guarantee applies only to our infrastructure** — we never see your conversations. But you should review Google's policies if you have concerns about how the AI provider handles your data.
 
 ### How to Verify (For Engineers)
 
@@ -238,3 +250,9 @@ Contributions welcome! Please read the code of conduct and contribution guidelin
 ## Acknowledgments
 
 Built on the Symbiotic Thinking framework. Designed to develop human capability in an age of AI abundance.
+
+### Built with Claude Code
+
+This entire project — the Dojo application, the marketing website, and all infrastructure — was developed using [Claude Code](https://claude.ai/code), Anthropic's AI coding assistant, directed by **Prof. Sathya Narayanan** (Professor of Computer Science and Director of the Computing Talent Initiative at California State University, Monterey Bay).
+
+In the spirit of practicing what we preach, we used AI as a thinking partner to build tools that help others do the same.
