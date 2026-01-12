@@ -64,6 +64,15 @@ Your metacognitive coach — guides through questions, not answers. The Sensei h
 
 Start with an Ikigai discovery session — a structured journey to explore your interests, strengths, and purpose.
 
+### Use Without the App (Portable Dojo)
+
+Don't want to set up an API key or use the web app? You can get the full Dojo experience in any AI chatbot that supports custom instructions:
+
+- **[Portable Dojo Guide](docs/Portable-Dojo-Guide.md)** — Setup instructions and system prompt
+- **[Knowledge Base](docs/Symbiotic-Thinking-Knowledge-Base.md)** — Complete reference document to attach
+
+Works with Claude Projects, ChatGPT, Gemini, and other AI assistants. The guide includes platform-specific setup instructions.
+
 ---
 
 ## Privacy Architecture
