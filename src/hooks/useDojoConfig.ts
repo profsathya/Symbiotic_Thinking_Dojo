@@ -23,6 +23,7 @@ interface UseDojoConfigReturn {
 
   // Selection actions
   setActiveConstruct: (construct: Construct) => void;
+  setActivePartners: (partners: SparringPartner[]) => void;
   togglePartner: (partner: SparringPartner) => void;
   setUmpireStage: (stage: UmpireStage) => void;
 
@@ -196,6 +197,7 @@ export function useDojoConfig(): UseDojoConfigReturn {
     activePartners,
     umpireStage,
     setActiveConstruct,
+    setActivePartners,
     togglePartner,
     setUmpireStage,
     updateDojoPrompt,

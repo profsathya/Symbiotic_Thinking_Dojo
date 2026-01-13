@@ -11,6 +11,7 @@ import { ConfigPanel } from '@/components/ConfigPanel';
 import { HelpButtons, HelpModal } from '@/components/HelpPanel';
 import { ExportButton } from '@/components/ExportButton';
 import { ApiKeyModal } from '@/components/ApiKeyModal';
+import { ImportedSession } from '@/lib/export';
 
 export default function Home() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
@@ -27,6 +28,7 @@ export default function Home() {
     activePartners,
     umpireStage,
     setActiveConstruct,
+    setActivePartners,
     togglePartner,
     setUmpireStage,
     updateDojoPrompt,
@@ -69,6 +71,15 @@ export default function Home() {
     resetChat();
   };
 
+  // Handle importing a session - restores construct, partners, and chat state
+  const handleImportSession = (session: ImportedSession) => {
+    // Update construct and partners to match the imported session
+    setActiveConstruct(session.construct);
+    setActivePartners(session.activePartners);
+    // Import the chat messages and metrics
+    importSession(session);
+  };
+
   // Check if user has started a conversation (more than just the welcome message)
   const hasStartedConversation = messages.length > 1;
 
@@ -94,7 +105,7 @@ export default function Home() {
         onOpenConfig={() => setIsConfigOpen(true)}
         onNewSession={resetChat}
         onGuidedPractice={startGuidedPractice}
-        onImportSession={importSession}
+        onImportSession={handleImportSession}
       />
 
       {/* Main Chat Area */}
