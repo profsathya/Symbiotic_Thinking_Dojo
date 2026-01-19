@@ -52,10 +52,11 @@ export default function Home() {
 
   // Compute Practice Dojo context if in Practice Dojo mode
   // Note: We destructure specific fields to avoid re-computing when unrelated state changes (like savedMessages)
-  const { topicId, pathway, currentPhase: currentPhaseIndex, completedPhases, userChoices, checkpointStatuses } = practiceDojoState.state;
+  const { isActive, topicId, pathway, currentPhase: currentPhaseIndex, completedPhases, userChoices, checkpointStatuses } = practiceDojoState.state;
 
   const practiceDojoContext = useMemo((): PracticeDojoContext | null => {
-    if (!topicId || !pathway) {
+    // Only compute context when session is actively running
+    if (!isActive || !topicId || !pathway) {
       return null;
     }
 
@@ -73,7 +74,7 @@ export default function Home() {
       userChoices,
       checkpointStatuses,
     };
-  }, [topicId, pathway, currentPhaseIndex, completedPhases, userChoices, checkpointStatuses]);
+  }, [isActive, topicId, pathway, currentPhaseIndex, completedPhases, userChoices, checkpointStatuses]);
 
   const {
     messages,
