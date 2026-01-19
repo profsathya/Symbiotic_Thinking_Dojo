@@ -100,12 +100,15 @@ export default function Home() {
   }, []);
 
   // Save messages to Practice Dojo state when in Practice Dojo mode
+  // Note: We use practiceDojoState.saveMessages directly but exclude practiceDojoState from deps
+  // to avoid infinite loops (saveMessages updates state which would re-trigger this effect)
   useEffect(() => {
     if (practiceDojoContext && messages.length > 0 && !isLoading) {
       const serialized = getSerializedMessages();
       practiceDojoState.saveMessages(serialized);
     }
-  }, [messages, practiceDojoContext, isLoading, getSerializedMessages, practiceDojoState]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, practiceDojoContext, isLoading, getSerializedMessages]);
 
   // Reset chat when construct changes
   const handleConstructChange = (construct: typeof activeConstruct) => {
