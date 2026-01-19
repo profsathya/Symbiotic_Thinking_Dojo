@@ -17,7 +17,7 @@ import {
   DIKW_ORDER,
 } from '@/lib/types';
 import { createWelcomeMessage, composeSystemPrompt, createPracticeDojoWelcome } from '@/lib/prompts';
-import { streamGeminiChat } from '@/lib/gemini-client';
+import { streamGeminiChat, QuotaExceededError } from '@/lib/gemini-client';
 import { parseMentions } from '@/lib/mentions';
 import { ImportedSession } from '@/lib/export';
 import { PracticeDojoContext, TopicConfig, Pathway, SerializedMessage } from '@/lib/practice-dojo/types';
@@ -38,6 +38,7 @@ interface UseChatReturn {
   messages: Message[];
   isLoading: boolean;
   error: string | null;
+  quotaRetryTime: Date | null;
   balance: BalanceState;
   dikw: DIKWState;
   isGuidedPractice: boolean;
@@ -135,6 +136,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
   const [messages, setMessages] = useState<Message[]>(() => getInitialMessages(false));
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [quotaRetryTime, setQuotaRetryTime] = useState<Date | null>(null);
   const [balance, setBalance] = useState<BalanceState>(INITIAL_BALANCE_STATE);
   const [dikw, setDikw] = useState<DIKWState>(INITIAL_DIKW_STATE);
 
@@ -157,6 +159,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
     abortControllerRef.current = new AbortController();
 
     setError(null);
+    setQuotaRetryTime(null);
     setIsLoading(true);
 
     // Add user message
@@ -250,6 +253,13 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
         },
         onError: (err) => {
           setError(err.message);
+          // If it's a quota error, calculate and set the retry time
+          if (err instanceof QuotaExceededError && err.retryAfterSeconds) {
+            const retryTime = new Date(Date.now() + err.retryAfterSeconds * 1000);
+            setQuotaRetryTime(retryTime);
+          } else {
+            setQuotaRetryTime(null);
+          }
           setMessages(current =>
             current.map(msg =>
               msg.id === assistantMessageId
@@ -283,6 +293,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
     setBalance(INITIAL_BALANCE_STATE);
     setDikw(INITIAL_DIKW_STATE);
     setError(null);
+    setQuotaRetryTime(null);
     setIsLoading(false);
   }, [getInitialMessages]);
 
@@ -297,6 +308,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
     setBalance(INITIAL_BALANCE_STATE);
     setDikw(INITIAL_DIKW_STATE);
     setError(null);
+    setQuotaRetryTime(null);
     setIsLoading(false);
   }, [getInitialMessages]);
 
@@ -322,6 +334,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
     setBalance(INITIAL_BALANCE_STATE);
     setDikw(INITIAL_DIKW_STATE);
     setError(null);
+    setQuotaRetryTime(null);
     setIsLoading(false);
   }, []);
 
@@ -352,6 +365,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
     setBalance(session.balance);
     setDikw(session.dikw);
     setError(null);
+    setQuotaRetryTime(null);
     setIsLoading(false);
   }, []);
 
@@ -386,6 +400,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
     setIsImportedSession(false);
     setMessages(restoredMessages);
     setError(null);
+    setQuotaRetryTime(null);
     setIsLoading(false);
     // Note: We don't reset balance/dikw as they should be calculated from the conversation
   }, []);
@@ -394,6 +409,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
     messages,
     isLoading,
     error,
+    quotaRetryTime,
     balance,
     dikw,
     isGuidedPractice,

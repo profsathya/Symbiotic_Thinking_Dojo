@@ -4,11 +4,13 @@ import { ReactNode } from 'react';
 import { Message, BalanceState } from '@/lib/types';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
+import { CountdownTimer } from '@/components/CountdownTimer';
 
 interface ChatContainerProps {
   messages: Message[];
   isLoading: boolean;
   error: string | null;
+  quotaRetryTime?: Date | null;
   onSendMessage: (message: string) => void;
   balance: BalanceState;
   headerContent?: ReactNode;
@@ -66,6 +68,7 @@ export function ChatContainer({
   messages,
   isLoading,
   error,
+  quotaRetryTime,
   onSendMessage,
   balance,
   headerContent,
@@ -94,10 +97,18 @@ export function ChatContainer({
         </div>
       )}
 
-      {/* Error banner */}
+      {/* Error banner with optional countdown for quota errors */}
       {error && (
-        <div className="px-4 py-2 bg-red-900/50 border-b border-red-800 text-red-200 text-sm relative z-10">
-          Error: {error}
+        <div className="px-4 py-3 bg-amber-900/50 border-b border-amber-800 text-amber-200 text-sm relative z-10">
+          <div className="flex items-center justify-between gap-4">
+            <span>API rate limit reached</span>
+            {quotaRetryTime && (
+              <span className="flex items-center gap-2">
+                <span className="text-amber-300/70">Retry in:</span>
+                <CountdownTimer targetTime={quotaRetryTime} />
+              </span>
+            )}
+          </div>
         </div>
       )}
 

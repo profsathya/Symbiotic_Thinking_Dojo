@@ -80,6 +80,7 @@ export default function Home() {
     messages,
     isLoading,
     error,
+    quotaRetryTime,
     balance,
     dikw,
     isGuidedPractice,
@@ -265,6 +266,7 @@ export default function Home() {
           messages={messages}
           isLoading={isLoading}
           error={error}
+          quotaRetryTime={quotaRetryTime}
           onSendMessage={sendMessage}
           balance={balance}
           onVisualInteraction={handleVisualInteraction}
