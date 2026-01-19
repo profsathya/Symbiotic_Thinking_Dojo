@@ -33,25 +33,47 @@ export interface StreamChatOptions {
 export class QuotaExceededError extends Error {
   retryAfterSeconds: number | null;
   isFreeTier: boolean;
+  isDailyLimit: boolean;
 
-  constructor(message: string, retryAfterSeconds: number | null = null, isFreeTier: boolean = false) {
+  constructor(message: string, retryAfterSeconds: number | null = null, isFreeTier: boolean = false, isDailyLimit: boolean = false) {
     super(message);
     this.name = 'QuotaExceededError';
     this.retryAfterSeconds = retryAfterSeconds;
     this.isFreeTier = isFreeTier;
+    this.isDailyLimit = isDailyLimit;
   }
 }
 
 /**
  * Parse quota error message to extract retry delay and tier information
  */
-function parseQuotaError(errorMessage: string): { retrySeconds: number | null; isFreeTier: boolean } {
+function parseQuotaError(errorMessage: string): { retrySeconds: number | null; isFreeTier: boolean; isDailyLimit: boolean } {
   let retrySeconds: number | null = null;
   let isFreeTier = false;
+  let isDailyLimit = false;
 
   // Check if it's a free tier error
   if (errorMessage.includes('free_tier') || errorMessage.includes('FreeTier')) {
     isFreeTier = true;
+  }
+
+  // Check if it's a daily limit (not just per-minute rate limit)
+  // Daily limits typically mention "PerDay" or have low limits like "limit: 20"
+  if (errorMessage.includes('PerDay') ||
+      errorMessage.includes('per_day') ||
+      errorMessage.includes('per day')) {
+    isDailyLimit = true;
+  }
+
+  // Also check for the specific free tier daily limit pattern
+  // The error mentions "limit: 20" which is the daily free tier limit
+  const limitMatch = errorMessage.match(/limit:\s*(\d+)/i);
+  if (limitMatch && isFreeTier) {
+    const limit = parseInt(limitMatch[1], 10);
+    // Free tier daily limit is typically 20 or similar low number
+    if (limit <= 50) {
+      isDailyLimit = true;
+    }
   }
 
   // Try to extract retry delay from message
@@ -61,17 +83,29 @@ function parseQuotaError(errorMessage: string): { retrySeconds: number | null; i
     retrySeconds = Math.ceil(parseFloat(retryMatch[1]));
   }
 
-  return { retrySeconds, isFreeTier };
+  return { retrySeconds, isFreeTier, isDailyLimit };
 }
 
 /**
  * Format a user-friendly quota error message
  */
-function formatQuotaErrorMessage(retrySeconds: number | null, isFreeTier: boolean): string {
+function formatQuotaErrorMessage(retrySeconds: number | null, isFreeTier: boolean, isDailyLimit: boolean): string {
+  // Daily limit exhausted - different message
+  if (isDailyLimit) {
+    let message = '📅 **Daily API Limit Reached**\n\n';
+    message += 'You\'ve used all your free tier requests for today.\n\n';
+    message += '**What now?**\n';
+    message += '• Your quota resets at **midnight Pacific Time**\n';
+    message += '• Upgrade to a paid API key at [Google AI Studio](https://aistudio.google.com/apikey) for higher limits\n';
+    message += '• The free tier allows ~20 requests per day\n';
+    return message;
+  }
+
+  // Per-minute rate limit - show retry time
   let message = '⏳ **API Rate Limit Reached**\n\n';
 
   if (isFreeTier) {
-    message += 'You\'ve reached the free tier limit for the Gemini API.\n\n';
+    message += 'You\'ve hit the per-minute rate limit for the free tier.\n\n';
   } else {
     message += 'You\'ve exceeded your current API quota.\n\n';
   }
@@ -176,9 +210,9 @@ export async function streamGeminiChat({
                  errorMessage.includes('rate') ||
                  errorMessage.includes('exceeded')) {
         // Parse quota error details
-        const { retrySeconds, isFreeTier } = parseQuotaError(errorMessage);
-        const friendlyMessage = formatQuotaErrorMessage(retrySeconds, isFreeTier);
-        const quotaError = new QuotaExceededError(friendlyMessage, retrySeconds, isFreeTier);
+        const { retrySeconds, isFreeTier, isDailyLimit } = parseQuotaError(errorMessage);
+        const friendlyMessage = formatQuotaErrorMessage(retrySeconds, isFreeTier, isDailyLimit);
+        const quotaError = new QuotaExceededError(friendlyMessage, retrySeconds, isFreeTier, isDailyLimit);
         onError(quotaError);
         // Don't re-throw - we've handled this error via onError callback
         return '';

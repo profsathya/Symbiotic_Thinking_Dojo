@@ -5,6 +5,7 @@ export interface ComposeOptions {
   isGuidedPractice?: boolean;
   mentionedPartners?: SparringPartner[];  // Partners invoked via @ mention for this message
   practiceDojoContext?: PracticeDojoContext;  // Context for Practice Dojo mode
+  consecutiveTextOnlyResponses?: number;  // Count of consecutive AI responses without interactive elements
 }
 
 /**
@@ -16,8 +17,12 @@ export function composeSystemPrompt(
   activePartners: SparringPartner[],
   options: ComposeOptions = {}
 ): string {
-  const { isGuidedPractice = false, mentionedPartners = [], practiceDojoContext } = options;
+  const { isGuidedPractice = false, mentionedPartners = [], practiceDojoContext, consecutiveTextOnlyResponses = 0 } = options;
   const parts: string[] = [];
+
+  // Determine threshold for interactive element encouragement
+  // Practice Dojo: 3 consecutive text-only responses, Regular: 5
+  const interactionThreshold = practiceDojoContext ? 3 : 5;
 
   // 1. Base Dojo philosophy (always present)
   parts.push('# SYMBIOTIC THINKING DOJO\n\n' + config.dojoPrompt);
@@ -71,7 +76,42 @@ export function composeSystemPrompt(
     parts.push(partnerSection.join('\n\n'));
   }
 
-  // 5. Response formatting instructions
+  // 5. Interactive learning encouragement (when threshold exceeded)
+  if (consecutiveTextOnlyResponses >= interactionThreshold) {
+    if (practiceDojoContext) {
+      parts.push(`# LEARNING DESIGN REMINDER
+
+The conversation has been primarily text-based for several exchanges. Consider whether this is an opportunity to enhance engagement through interactive elements.
+
+**From a learning science perspective:**
+- Active participation improves retention and understanding
+- Visual elements can help students organize and connect ideas
+- Choice points give students agency and reveal their mental models
+- Reflection prompts help consolidate learning
+
+**If appropriate for this moment, consider using:**
+- \`selection-cards\` for presenting options or scenarios
+- \`comparison-table\` for contrasting ideas or approaches
+- \`framework-diagram\` for visualizing relationships
+- \`info-box\` with style "reveal" for key insights
+- \`checkpoint-prompt\` for reflection questions
+
+Only use these if they genuinely enhance understanding — not every response needs visuals. Use your judgment about what serves the learning goal best.`);
+    } else {
+      parts.push(`# ENGAGEMENT REMINDER
+
+The conversation has been primarily text-based for several exchanges. If the student might benefit from a more interactive approach, consider:
+
+- Asking them to make a choice between options (using \`selection-cards\`)
+- Presenting a framework or diagram to organize their thinking
+- Creating a comparison to clarify distinctions
+- Using an info-box to highlight key insights
+
+Only include these if they genuinely help — not every response needs interaction. Trust your judgment about what serves the conversation best.`);
+    }
+  }
+
+  // 6. Response formatting instructions
   if (practiceDojoContext) {
     parts.push(`# RESPONSE FORMAT
 

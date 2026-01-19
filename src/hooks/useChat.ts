@@ -56,6 +56,19 @@ function generateId(): string {
   return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
+// Check if a response contains interactive elements (dojo-visual blocks)
+function hasInteractiveElements(content: string): boolean {
+  // Check for dojo-visual JSON code blocks
+  if (content.includes('```dojo-visual')) {
+    return true;
+  }
+  // Check for HTML-like elements with data-action (legacy support)
+  if (/data-action\s*=/.test(content)) {
+    return true;
+  }
+  return false;
+}
+
 // Parse balance marker from content and return the delta value
 function parseBalanceMarker(content: string): number | null {
   const match = content.match(BALANCE_MARKER_REGEX);
@@ -139,6 +152,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
   const [quotaRetryTime, setQuotaRetryTime] = useState<Date | null>(null);
   const [balance, setBalance] = useState<BalanceState>(INITIAL_BALANCE_STATE);
   const [dikw, setDikw] = useState<DIKWState>(INITIAL_DIKW_STATE);
+  const [consecutiveTextOnlyResponses, setConsecutiveTextOnlyResponses] = useState(0);
 
   // Track if we should abort current request
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -200,6 +214,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
       isGuidedPractice,
       mentionedPartners,
       practiceDojoContext: practiceDojoContext || undefined,
+      consecutiveTextOnlyResponses,
     });
 
     try {
@@ -241,6 +256,15 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
           let cleanContent = stripBalanceMarker(accumulatedContent);
           cleanContent = stripDIKWMarker(cleanContent);
 
+          // Track consecutive text-only responses for interactive element encouragement
+          if (hasInteractiveElements(cleanContent)) {
+            // Response has interactive elements, reset counter
+            setConsecutiveTextOnlyResponses(0);
+          } else {
+            // Text-only response, increment counter
+            setConsecutiveTextOnlyResponses(prev => prev + 1);
+          }
+
           // Determine speaker based on content
           const speaker = determineSpeaker(cleanContent, activePartners);
           setMessages(current =>
@@ -253,8 +277,8 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
         },
         onError: (err) => {
           setError(err.message);
-          // If it's a quota error, calculate and set the retry time
-          if (err instanceof QuotaExceededError && err.retryAfterSeconds) {
+          // If it's a quota error with retry time (but NOT a daily limit), show countdown
+          if (err instanceof QuotaExceededError && err.retryAfterSeconds && !err.isDailyLimit) {
             const retryTime = new Date(Date.now() + err.retryAfterSeconds * 1000);
             setQuotaRetryTime(retryTime);
           } else {
@@ -294,6 +318,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
     setDikw(INITIAL_DIKW_STATE);
     setError(null);
     setQuotaRetryTime(null);
+    setConsecutiveTextOnlyResponses(0);
     setIsLoading(false);
   }, [getInitialMessages]);
 
@@ -309,6 +334,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
     setDikw(INITIAL_DIKW_STATE);
     setError(null);
     setQuotaRetryTime(null);
+    setConsecutiveTextOnlyResponses(0);
     setIsLoading(false);
   }, [getInitialMessages]);
 
@@ -335,6 +361,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
     setDikw(INITIAL_DIKW_STATE);
     setError(null);
     setQuotaRetryTime(null);
+    setConsecutiveTextOnlyResponses(0);
     setIsLoading(false);
   }, []);
 
@@ -366,6 +393,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
     setDikw(session.dikw);
     setError(null);
     setQuotaRetryTime(null);
+    setConsecutiveTextOnlyResponses(0);
     setIsLoading(false);
   }, []);
 
@@ -401,6 +429,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
     setMessages(restoredMessages);
     setError(null);
     setQuotaRetryTime(null);
+    setConsecutiveTextOnlyResponses(0);
     setIsLoading(false);
     // Note: We don't reset balance/dikw as they should be calculated from the conversation
   }, []);
