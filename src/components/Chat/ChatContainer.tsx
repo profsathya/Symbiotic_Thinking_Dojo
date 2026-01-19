@@ -87,9 +87,9 @@ export function ChatContainer({
         />
       )}
 
-      {/* Header bar with help buttons */}
+      {/* Header bar with help buttons - overflow-visible to allow tooltips/hints */}
       {headerContent && (
-        <div className="relative z-10 flex justify-end px-4 py-2 border-b border-gray-800/50">
+        <div className="relative z-20 flex justify-end px-4 py-2 border-b border-gray-800/50 overflow-visible">
           {headerContent}
         </div>
       )}

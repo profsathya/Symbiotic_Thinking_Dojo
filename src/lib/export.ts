@@ -171,6 +171,7 @@ export function exportSessionAsMarkdown(
 
 /**
  * Trigger a file download in the browser
+ * Note: Uses synchronous click to maintain user gesture chain for browser security
  */
 export function downloadFile(content: string, filename: string, mimeType: string): boolean {
   console.log('[downloadFile] Starting download for:', filename);
@@ -185,35 +186,48 @@ export function downloadFile(content: string, filename: string, mimeType: string
     link.download = filename;
     link.style.display = 'none';
 
+    // Append to body
     document.body.appendChild(link);
     console.log('[downloadFile] Link appended to DOM');
 
-    // Use a small timeout to ensure the link is in the DOM
-    setTimeout(() => {
-      console.log('[downloadFile] Clicking link...');
-      link.click();
-      console.log('[downloadFile] Link clicked');
+    // Click synchronously to maintain user gesture chain
+    // (setTimeout can break user gesture in modern browsers)
+    console.log('[downloadFile] Clicking link...');
+    link.click();
+    console.log('[downloadFile] Link clicked');
 
-      // Clean up after a delay to ensure download starts
-      setTimeout(() => {
+    // Clean up after a short delay to ensure download starts
+    setTimeout(() => {
+      if (link.parentNode) {
         document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        console.log('[downloadFile] Cleanup complete');
-      }, 100);
-    }, 0);
+      }
+      URL.revokeObjectURL(url);
+      console.log('[downloadFile] Cleanup complete');
+    }, 150);
 
     return true;
   } catch (error) {
     console.error('[downloadFile] Download failed:', error);
 
-    // Fallback: try opening in new window
+    // Fallback: try using URL directly
     try {
-      console.log('[downloadFile] Trying fallback...');
+      console.log('[downloadFile] Trying fallback with window.open...');
       const blob = new Blob([content], { type: mimeType });
       const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      console.log('[downloadFile] Fallback opened in new window');
+      // Create a clickable link with download attribute
+      const fallbackLink = document.createElement('a');
+      fallbackLink.href = url;
+      fallbackLink.download = filename;
+      fallbackLink.target = '_blank';
+      document.body.appendChild(fallbackLink);
+      fallbackLink.click();
+      setTimeout(() => {
+        if (fallbackLink.parentNode) {
+          document.body.removeChild(fallbackLink);
+        }
+        URL.revokeObjectURL(url);
+      }, 200);
+      console.log('[downloadFile] Fallback click attempted');
       return true;
     } catch (fallbackError) {
       console.error('[downloadFile] Fallback download also failed:', fallbackError);

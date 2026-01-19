@@ -46,38 +46,60 @@ export function ExportButton({
 
   const handleExportMarkdown = () => {
     console.log('[Export] Starting Markdown export...');
+    console.log('[Export] Messages count:', messages.length);
     setError(null);
     setShowHint(false);
-    const content = exportSessionAsMarkdown(messages, construct, activePartners, balance, dikw);
-    const filename = generateFilename(construct, 'md');
-    console.log('[Export] Generated filename:', filename);
-    const success = downloadFile(content, filename, 'text/markdown');
-    console.log('[Export] Download initiated, success:', success);
-    setIsOpen(false);
-    if (success) {
-      setShowHint(true);
-      setTimeout(() => setShowHint(false), 5000);
-    } else {
-      setError('Download failed. Check browser console for details.');
+
+    try {
+      const content = exportSessionAsMarkdown(messages, construct, activePartners, balance, dikw);
+      const filename = generateFilename(construct, 'md');
+      console.log('[Export] Generated filename:', filename);
+      console.log('[Export] Content length:', content.length);
+      const success = downloadFile(content, filename, 'text/markdown');
+      console.log('[Export] Download initiated, success:', success);
+      setIsOpen(false);
+      if (success) {
+        console.log('[Export] Setting showHint to true');
+        setShowHint(true);
+        setTimeout(() => setShowHint(false), 5000);
+      } else {
+        setError('Download failed. Check browser console for details.');
+        setTimeout(() => setError(null), 5000);
+      }
+    } catch (err) {
+      console.error('[Export] Error during export:', err);
+      setIsOpen(false);
+      setError('Export failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
       setTimeout(() => setError(null), 5000);
     }
   };
 
   const handleExportJSON = () => {
     console.log('[Export] Starting JSON export...');
+    console.log('[Export] Messages count:', messages.length);
     setError(null);
     setShowHint(false);
-    const content = exportSessionAsJSON(messages, construct, activePartners, balance, dikw);
-    const filename = generateFilename(construct, 'json');
-    console.log('[Export] Generated filename:', filename);
-    const success = downloadFile(content, filename, 'application/json');
-    console.log('[Export] Download initiated, success:', success);
-    setIsOpen(false);
-    if (success) {
-      setShowHint(true);
-      setTimeout(() => setShowHint(false), 5000);
-    } else {
-      setError('Download failed. Check browser console for details.');
+
+    try {
+      const content = exportSessionAsJSON(messages, construct, activePartners, balance, dikw);
+      const filename = generateFilename(construct, 'json');
+      console.log('[Export] Generated filename:', filename);
+      console.log('[Export] Content length:', content.length);
+      const success = downloadFile(content, filename, 'application/json');
+      console.log('[Export] Download initiated, success:', success);
+      setIsOpen(false);
+      if (success) {
+        console.log('[Export] Setting showHint to true');
+        setShowHint(true);
+        setTimeout(() => setShowHint(false), 5000);
+      } else {
+        setError('Download failed. Check browser console for details.');
+        setTimeout(() => setError(null), 5000);
+      }
+    } catch (err) {
+      console.error('[Export] Error during export:', err);
+      setIsOpen(false);
+      setError('Export failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
       setTimeout(() => setError(null), 5000);
     }
   };
@@ -146,16 +168,16 @@ export function ExportButton({
         </div>
       )}
 
-      {/* Success hint after export - positioned above the button */}
+      {/* Success hint after export - positioned below the button */}
       {showHint && (
-        <div className="absolute right-0 bottom-full mb-2 px-3 py-2 bg-green-900/90 border border-green-700 rounded-lg text-xs text-green-200 whitespace-nowrap z-[100] shadow-lg animate-pulse">
+        <div className="absolute right-0 top-full mt-1 px-3 py-2 bg-green-900/90 border border-green-700 rounded-lg text-xs text-green-200 whitespace-nowrap z-[100] shadow-lg animate-pulse">
           ✓ Session saved to your downloads
         </div>
       )}
 
-      {/* Error message - positioned above the button */}
+      {/* Error message - positioned below the button */}
       {error && (
-        <div className="absolute right-0 bottom-full mb-2 px-3 py-2 bg-red-900/90 border border-red-700 rounded-lg text-xs text-red-200 whitespace-nowrap z-[100] shadow-lg">
+        <div className="absolute right-0 top-full mt-1 px-3 py-2 bg-red-900/90 border border-red-700 rounded-lg text-xs text-red-200 whitespace-nowrap z-[100] shadow-lg">
           ✗ {error}
         </div>
       )}
