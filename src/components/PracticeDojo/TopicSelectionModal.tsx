@@ -26,8 +26,8 @@ export function TopicSelectionModal({
 
   const topics = getTopicsOrganizedByCategory();
 
-  // Check if there's a resumeable session for a different topic
-  const hasResumeableSession = practiceDojoState.topicId !== null && practiceDojoState.sessionStarted !== null;
+  // Check if there's a resumeable session (must not be currently active)
+  const hasResumeableSession = !practiceDojoState.isActive && practiceDojoState.topicId !== null && practiceDojoState.sessionStarted !== null;
   const resumeTopicId = practiceDojoState.topicId;
 
   // Reset state when modal opens

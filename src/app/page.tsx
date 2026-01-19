@@ -125,8 +125,8 @@ export default function Home() {
   const handleConstructChange = (construct: typeof activeConstruct) => {
     setActiveConstruct(construct);
     resetChat();
-    // Exit Practice Dojo if changing constructs
-    if (practiceDojoContext) {
+    // Exit Practice Dojo if currently in an active session
+    if (isInPracticeDojo) {
       practiceDojoState.exitSession();
     }
   };
@@ -138,8 +138,8 @@ export default function Home() {
     setActivePartners(session.activePartners);
     // Import the chat messages and metrics
     importSession(session);
-    // Exit Practice Dojo if importing a session
-    if (practiceDojoContext) {
+    // Exit Practice Dojo if currently in an active session
+    if (isInPracticeDojo) {
       practiceDojoState.exitSession();
     }
   };
