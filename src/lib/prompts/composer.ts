@@ -323,17 +323,42 @@ Let me start with a thought experiment:
 Take a moment to consider this scenario. What questions would you want to ask? What would you need to figure out first?`;
   }
 
-  // For course topics, don't mention pathway (they only have one)
+  // For course topics, include the opening question from Phase 0
   if (topic.category === 'course') {
+    // CST395 opening question
+    if (topic.topicId === 'course-cst395-overview') {
+      return `**Sensei:** Welcome to the Practice Dojo! 🥋
+
+Let's explore **${topic.title}** together.
+
+This is an interactive experience to help you deeply understand the course—not just what it covers, but how it's designed and how to get the most out of it.
+
+Before I explain what this course is about, I'm curious:
+
+**When you hear "AI-Native Solution Engineering," what do you picture? What do you think makes solution engineering "AI-native" versus traditional?**`;
+    }
+
+    // CST349 opening question
+    if (topic.topicId === 'course-cst349-overview') {
+      return `**Sensei:** Welcome to the Practice Dojo! 🥋
+
+Let's explore **${topic.title}** together.
+
+This is an interactive experience to help you deeply understand the course—not just what it covers, but how it's designed and how to get the most out of it.
+
+Before I explain what this course is about, I'm curious:
+
+**What do you think a "CS Professional Seminar" should prepare you for? What comes to mind when you hear that title?**`;
+    }
+
+    // Generic course welcome (fallback)
     return `**Sensei:** Welcome to the Practice Dojo! 🥋
 
 Let's explore **${topic.title}** together.
 
 This is an interactive experience to help you deeply understand the course—not just what it covers, but how it's designed and how to get the most out of it.
 
-${topic.description}
-
-Let's begin!`;
+What's your first impression of this course? What do you hope to get out of it?`;
   }
 
   // Generic welcome for other topics
