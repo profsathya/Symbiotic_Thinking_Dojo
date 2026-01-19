@@ -66,6 +66,13 @@ export function TopicSelectionModal({
       return;
     }
 
+    // If topic has only one pathway, skip pathway selection and start directly
+    if (topic.pathways.length === 1) {
+      onSelectTopic(topic.topicId, topic.pathways[0].id);
+      onClose();
+      return;
+    }
+
     setSelectedTopic(topic);
     setShowPathwaySelection(true);
   };
@@ -288,8 +295,11 @@ export function TopicSelectionModal({
           {topics.course.length > 0 && (
             <div>
               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                Course Overviews
+                Course Topics
               </h3>
+              <p className="text-xs text-gray-500 mb-3">
+                Understand your course structure, goals, and how to succeed
+              </p>
               <div className="space-y-2">
                 {topics.course.map((topic) =>
                   renderTopicCard(topic, topic.topicId === resumeTopicId)

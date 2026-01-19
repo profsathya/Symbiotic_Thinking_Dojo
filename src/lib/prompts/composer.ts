@@ -323,6 +323,19 @@ Let me start with a thought experiment:
 Take a moment to consider this scenario. What questions would you want to ask? What would you need to figure out first?`;
   }
 
+  // For course topics, don't mention pathway (they only have one)
+  if (topic.category === 'course') {
+    return `**Sensei:** Welcome to the Practice Dojo! 🥋
+
+Let's explore **${topic.title}** together.
+
+This is an interactive experience to help you deeply understand the course—not just what it covers, but how it's designed and how to get the most out of it.
+
+${topic.description}
+
+Let's begin!`;
+  }
+
   // Generic welcome for other topics
   return `**Sensei:** Welcome to the Practice Dojo! 🥋
 
