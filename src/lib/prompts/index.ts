@@ -2,5 +2,5 @@
 export * from './defaults';
 
 // Export composer functions and types
-export { composeSystemPrompt, createWelcomeMessage } from './composer';
+export { composeSystemPrompt, createWelcomeMessage, createPracticeDojoWelcome } from './composer';
 export type { ComposeOptions } from './composer';

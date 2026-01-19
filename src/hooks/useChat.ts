@@ -16,10 +16,11 @@ import {
   DIKW_MARKER_MAP,
   DIKW_ORDER,
 } from '@/lib/types';
-import { createWelcomeMessage, composeSystemPrompt } from '@/lib/prompts';
+import { createWelcomeMessage, composeSystemPrompt, createPracticeDojoWelcome } from '@/lib/prompts';
 import { streamGeminiChat } from '@/lib/gemini-client';
 import { parseMentions } from '@/lib/mentions';
 import { ImportedSession } from '@/lib/export';
+import { PracticeDojoContext, TopicConfig, Pathway } from '@/lib/practice-dojo/types';
 
 // Default model for Gemini
 const DEFAULT_MODEL = 'gemini-2.5-flash';
@@ -30,6 +31,7 @@ interface UseChatOptions {
   activePartners: SparringPartner[];
   apiKey: string | null;
   isGuidedPractice?: boolean;
+  practiceDojoContext?: PracticeDojoContext | null;
 }
 
 interface UseChatReturn {
@@ -43,6 +45,7 @@ interface UseChatReturn {
   sendMessage: (content: string) => Promise<void>;
   resetChat: () => void;
   startGuidedPractice: () => void;
+  startPracticeDojo: (topic: TopicConfig, pathway: Pathway) => void;
   importSession: (session: ImportedSession) => void;
 }
 
@@ -109,7 +112,7 @@ function updateDIKWState(current: DIKWState, newLevel: DIKWLevel): DIKWState {
   };
 }
 
-export function useChat({ config, activeConstruct, activePartners, apiKey }: UseChatOptions): UseChatReturn {
+export function useChat({ config, activeConstruct, activePartners, apiKey, practiceDojoContext }: UseChatOptions): UseChatReturn {
   const [isGuidedPractice, setIsGuidedPractice] = useState(false);
   const [isImportedSession, setIsImportedSession] = useState(false);
 
@@ -187,10 +190,11 @@ export function useChat({ config, activeConstruct, activePartners, apiKey }: Use
       content: msg.content,
     }));
 
-    // Compose system prompt with mentioned partners
+    // Compose system prompt with mentioned partners and practice dojo context
     const systemPrompt = composeSystemPrompt(config, activeConstruct, activePartners, {
       isGuidedPractice,
       mentionedPartners,
+      practiceDojoContext: practiceDojoContext || undefined,
     });
 
     try {
@@ -264,7 +268,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey }: Use
     } finally {
       setIsLoading(false);
     }
-  }, [messages, config, activeConstruct, activePartners, apiKey, isLoading, isGuidedPractice]);
+  }, [messages, config, activeConstruct, activePartners, apiKey, isLoading, isGuidedPractice, practiceDojoContext]);
 
   const resetChat = useCallback(() => {
     // Cancel any existing request
@@ -293,6 +297,31 @@ export function useChat({ config, activeConstruct, activePartners, apiKey }: Use
     setError(null);
     setIsLoading(false);
   }, [getInitialMessages]);
+
+  const startPracticeDojo = useCallback((topic: TopicConfig, pathway: Pathway) => {
+    // Cancel any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create welcome message for Practice Dojo
+    const welcomeContent = createPracticeDojoWelcome(topic, pathway);
+    const welcomeMessage: Message = {
+      id: generateId(),
+      role: 'assistant',
+      content: welcomeContent,
+      timestamp: new Date(),
+      speaker: 'sensei',
+    };
+
+    setIsGuidedPractice(false);
+    setIsImportedSession(false);
+    setMessages([welcomeMessage]);
+    setBalance(INITIAL_BALANCE_STATE);
+    setDikw(INITIAL_DIKW_STATE);
+    setError(null);
+    setIsLoading(false);
+  }, []);
 
   const importSession = useCallback((session: ImportedSession) => {
     // Cancel any existing request
@@ -335,6 +364,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey }: Use
     sendMessage,
     resetChat,
     startGuidedPractice,
+    startPracticeDojo,
     importSession,
   };
 }

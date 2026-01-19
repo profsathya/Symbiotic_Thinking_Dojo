@@ -1,6 +1,7 @@
 'use client';
 
 import { Message, Speaker } from '@/lib/types';
+import { parseDojoVisuals, DojoVisualRenderer } from '@/components/PracticeDojo';
 
 // Hidden watermark message that gets copied when students copy-paste to other LLMs
 const THINKING_WATERMARK = `
@@ -9,6 +10,7 @@ const THINKING_WATERMARK = `
 
 interface MessageBubbleProps {
   message: Message;
+  onVisualInteraction?: (action: string, data: Record<string, string>) => void;
 }
 
 const SPEAKER_STYLES: Record<Speaker, { bg: string; border: string; label: string; icon: string }> = {
@@ -74,10 +76,13 @@ function HiddenWatermark() {
   );
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, onVisualInteraction }: MessageBubbleProps) {
   const speaker = message.speaker || (message.role === 'user' ? 'user' : 'sensei');
   const style = SPEAKER_STYLES[speaker];
   const isUser = message.role === 'user';
+
+  // Parse content for dojo-visual blocks (only for assistant messages)
+  const contentParts = !isUser ? parseDojoVisuals(message.content) : null;
 
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -91,8 +96,32 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         </div>
 
         {/* Message content */}
-        <div className="text-gray-200 text-sm whitespace-pre-wrap leading-relaxed prose prose-invert prose-sm max-w-none">
-          {formatMessageContent(message.content)}
+        <div className="text-gray-200 text-sm leading-relaxed prose prose-invert prose-sm max-w-none">
+          {contentParts ? (
+            // Render parsed content with visual components
+            contentParts.map((part, index) => {
+              if (part.type === 'text') {
+                return (
+                  <div key={index} className="whitespace-pre-wrap">
+                    {formatMessageContent(part.content)}
+                  </div>
+                );
+              } else {
+                return (
+                  <DojoVisualRenderer
+                    key={index}
+                    data={part.data}
+                    onInteraction={onVisualInteraction}
+                  />
+                );
+              }
+            })
+          ) : (
+            // User messages - just format text
+            <div className="whitespace-pre-wrap">
+              {formatMessageContent(message.content)}
+            </div>
+          )}
           {/* Hidden watermark for assistant messages - copied when text is selected */}
           {!isUser && <HiddenWatermark />}
         </div>

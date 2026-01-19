@@ -1,8 +1,10 @@
 import { DojoConfig, Construct, SparringPartner } from '../types';
+import { PracticeDojoContext, TopicConfig, PhaseConfig } from '../practice-dojo/types';
 
 export interface ComposeOptions {
   isGuidedPractice?: boolean;
   mentionedPartners?: SparringPartner[];  // Partners invoked via @ mention for this message
+  practiceDojoContext?: PracticeDojoContext;  // Context for Practice Dojo mode
 }
 
 /**
@@ -14,7 +16,7 @@ export function composeSystemPrompt(
   activePartners: SparringPartner[],
   options: ComposeOptions = {}
 ): string {
-  const { isGuidedPractice = false, mentionedPartners = [] } = options;
+  const { isGuidedPractice = false, mentionedPartners = [], practiceDojoContext } = options;
   const parts: string[] = [];
 
   // 1. Base Dojo philosophy (always present)
@@ -23,8 +25,12 @@ export function composeSystemPrompt(
   // 2. Sensei layer (always present)
   parts.push('# SENSEI GUIDANCE\n\n' + config.senseiPrompt);
 
-  // 2b. Ikigai guided practice (if active)
-  if (isGuidedPractice) {
+  // 2b. Practice Dojo mode (if active)
+  if (practiceDojoContext) {
+    parts.push(composePracticeDojoPrompt(practiceDojoContext));
+  }
+  // 2c. Ikigai guided practice (if active and not in Practice Dojo)
+  else if (isGuidedPractice) {
     parts.push('# GUIDED PRACTICE: IKIGAI DISCOVERY\n\n' + config.ikigaiPrompt);
   }
 
@@ -66,7 +72,39 @@ export function composeSystemPrompt(
   }
 
   // 5. Response formatting instructions
-  parts.push(`# RESPONSE FORMAT
+  if (practiceDojoContext) {
+    parts.push(`# RESPONSE FORMAT
+
+When responding in Practice Dojo mode:
+- Speak as Sensei, guiding the student through the learning experience
+- Use the dojo-visual JSON blocks to create interactive visual components when specified in the phase guidance
+- Follow the phase content guidance closely, but adapt to the student's responses
+- At checkpoints, evaluate understanding using the criteria provided - probe with follow-up questions if insufficient
+- Mark phase transitions clearly in your responses
+
+VISUAL COMPONENT FORMAT:
+To include visual components, use JSON code blocks with the dojo-visual marker:
+
+\`\`\`dojo-visual
+{
+  "type": "selection-cards",
+  "prompt": "Choose an option:",
+  "options": [
+    {"id": "option1", "icon": "🎯", "title": "Title", "description": "Description"}
+  ]
+}
+\`\`\`
+
+Available visual types:
+- selection-cards: Clickable options for user to choose
+- comparison-table: Side-by-side comparison with leftHeader, rightHeader, rows
+- framework-diagram: diagram can be "3cs", "umpire", "dikw", "personal-stack", "3cs-umpire-mapping", "dojo-modes"
+- info-box: style can be "reveal", "insight", "summary", "warning" with title and content
+- checkpoint-prompt: question and optional hint for checkpoint verification
+
+Remember: Guide through questions, not lectures. Let them discover before you name. Meet them where they are.`);
+  } else {
+    parts.push(`# RESPONSE FORMAT
 
 When responding, identify which voice you're speaking from:
 - If providing metacognitive guidance, speak as the Sensei
@@ -75,6 +113,7 @@ When responding, identify which voice you're speaking from:
 - Always make it clear which voice is speaking by prefixing with the name (e.g., "**Sensei:** ..." or "**The Framer:** ...")
 
 Remember: The goal is to develop the student's judgment and cognitive skills, not just to complete their tasks.`);
+  }
 
   return parts.join('\n\n---\n\n');
 }
@@ -128,4 +167,77 @@ This isn't about finding the "right" answer. It's about developing self-awarenes
   message += '.\n\nWhat challenge brings you here today? Take a moment to articulate what you\'re working on and what you hope to achieve.';
 
   return message;
+}
+
+/**
+ * Composes the Practice Dojo-specific prompt section
+ */
+function composePracticeDojoPrompt(context: PracticeDojoContext): string {
+  const { topic, currentPhase, pathway, completedPhases, userChoices, checkpointStatuses } = context;
+
+  const sections: string[] = [];
+
+  // Topic header
+  sections.push(`# PRACTICE DOJO MODE: ${topic.title.toUpperCase()}`);
+
+  // Session info
+  sections.push(`## Session Information
+- **Topic:** ${topic.title}
+- **Pathway:** ${pathway.charAt(0).toUpperCase() + pathway.slice(1)}
+- **Current Phase:** ${currentPhase.phaseId + 1} of ${topic.phases.length} - "${currentPhase.title}"
+- **Completed Phases:** ${completedPhases.length > 0 ? completedPhases.map(p => p + 1).join(', ') : 'None yet'}`);
+
+  // User choices context
+  if (Object.keys(userChoices).length > 0) {
+    sections.push(`## User Context from Earlier Phases
+${Object.entries(userChoices).map(([key, value]) => `- **${key}:** ${value}`).join('\n')}`);
+  }
+
+  // Current phase guidance
+  sections.push(`## CURRENT PHASE: ${currentPhase.title}
+
+**Purpose:** ${currentPhase.purpose}
+
+**Content Guidance:**
+${currentPhase.contentGuidance}
+
+${currentPhase.hasCheckpoint ? `**This phase has a CHECKPOINT.** Evaluate the student's understanding before proceeding.
+
+**Checkpoint Criteria:**
+${currentPhase.checkpointCriteria || 'Use judgment to assess understanding.'}` : '**No checkpoint for this phase.** Progress naturally to the next phase when content is covered.'}`);
+
+  // Previous phase checkpoint status if relevant
+  const previousCheckpoints = Object.entries(checkpointStatuses);
+  if (previousCheckpoints.length > 0) {
+    sections.push(`## Checkpoint History
+${previousCheckpoints.map(([phase, status]) => `- ${phase}: ${status}`).join('\n')}`);
+  }
+
+  // Sensei behavior guidelines
+  sections.push(`## SENSEI BEHAVIOR IN PRACTICE DOJO
+
+1. **Guide through questions, not lectures** - Even when presenting content, follow up with "What do you make of this?"
+2. **Meet them where they are** - Adjust language and examples to their level
+3. **Checkpoints are conversations** - Don't just accept answers; probe understanding
+4. **Allow productive tangents** - If they go somewhere valuable, follow, then guide back
+5. **Never lecture when they can discover** - Names come AFTER they've experienced the concept
+6. **Tone:** Warm but not effusive, challenging but supportive, intellectually rigorous but accessible`);
+
+  return sections.join('\n\n');
+}
+
+/**
+ * Creates a welcome message for Practice Dojo mode
+ */
+export function createPracticeDojoWelcome(topic: TopicConfig, pathway: string): string {
+  const pathwayConfig = topic.pathways.find(p => p.id === pathway);
+  const pathwayName = pathwayConfig?.title || pathway;
+
+  return `**Sensei:** Welcome to the Practice Dojo! 🥋
+
+You've chosen to explore **${topic.title}** via the **${pathwayName}** path.
+
+${topic.description}
+
+Let's begin your journey.`;
 }

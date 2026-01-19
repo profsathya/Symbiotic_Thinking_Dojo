@@ -118,18 +118,18 @@ export function Sidebar({
         )}
       </div>
 
-      {/* Guided Practice */}
+      {/* Practice Dojo */}
       <div className="px-4 pt-4">
         <button
           onClick={onGuidedPractice}
           disabled={!isApiKeySet}
           className="w-full px-3 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-900/20 disabled:shadow-none"
         >
-          <span>🧭</span>
-          Guided Practice
+          <span>🥋</span>
+          Practice Dojo
         </button>
         <p className="text-[10px] text-gray-500 mt-1.5 text-center">
-          Discover your ikigai through reflection
+          Guided learning experiences
         </p>
       </div>
 

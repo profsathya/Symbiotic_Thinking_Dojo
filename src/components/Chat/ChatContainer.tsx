@@ -12,6 +12,7 @@ interface ChatContainerProps {
   onSendMessage: (message: string) => void;
   balance: BalanceState;
   headerContent?: ReactNode;
+  onVisualInteraction?: (action: string, data: Record<string, string>) => void;
 }
 
 // Calculate background hue based on balance state
@@ -68,6 +69,7 @@ export function ChatContainer({
   onSendMessage,
   balance,
   headerContent,
+  onVisualInteraction,
 }: ChatContainerProps) {
   const overlayOpacity = getOverlayOpacity(balance);
   const isConsuming = balance.score < 0 && balance.history.length >= 2;
@@ -101,7 +103,7 @@ export function ChatContainer({
 
       {/* Messages */}
       <div className="relative z-10 flex-1 flex flex-col overflow-hidden">
-        <MessageList messages={messages} isLoading={isLoading} />
+        <MessageList messages={messages} isLoading={isLoading} onVisualInteraction={onVisualInteraction} />
       </div>
 
       {/* Input */}
