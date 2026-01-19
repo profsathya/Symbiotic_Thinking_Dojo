@@ -42,20 +42,36 @@ export function ExportButton({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const [error, setError] = useState<string | null>(null);
+
   const handleExportMarkdown = () => {
+    setError(null);
     const content = exportSessionAsMarkdown(messages, construct, activePartners, balance, dikw);
     const filename = generateFilename(construct, 'md');
-    downloadFile(content, filename, 'text/markdown');
+    const success = downloadFile(content, filename, 'text/markdown');
     setIsOpen(false);
-    setShowHint(true);
-    setTimeout(() => setShowHint(false), 5000);
+    if (success) {
+      setShowHint(true);
+      setTimeout(() => setShowHint(false), 5000);
+    } else {
+      setError('Download failed. Check browser console for details.');
+      setTimeout(() => setError(null), 5000);
+    }
   };
 
   const handleExportJSON = () => {
+    setError(null);
     const content = exportSessionAsJSON(messages, construct, activePartners, balance, dikw);
     const filename = generateFilename(construct, 'json');
-    downloadFile(content, filename, 'application/json');
+    const success = downloadFile(content, filename, 'application/json');
     setIsOpen(false);
+    if (success) {
+      setShowHint(true);
+      setTimeout(() => setShowHint(false), 5000);
+    } else {
+      setError('Download failed. Check browser console for details.');
+      setTimeout(() => setError(null), 5000);
+    }
   };
 
   // Don't show if there's nothing meaningful to export
@@ -126,6 +142,13 @@ export function ExportButton({
       {showHint && (
         <div className="absolute right-0 mt-1 px-3 py-2 bg-green-900/90 border border-green-700 rounded-lg text-xs text-green-200 whitespace-nowrap z-50">
           ✓ Session saved to your downloads
+        </div>
+      )}
+
+      {/* Error message */}
+      {error && (
+        <div className="absolute right-0 mt-1 px-3 py-2 bg-red-900/90 border border-red-700 rounded-lg text-xs text-red-200 whitespace-nowrap z-50">
+          ✗ {error}
         </div>
       )}
     </div>

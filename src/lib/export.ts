@@ -172,18 +172,45 @@ export function exportSessionAsMarkdown(
 /**
  * Trigger a file download in the browser
  */
-export function downloadFile(content: string, filename: string, mimeType: string): void {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
+export function downloadFile(content: string, filename: string, mimeType: string): boolean {
+  try {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
 
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.style.display = 'none';
 
-  URL.revokeObjectURL(url);
+    document.body.appendChild(link);
+
+    // Use a small timeout to ensure the link is in the DOM
+    setTimeout(() => {
+      link.click();
+
+      // Clean up after a delay to ensure download starts
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+    }, 0);
+
+    return true;
+  } catch (error) {
+    console.error('Download failed:', error);
+
+    // Fallback: try opening in new window
+    try {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      return true;
+    } catch (fallbackError) {
+      console.error('Fallback download also failed:', fallbackError);
+      return false;
+    }
+  }
 }
 
 /**
