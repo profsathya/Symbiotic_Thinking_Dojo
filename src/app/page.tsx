@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useDojoConfig } from '@/hooks/useDojoConfig';
 import { useChat } from '@/hooks/useChat';
 import { useApiKey } from '@/hooks/useApiKey';
@@ -102,11 +102,16 @@ export default function Home() {
     setMounted(true);
   }, []);
 
+  // Track if we're in the process of exiting Practice Dojo to prevent save overwrite
+  const isExitingPracticeDojoRef = useRef(false);
+
   // Save messages to Practice Dojo state when in Practice Dojo mode
   // Note: We use practiceDojoState.saveMessages directly but exclude practiceDojoState from deps
   // to avoid infinite loops (saveMessages updates state which would re-trigger this effect)
   useEffect(() => {
-    if (practiceDojoContext && messages.length > 0 && !isLoading) {
+    // Don't save during exit (we save explicitly before reset) or if just welcome message
+    if (isExitingPracticeDojoRef.current) return;
+    if (practiceDojoContext && messages.length > 1 && !isLoading) {
       const serialized = getSerializedMessages();
       practiceDojoState.saveMessages(serialized);
     }
@@ -178,11 +183,24 @@ export default function Home() {
 
   // Handle exiting Practice Dojo
   const handleExitPracticeDojo = useCallback(() => {
-    // Note: We don't clear saved messages on exit so user can resume later
-    // Messages are only cleared when starting fresh or completing the topic
+    // Set flag to prevent auto-save from overwriting during exit
+    isExitingPracticeDojoRef.current = true;
+
+    // Save messages explicitly before reset (if there's actual conversation)
+    if (messages.length > 1) {
+      const serialized = getSerializedMessages();
+      practiceDojoState.saveMessages(serialized);
+    }
+
+    // Exit the session and reset chat
     practiceDojoState.exitSession();
     resetChat();
-  }, [practiceDojoState, resetChat]);
+
+    // Reset flag after a tick to allow cleanup
+    setTimeout(() => {
+      isExitingPracticeDojoRef.current = false;
+    }, 100);
+  }, [practiceDojoState, resetChat, messages.length, getSerializedMessages]);
 
   // Handle visual component interactions (e.g., clicking selection cards)
   const handleVisualInteraction = useCallback((action: string, data: Record<string, string>) => {

@@ -45,10 +45,14 @@ export function ExportButton({
   const [error, setError] = useState<string | null>(null);
 
   const handleExportMarkdown = () => {
+    console.log('[Export] Starting Markdown export...');
     setError(null);
+    setShowHint(false);
     const content = exportSessionAsMarkdown(messages, construct, activePartners, balance, dikw);
     const filename = generateFilename(construct, 'md');
+    console.log('[Export] Generated filename:', filename);
     const success = downloadFile(content, filename, 'text/markdown');
+    console.log('[Export] Download initiated, success:', success);
     setIsOpen(false);
     if (success) {
       setShowHint(true);
@@ -60,10 +64,14 @@ export function ExportButton({
   };
 
   const handleExportJSON = () => {
+    console.log('[Export] Starting JSON export...');
     setError(null);
+    setShowHint(false);
     const content = exportSessionAsJSON(messages, construct, activePartners, balance, dikw);
     const filename = generateFilename(construct, 'json');
+    console.log('[Export] Generated filename:', filename);
     const success = downloadFile(content, filename, 'application/json');
+    console.log('[Export] Download initiated, success:', success);
     setIsOpen(false);
     if (success) {
       setShowHint(true);
@@ -138,16 +146,16 @@ export function ExportButton({
         </div>
       )}
 
-      {/* Success hint after export */}
+      {/* Success hint after export - positioned above the button */}
       {showHint && (
-        <div className="absolute right-0 mt-1 px-3 py-2 bg-green-900/90 border border-green-700 rounded-lg text-xs text-green-200 whitespace-nowrap z-50">
+        <div className="absolute right-0 bottom-full mb-2 px-3 py-2 bg-green-900/90 border border-green-700 rounded-lg text-xs text-green-200 whitespace-nowrap z-[100] shadow-lg animate-pulse">
           ✓ Session saved to your downloads
         </div>
       )}
 
-      {/* Error message */}
+      {/* Error message - positioned above the button */}
       {error && (
-        <div className="absolute right-0 mt-1 px-3 py-2 bg-red-900/90 border border-red-700 rounded-lg text-xs text-red-200 whitespace-nowrap z-50">
+        <div className="absolute right-0 bottom-full mb-2 px-3 py-2 bg-red-900/90 border border-red-700 rounded-lg text-xs text-red-200 whitespace-nowrap z-[100] shadow-lg">
           ✗ {error}
         </div>
       )}

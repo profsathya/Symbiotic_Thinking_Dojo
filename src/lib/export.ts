@@ -173,9 +173,12 @@ export function exportSessionAsMarkdown(
  * Trigger a file download in the browser
  */
 export function downloadFile(content: string, filename: string, mimeType: string): boolean {
+  console.log('[downloadFile] Starting download for:', filename);
   try {
     const blob = new Blob([content], { type: mimeType });
+    console.log('[downloadFile] Blob created, size:', blob.size);
     const url = URL.createObjectURL(blob);
+    console.log('[downloadFile] Object URL created:', url);
 
     const link = document.createElement('a');
     link.href = url;
@@ -183,31 +186,37 @@ export function downloadFile(content: string, filename: string, mimeType: string
     link.style.display = 'none';
 
     document.body.appendChild(link);
+    console.log('[downloadFile] Link appended to DOM');
 
     // Use a small timeout to ensure the link is in the DOM
     setTimeout(() => {
+      console.log('[downloadFile] Clicking link...');
       link.click();
+      console.log('[downloadFile] Link clicked');
 
       // Clean up after a delay to ensure download starts
       setTimeout(() => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+        console.log('[downloadFile] Cleanup complete');
       }, 100);
     }, 0);
 
     return true;
   } catch (error) {
-    console.error('Download failed:', error);
+    console.error('[downloadFile] Download failed:', error);
 
     // Fallback: try opening in new window
     try {
+      console.log('[downloadFile] Trying fallback...');
       const blob = new Blob([content], { type: mimeType });
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank');
       setTimeout(() => URL.revokeObjectURL(url), 1000);
+      console.log('[downloadFile] Fallback opened in new window');
       return true;
     } catch (fallbackError) {
-      console.error('Fallback download also failed:', fallbackError);
+      console.error('[downloadFile] Fallback download also failed:', fallbackError);
       return false;
     }
   }
