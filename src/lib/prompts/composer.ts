@@ -78,36 +78,49 @@ export function composeSystemPrompt(
 
   // 5. Interactive learning encouragement (when threshold exceeded)
   if (consecutiveTextOnlyResponses >= interactionThreshold) {
+    // Escalate urgency based on how many text-only responses
+    const isUrgent = consecutiveTextOnlyResponses >= interactionThreshold + 2;
+
     if (practiceDojoContext) {
-      parts.push(`# LEARNING DESIGN REMINDER
+      if (isUrgent) {
+        parts.push(`# IMPORTANT: ENGAGEMENT NEEDED
 
-The conversation has been primarily text-based for several exchanges. Consider whether this is an opportunity to enhance engagement through interactive elements.
+You have provided ${consecutiveTextOnlyResponses} consecutive text-only responses. The Practice Dojo is designed for INTERACTIVE learning.
 
-**From a learning science perspective:**
-- Active participation improves retention and understanding
-- Visual elements can help students organize and connect ideas
-- Choice points give students agency and reveal their mental models
-- Reflection prompts help consolidate learning
+**In your next response, you SHOULD include at least one visual element.** Choose the most appropriate:
 
-**If appropriate for this moment, consider using:**
-- \`selection-cards\` for presenting options or scenarios
+- \`selection-cards\` — Give the student 2-3 concrete options to choose from (this helps them engage actively rather than answering open-ended questions repeatedly)
+- \`comparison-table\` — Visualize distinctions between concepts they're exploring
+- \`info-box\` with style "reveal" — Surface a key insight or reveal information dramatically
+- \`framework-diagram\` — Show relationships between ideas visually
+
+Research shows students learn better through active participation than passive Q&A. Vary your approach — if you've been asking open-ended questions, switch to presenting choices.`);
+      } else {
+        parts.push(`# LEARNING DESIGN REMINDER
+
+The conversation has been primarily text-based for ${consecutiveTextOnlyResponses} exchanges. This is an opportunity to enhance engagement.
+
+**From learning science:** Active participation improves retention. Visual elements help organize ideas. Choice points reveal mental models.
+
+**Consider using in your next response:**
+- \`selection-cards\` for presenting 2-3 concrete options (better than repeated open-ended questions)
 - \`comparison-table\` for contrasting ideas or approaches
-- \`framework-diagram\` for visualizing relationships
 - \`info-box\` with style "reveal" for key insights
-- \`checkpoint-prompt\` for reflection questions
+- \`checkpoint-prompt\` for reflection
 
-Only use these if they genuinely enhance understanding — not every response needs visuals. Use your judgment about what serves the learning goal best.`);
+Vary your approach — don't just keep asking "what would you do?" Give scaffolding through concrete choices when the student seems stuck.`);
+      }
     } else {
       parts.push(`# ENGAGEMENT REMINDER
 
-The conversation has been primarily text-based for several exchanges. If the student might benefit from a more interactive approach, consider:
+The conversation has been text-based for ${consecutiveTextOnlyResponses} exchanges. Consider making it more interactive:
 
-- Asking them to make a choice between options (using \`selection-cards\`)
-- Presenting a framework or diagram to organize their thinking
-- Creating a comparison to clarify distinctions
-- Using an info-box to highlight key insights
+- \`selection-cards\` — Present concrete options for the student to choose from
+- \`comparison-table\` — Visualize distinctions
+- \`info-box\` — Highlight key insights
+- \`framework-diagram\` — Show relationships
 
-Only include these if they genuinely help — not every response needs interaction. Trust your judgment about what serves the conversation best.`);
+Vary your approach if you've been asking similar types of questions.`);
     }
   }
 

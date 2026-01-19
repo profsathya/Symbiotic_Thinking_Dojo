@@ -304,7 +304,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
     } finally {
       setIsLoading(false);
     }
-  }, [messages, config, activeConstruct, activePartners, apiKey, isLoading, isGuidedPractice, practiceDojoContext]);
+  }, [messages, config, activeConstruct, activePartners, apiKey, isLoading, isGuidedPractice, practiceDojoContext, consecutiveTextOnlyResponses]);
 
   const resetChat = useCallback(() => {
     // Cancel any existing request

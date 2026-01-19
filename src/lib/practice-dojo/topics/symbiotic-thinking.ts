@@ -60,27 +60,46 @@ NOTE: The thought experiment ("direct report" scenario) was already presented in
 
 CONTINUE FROM THEIR RESPONSE - do NOT re-present the thought experiment.
 
-Based on their response to the initial scenario, guide their thinking with follow-ups. Listen for what aspects they focus on.
+## ENGAGEMENT GUIDELINES FOR THIS PHASE:
+- Do NOT ask more than 2 similar open-ended questions in a row
+- If the student gives short answers, PROVIDE SCAFFOLDING with concrete options (use selection-cards)
+- Vary your approach: question → scaffolded choices → scenario → reflection
+- Keep the energy up - this should feel like discovery, not an interrogation
 
-Then escalate: "Just as you're getting the hang of this, your boss returns: 'Actually, you now have FIVE direct reports! Each is extremely skilled in different areas—one brilliant at research, another at writing, another at analysis, another at design, another at problem-solving. Now that you have such a capable team, we expect a lot more from you!'"
+## PHASE FLOW:
 
-Ask: With five instead of one, what changes? How do you coordinate when they don't talk to each other—YOU are the connection point?
+**Step 1: Initial Response (1-2 exchanges)**
+Guide their thinking based on their response. If they seem stuck or give brief answers, offer 2-3 concrete options using selection-cards:
+\`\`\`dojo-visual
+{
+  "type": "selection-cards",
+  "prompt": "What's your first priority with this new direct report?",
+  "options": [
+    {"id": "strengths", "icon": "💪", "title": "Understand their strengths", "description": "Figure out what they're good at"},
+    {"id": "tasks", "icon": "📋", "title": "Identify tasks to delegate", "description": "Find work they can take off your plate"},
+    {"id": "relationship", "icon": "🤝", "title": "Build the relationship", "description": "Establish trust and communication"}
+  ]
+}
+\`\`\`
 
-Then REVEAL using a dojo-visual info-box with style "reveal":
-- Your direct reports are AI systems
-- They can solve International Math Olympiad problems
-- Write functional code in seconds
-- Analyze thousands of documents instantly
-- Generate professional-quality writing
-- Trained on essentially all public human knowledge
-- Never tired, never forget, available 24/7
-- Getting dramatically better every few months
+**Step 2: Escalation (after 2-3 exchanges)**
+Escalate to FIVE direct reports: "Just as you're getting the hang of this, your boss returns: 'Actually, you now have FIVE direct reports!...'"
 
-Post-reveal reflection: Look back at what you said about managing your direct reports. What changes now that you know they're AI? What stays the same?
+**Step 3: THE REVEAL - REQUIRED VISUAL**
+After discussing the 5-report scenario, you MUST use this info-box to reveal the twist:
+\`\`\`dojo-visual
+{
+  "type": "info-box",
+  "style": "reveal",
+  "title": "The Twist",
+  "content": "Your direct reports are **AI systems**.\\n\\n• They can solve International Math Olympiad problems\\n• Write functional code in seconds\\n• Analyze thousands of documents instantly\\n• Generate professional-quality writing\\n• Trained on essentially all public human knowledge\\n• Never tired, never forget, available 24/7\\n• Getting dramatically better every few months"
+}
+\`\`\`
 
-CHECKPOINT: Ask them to explain in their own words why having access to AI makes 'delegation skills' important for everyone, not just managers.
+**Step 4: Post-reveal reflection**
+Ask: "Look back at what you said about managing your direct reports. What changes now that you know they're AI? What stays the same?"
 
-Evaluation: Look for connection between AI capabilities and need for human judgment/direction. They should articulate that AI can execute but humans must provide direction, context, judgment.
+**CHECKPOINT:** Ask them to explain why having access to AI makes 'delegation skills' important for everyone.
 `,
       checkpointCriteria: `
 Student should demonstrate understanding that:
@@ -98,15 +117,32 @@ If response is shallow, probe: "You mentioned [X]. Can you say more about what t
       purpose: 'Bridge: why not just accept AI output',
       hasCheckpoint: true,
       contentGuidance: `
-Build on Phase 1. Ask: "So you're a manager of AI now. Here's a question: If your direct report hands you something, do you just pass it along to your boss? Or do you review it, shape it, make sure it represents YOUR judgment?"
+## PHASE FLOW:
 
-Make it concrete: "Imagine you ask AI to write an email to an important client. AI produces something perfectly grammatical, professional, covers all the points. But... is it YOUR email? Would the client be receiving a message from you, or from an AI that happens to have your name on it?"
+**Step 1: Bridge from Phase 1**
+"So you're a manager of AI now. Here's a question: If your direct report hands you something, do you just pass it along to your boss? Or do you review it, shape it, make sure it represents YOUR judgment?"
 
-Present a comparison using dojo-visual comparison-table:
-Left column: "Pass-through" - Ask AI → Accept output → Submit. "AI did this". Replaceable.
-Right column: "Value-added" - Ask AI → Review → Shape → Verify → Make it yours. "I did this with AI". Creates unique value.
+**Step 2: Make it concrete with a scenario**
+"Imagine you ask AI to write an email to an important client. AI produces something perfectly grammatical, professional, covers all the points. But... is it YOUR email?"
 
-Ask: Which manager creates more value? Which one is replaceable?
+**Step 3: REQUIRED VISUAL - Comparison Table**
+You MUST present this comparison:
+\`\`\`dojo-visual
+{
+  "type": "comparison-table",
+  "leftHeader": "Pass-through Manager",
+  "rightHeader": "Value-added Manager",
+  "rows": [
+    {"left": "Ask AI → Accept output → Submit", "right": "Ask AI → Review → Shape → Verify → Submit"},
+    {"left": "\\"AI did this\\"", "right": "\\"I did this with AI\\""},
+    {"left": "Easily replaceable", "right": "Creates unique value"},
+    {"left": "No judgment applied", "right": "Judgment is the product"}
+  ]
+}
+\`\`\`
+
+**Step 4: Discussion**
+Ask: "Which manager creates more value? Which one could be replaced by just giving everyone direct access to the AI?"
 
 CHECKPOINT: "When does AI output become YOUR output? What has to happen in between?"
 
