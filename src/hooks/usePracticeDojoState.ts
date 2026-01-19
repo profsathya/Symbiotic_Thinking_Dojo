@@ -6,6 +6,7 @@ import {
   INITIAL_PRACTICE_DOJO_STATE,
   Pathway,
   CheckpointStatus,
+  SerializedMessage,
 } from '@/lib/practice-dojo/types';
 
 const STORAGE_KEY = 'practiceDojo';
@@ -39,6 +40,11 @@ interface UsePracticeDojoStateReturn {
   // Topic completion
   markTopicCompleted: (topicId: string) => void;
   isTopicCompleted: (topicId: string) => boolean;
+
+  // Message persistence for resume
+  saveMessages: (messages: SerializedMessage[]) => void;
+  getSavedMessages: () => SerializedMessage[] | null;
+  clearSavedMessages: () => void;
 }
 
 // Load state from localStorage
@@ -95,16 +101,18 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
   const hasResumeableSession = state.topicId !== null && state.sessionStarted !== null;
 
   // Start a new session
+  // Note: We start at Phase 1 because Phase 0 (pathway selection) is handled by the UI modal
   const startSession = useCallback((topicId: string, pathway: Pathway) => {
     setState(current => ({
       ...current,
       topicId,
       pathway,
-      currentPhase: 0,
-      completedPhases: [],
+      currentPhase: 1, // Skip Phase 0 (pathway selection already done in modal)
+      completedPhases: [0], // Mark Phase 0 as completed
       userChoices: {},
       checkpointResponses: {},
       checkpointStatuses: {},
+      savedMessages: null, // Clear any saved messages from previous session
       sessionStarted: new Date().toISOString(),
       lastUpdated: new Date().toISOString(),
     }));
@@ -233,6 +241,29 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     return state.completedTopics.includes(topicId);
   }, [state.completedTopics]);
 
+  // Save messages for resume functionality
+  const saveMessages = useCallback((messages: SerializedMessage[]) => {
+    setState(current => ({
+      ...current,
+      savedMessages: messages,
+      lastUpdated: new Date().toISOString(),
+    }));
+  }, []);
+
+  // Get saved messages
+  const getSavedMessages = useCallback((): SerializedMessage[] | null => {
+    return state.savedMessages;
+  }, [state.savedMessages]);
+
+  // Clear saved messages
+  const clearSavedMessages = useCallback(() => {
+    setState(current => ({
+      ...current,
+      savedMessages: null,
+      lastUpdated: new Date().toISOString(),
+    }));
+  }, []);
+
   return {
     state,
     isInPracticeDojo,
@@ -249,5 +280,8 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     setUserChoice,
     markTopicCompleted,
     isTopicCompleted,
+    saveMessages,
+    getSavedMessages,
+    clearSavedMessages,
   };
 }

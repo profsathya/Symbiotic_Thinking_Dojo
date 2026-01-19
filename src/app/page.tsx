@@ -84,6 +84,8 @@ export default function Home() {
     startGuidedPractice,
     startPracticeDojo,
     importSession,
+    getSerializedMessages,
+    restoreMessages,
   } = useChat({
     config,
     activeConstruct,
@@ -96,6 +98,14 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Save messages to Practice Dojo state when in Practice Dojo mode
+  useEffect(() => {
+    if (practiceDojoContext && messages.length > 0 && !isLoading) {
+      const serialized = getSerializedMessages();
+      practiceDojoState.saveMessages(serialized);
+    }
+  }, [messages, practiceDojoContext, isLoading, getSerializedMessages, practiceDojoState]);
 
   // Reset chat when construct changes
   const handleConstructChange = (construct: typeof activeConstruct) => {
@@ -142,18 +152,28 @@ export default function Home() {
 
   // Handle resuming Practice Dojo session
   const handleResumePracticeDojo = useCallback(() => {
+    // First, get saved messages before resuming
+    const savedMessages = practiceDojoState.getSavedMessages();
+
+    // Resume the Practice Dojo session state
     practiceDojoState.resumeSession();
-    // Note: The chat state should still be preserved from the previous session
-    // In a real implementation, you'd want to restore the chat messages too
-  }, [practiceDojoState]);
+
+    // Restore chat messages if available
+    if (savedMessages && savedMessages.length > 0) {
+      restoreMessages(savedMessages);
+    }
+  }, [practiceDojoState, restoreMessages]);
 
   // Handle starting fresh in Practice Dojo
   const handleStartFresh = useCallback(() => {
+    practiceDojoState.clearSavedMessages();
     practiceDojoState.resetSession();
   }, [practiceDojoState]);
 
   // Handle exiting Practice Dojo
   const handleExitPracticeDojo = useCallback(() => {
+    // Note: We don't clear saved messages on exit so user can resume later
+    // Messages are only cleared when starting fresh or completing the topic
     practiceDojoState.exitSession();
     resetChat();
   }, [practiceDojoState, resetChat]);

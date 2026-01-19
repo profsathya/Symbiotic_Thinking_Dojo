@@ -228,11 +228,28 @@ ${previousCheckpoints.map(([phase, status]) => `- ${phase}: ${status}`).join('\n
 
 /**
  * Creates a welcome message for Practice Dojo mode
+ * The welcome immediately starts Phase 1 content since pathway was selected in the UI modal
  */
 export function createPracticeDojoWelcome(topic: TopicConfig, pathway: string): string {
   const pathwayConfig = topic.pathways.find(p => p.id === pathway);
   const pathwayName = pathwayConfig?.title || pathway;
 
+  // For Symbiotic Thinking topic, include the Phase 1 thought experiment directly
+  if (topic.topicId === 'symbiotic-thinking') {
+    return `**Sensei:** Welcome to the Practice Dojo! 🥋
+
+You've chosen to explore **${topic.title}** via the **${pathwayName}** path. ${topic.description}
+
+Let me start with a thought experiment:
+
+*Imagine this: You just landed your dream job. On your first day, your boss comes to your desk with exciting news:*
+
+*"I'm assigning you a direct report. They're an expert in a specific area, diligent, creative, and great at remembering things. They're very capable, but it will be up to you to figure out how to best utilize their skills. With this additional resource, I'll naturally be expecting more value from your work."*
+
+Take a moment to consider this scenario. What questions would you want to ask? What would you need to figure out first?`;
+  }
+
+  // Generic welcome for other topics
   return `**Sensei:** Welcome to the Practice Dojo! 🥋
 
 You've chosen to explore **${topic.title}** via the **${pathwayName}** path.

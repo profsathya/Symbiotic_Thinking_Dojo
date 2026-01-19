@@ -137,9 +137,21 @@ export interface PracticeDojoState {
   // Completed topics
   completedTopics: string[];
 
+  // Saved messages for resume (serialized)
+  savedMessages: SerializedMessage[] | null;
+
   // Timestamps
   lastUpdated: string;
   sessionStarted: string | null;
+}
+
+// Serialized message for localStorage (Date becomes string)
+export interface SerializedMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  speaker?: string;
 }
 
 // Initial state
@@ -152,6 +164,7 @@ export const INITIAL_PRACTICE_DOJO_STATE: PracticeDojoState = {
   checkpointResponses: {},
   checkpointStatuses: {},
   completedTopics: [],
+  savedMessages: null,
   lastUpdated: new Date().toISOString(),
   sessionStarted: null,
 };

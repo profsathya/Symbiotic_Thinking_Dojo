@@ -20,7 +20,7 @@ import { createWelcomeMessage, composeSystemPrompt, createPracticeDojoWelcome } 
 import { streamGeminiChat } from '@/lib/gemini-client';
 import { parseMentions } from '@/lib/mentions';
 import { ImportedSession } from '@/lib/export';
-import { PracticeDojoContext, TopicConfig, Pathway } from '@/lib/practice-dojo/types';
+import { PracticeDojoContext, TopicConfig, Pathway, SerializedMessage } from '@/lib/practice-dojo/types';
 
 // Default model for Gemini
 const DEFAULT_MODEL = 'gemini-2.5-flash';
@@ -47,6 +47,8 @@ interface UseChatReturn {
   startGuidedPractice: () => void;
   startPracticeDojo: (topic: TopicConfig, pathway: Pathway) => void;
   importSession: (session: ImportedSession) => void;
+  getSerializedMessages: () => SerializedMessage[];
+  restoreMessages: (serializedMessages: SerializedMessage[]) => void;
 }
 
 function generateId(): string {
@@ -353,6 +355,41 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
     setIsLoading(false);
   }, []);
 
+  // Get serialized messages for Practice Dojo persistence
+  const getSerializedMessages = useCallback((): SerializedMessage[] => {
+    return messages.map(msg => ({
+      id: msg.id,
+      role: msg.role,
+      content: msg.content,
+      timestamp: msg.timestamp.toISOString(),
+      speaker: msg.speaker,
+    }));
+  }, [messages]);
+
+  // Restore messages from serialized format (for Practice Dojo resume)
+  const restoreMessages = useCallback((serializedMessages: SerializedMessage[]) => {
+    // Cancel any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Convert serialized messages back to Message objects
+    const restoredMessages: Message[] = serializedMessages.map(msg => ({
+      id: msg.id,
+      role: msg.role,
+      content: msg.content,
+      timestamp: new Date(msg.timestamp),
+      speaker: msg.speaker as Message['speaker'],
+    }));
+
+    setIsGuidedPractice(false);
+    setIsImportedSession(false);
+    setMessages(restoredMessages);
+    setError(null);
+    setIsLoading(false);
+    // Note: We don't reset balance/dikw as they should be calculated from the conversation
+  }, []);
+
   return {
     messages,
     isLoading,
@@ -366,6 +403,8 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
     startGuidedPractice,
     startPracticeDojo,
     importSession,
+    getSerializedMessages,
+    restoreMessages,
   };
 }
 
