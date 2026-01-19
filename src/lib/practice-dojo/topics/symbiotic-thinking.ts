@@ -56,13 +56,11 @@ After they select, acknowledge their choice and transition to Phase 1.
       purpose: 'Understand WHY (AI as intelligence resources)',
       hasCheckpoint: true,
       contentGuidance: `
-Present a thought experiment:
+NOTE: The thought experiment ("direct report" scenario) was already presented in the welcome message. The student has seen it and is now responding.
 
-"Imagine this: You just landed your dream job. On your first day, your boss comes to your desk with exciting news: 'I'm assigning you a direct report. They're an expert in a specific area, diligent, creative, and great at remembering things. They're very capable, but it will be up to you to figure out how to best utilize their skills. With this additional resource, I'll naturally be expecting more value from your work.'"
+CONTINUE FROM THEIR RESPONSE - do NOT re-present the thought experiment.
 
-Ask for their reaction: What questions would you want to ask? What would you need to figure out?
-
-Guide their thinking with follow-ups based on their response.
+Based on their response to the initial scenario, guide their thinking with follow-ups. Listen for what aspects they focus on.
 
 Then escalate: "Just as you're getting the hang of this, your boss returns: 'Actually, you now have FIVE direct reports! Each is extremely skilled in different areas—one brilliant at research, another at writing, another at analysis, another at design, another at problem-solving. Now that you have such a capable team, we expect a lot more from you!'"
 
