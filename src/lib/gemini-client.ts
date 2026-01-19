@@ -169,6 +169,8 @@ export async function streamGeminiChat({
       if (errorMessage.includes('API key not valid') ||
           errorMessage.includes('API_KEY_INVALID')) {
         onError(new Error('Invalid API key. Please check your Gemini API key in Settings.'));
+        // Don't re-throw - we've handled this error via onError callback
+        return '';
       } else if (errorMessage.includes('429') ||
                  errorMessage.includes('quota') ||
                  errorMessage.includes('rate') ||
@@ -178,13 +180,17 @@ export async function streamGeminiChat({
         const friendlyMessage = formatQuotaErrorMessage(retrySeconds, isFreeTier);
         const quotaError = new QuotaExceededError(friendlyMessage, retrySeconds, isFreeTier);
         onError(quotaError);
+        // Don't re-throw - we've handled this error via onError callback
+        return '';
       } else {
         onError(error);
+        // Don't re-throw - we've handled this error via onError callback
+        return '';
       }
     } else {
       onError(new Error('An unexpected error occurred'));
+      return '';
     }
-    throw error;
   }
 }
 
