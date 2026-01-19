@@ -15,6 +15,7 @@ export function ChatInput({
 }: ChatInputProps) {
   const [value, setValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const wasLoadingRef = useRef(false);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -24,6 +25,15 @@ export function ChatInput({
       textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
     }
   }, [value]);
+
+  // Auto-focus input when loading completes (AI response finished)
+  useEffect(() => {
+    if (wasLoadingRef.current && !isLoading) {
+      // Loading just finished, focus the input
+      textareaRef.current?.focus();
+    }
+    wasLoadingRef.current = isLoading;
+  }, [isLoading]);
 
   const handleSubmit = () => {
     if (value.trim() && !isLoading) {
