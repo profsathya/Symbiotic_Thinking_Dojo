@@ -28,6 +28,77 @@ export interface StreamChatOptions {
 }
 
 /**
+ * Custom error class for quota exceeded errors with retry information
+ */
+export class QuotaExceededError extends Error {
+  retryAfterSeconds: number | null;
+  isFreeTier: boolean;
+
+  constructor(message: string, retryAfterSeconds: number | null = null, isFreeTier: boolean = false) {
+    super(message);
+    this.name = 'QuotaExceededError';
+    this.retryAfterSeconds = retryAfterSeconds;
+    this.isFreeTier = isFreeTier;
+  }
+}
+
+/**
+ * Parse quota error message to extract retry delay and tier information
+ */
+function parseQuotaError(errorMessage: string): { retrySeconds: number | null; isFreeTier: boolean } {
+  let retrySeconds: number | null = null;
+  let isFreeTier = false;
+
+  // Check if it's a free tier error
+  if (errorMessage.includes('free_tier') || errorMessage.includes('FreeTier')) {
+    isFreeTier = true;
+  }
+
+  // Try to extract retry delay from message
+  // Pattern: "Please retry in 16.147817032s" or "retryDelay":"16s"
+  const retryMatch = errorMessage.match(/retry\s*(?:in\s*)?(\d+(?:\.\d+)?)\s*s/i);
+  if (retryMatch) {
+    retrySeconds = Math.ceil(parseFloat(retryMatch[1]));
+  }
+
+  return { retrySeconds, isFreeTier };
+}
+
+/**
+ * Format a user-friendly quota error message
+ */
+function formatQuotaErrorMessage(retrySeconds: number | null, isFreeTier: boolean): string {
+  let message = '⏳ **API Rate Limit Reached**\n\n';
+
+  if (isFreeTier) {
+    message += 'You\'ve reached the free tier limit for the Gemini API.\n\n';
+  } else {
+    message += 'You\'ve exceeded your current API quota.\n\n';
+  }
+
+  if (retrySeconds !== null && retrySeconds > 0) {
+    if (retrySeconds < 60) {
+      message += `**Try again in ${retrySeconds} seconds.**\n\n`;
+    } else {
+      const minutes = Math.ceil(retrySeconds / 60);
+      message += `**Try again in about ${minutes} minute${minutes > 1 ? 's' : ''}.**\n\n`;
+    }
+  }
+
+  message += '**Options:**\n';
+  message += '• Wait a moment and try again\n';
+  if (isFreeTier) {
+    message += '• Upgrade to a paid API key at [Google AI Studio](https://aistudio.google.com/apikey)\n';
+    message += '• The free tier has limited requests per minute/day\n';
+  } else {
+    message += '• Check your usage at [Google AI Studio](https://aistudio.google.com/)\n';
+    message += '• Review your billing and quota settings\n';
+  }
+
+  return message;
+}
+
+/**
  * Stream a chat response from Gemini directly from the browser.
  * Returns the full accumulated response.
  */
@@ -93,11 +164,20 @@ export async function streamGeminiChat({
         throw error; // Let caller handle abort
       }
 
-      if (error.message.includes('API key not valid') ||
-          error.message.includes('API_KEY_INVALID')) {
+      const errorMessage = error.message;
+
+      if (errorMessage.includes('API key not valid') ||
+          errorMessage.includes('API_KEY_INVALID')) {
         onError(new Error('Invalid API key. Please check your Gemini API key in Settings.'));
-      } else if (error.message.includes('quota')) {
-        onError(new Error('API quota exceeded. Please try again later or check your usage limits.'));
+      } else if (errorMessage.includes('429') ||
+                 errorMessage.includes('quota') ||
+                 errorMessage.includes('rate') ||
+                 errorMessage.includes('exceeded')) {
+        // Parse quota error details
+        const { retrySeconds, isFreeTier } = parseQuotaError(errorMessage);
+        const friendlyMessage = formatQuotaErrorMessage(retrySeconds, isFreeTier);
+        const quotaError = new QuotaExceededError(friendlyMessage, retrySeconds, isFreeTier);
+        onError(quotaError);
       } else {
         onError(error);
       }
@@ -125,6 +205,10 @@ export async function testApiKey(apiKey: string): Promise<{ valid: boolean; erro
       if (error.message.includes('API key not valid') ||
           error.message.includes('API_KEY_INVALID')) {
         return { valid: false, error: 'Invalid API key' };
+      }
+      // Check for quota errors during test
+      if (error.message.includes('429') || error.message.includes('quota')) {
+        return { valid: true, error: 'API key valid but quota exceeded' };
       }
       return { valid: false, error: error.message };
     }
