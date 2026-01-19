@@ -250,8 +250,8 @@ export default function Home() {
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
-        {/* Practice Dojo Progress Indicator */}
-        {currentTopic && practiceDojoContext && (
+        {/* Practice Dojo Progress Indicator - only show when session is active */}
+        {isInPracticeDojo && currentTopic && (
           <ProgressIndicator
             topic={currentTopic}
             currentPhase={practiceDojoState.state.currentPhase}
