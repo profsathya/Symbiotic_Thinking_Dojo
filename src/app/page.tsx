@@ -106,17 +106,20 @@ export default function Home() {
   const isExitingPracticeDojoRef = useRef(false);
 
   // Save messages to Practice Dojo state when in Practice Dojo mode
-  // Note: We use practiceDojoState.saveMessages directly but exclude practiceDojoState from deps
-  // to avoid infinite loops (saveMessages updates state which would re-trigger this effect)
+  // Note: We check isInPracticeDojo (which uses isActive flag) to ensure we only save when
+  // actively in a session, not just when there's resumable data from localStorage
+  const { isInPracticeDojo } = practiceDojoState;
+
   useEffect(() => {
     // Don't save during exit (we save explicitly before reset) or if just welcome message
     if (isExitingPracticeDojoRef.current) return;
-    if (practiceDojoContext && messages.length > 1 && !isLoading) {
+    // Only save when actively in Practice Dojo (isActive=true) and have meaningful conversation
+    if (isInPracticeDojo && practiceDojoContext && messages.length > 1 && !isLoading) {
       const serialized = getSerializedMessages();
       practiceDojoState.saveMessages(serialized);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages, practiceDojoContext, isLoading, getSerializedMessages]);
+  }, [messages, practiceDojoContext, isLoading, getSerializedMessages, isInPracticeDojo]);
 
   // Reset chat when construct changes
   const handleConstructChange = (construct: typeof activeConstruct) => {

@@ -57,7 +57,9 @@ function loadState(): PracticeDojoState {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      return { ...INITIAL_PRACTICE_DOJO_STATE, ...parsed };
+      // Always start with isActive: false on page load
+      // User must explicitly resume to activate the session
+      return { ...INITIAL_PRACTICE_DOJO_STATE, ...parsed, isActive: false };
     }
   } catch (e) {
     console.error('Failed to load Practice Dojo state:', e);
@@ -97,14 +99,17 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
   }, [state]);
 
   // Derived states
-  const isInPracticeDojo = state.topicId !== null && state.pathway !== null;
-  const hasResumeableSession = state.topicId !== null && state.sessionStarted !== null;
+  // isInPracticeDojo: true only when session is actively running
+  const isInPracticeDojo = state.isActive;
+  // hasResumeableSession: true when there's saved session data to resume
+  const hasResumeableSession = !state.isActive && state.topicId !== null && state.sessionStarted !== null;
 
   // Start a new session
   // Note: We start at Phase 1 because Phase 0 (pathway selection) is handled by the UI modal
   const startSession = useCallback((topicId: string, pathway: Pathway) => {
     setState(current => ({
       ...current,
+      isActive: true, // Mark session as active
       topicId,
       pathway,
       currentPhase: 1, // Skip Phase 0 (pathway selection already done in modal)
@@ -118,19 +123,21 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     }));
   }, []);
 
-  // Resume existing session (just mark as active, state is already loaded)
+  // Resume existing session (mark as active, state is already loaded)
   const resumeSession = useCallback(() => {
     setState(current => ({
       ...current,
+      isActive: true, // Mark session as active
       lastUpdated: new Date().toISOString(),
     }));
   }, []);
 
-  // Exit session (clear active topic but keep progress for resume)
+  // Exit session (deactivate but keep progress for resume)
   const exitSession = useCallback(() => {
-    // Keep the state for potential resume, just mark lastUpdated
+    // Keep the state for potential resume, just mark as inactive
     setState(current => ({
       ...current,
+      isActive: false, // Deactivate session
       lastUpdated: new Date().toISOString(),
     }));
   }, []);
@@ -223,6 +230,7 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
         ...current,
         completedTopics: [...current.completedTopics, topicId],
         // Also reset the current session
+        isActive: false,
         topicId: null,
         currentPhase: 0,
         completedPhases: [],

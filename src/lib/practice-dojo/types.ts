@@ -121,6 +121,9 @@ export interface TopicConfig {
 
 // Practice Dojo local state (persisted to localStorage)
 export interface PracticeDojoState {
+  // Whether session is currently active (vs just having resumable data)
+  isActive: boolean;
+
   // Current session info
   topicId: string | null;
   currentPhase: number;
@@ -156,6 +159,7 @@ export interface SerializedMessage {
 
 // Initial state
 export const INITIAL_PRACTICE_DOJO_STATE: PracticeDojoState = {
+  isActive: false,
   topicId: null,
   currentPhase: 0,
   completedPhases: [],
