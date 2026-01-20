@@ -30,6 +30,9 @@ interface UsePracticeDojoStateReturn {
   setPhase: (phase: number) => void;
   markPhaseCompleted: (phase: number) => void;
 
+  // Interaction tracking for progressive scaffolding
+  incrementInteractionCount: () => void;
+
   // Checkpoint management
   setCheckpointResponse: (phase: number, response: string) => void;
   setCheckpointStatus: (phase: number, status: CheckpointStatus) => void;
@@ -114,6 +117,7 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
       pathway,
       currentPhase: 1, // Skip Phase 0 (pathway selection already done in modal)
       completedPhases: [0], // Mark Phase 0 as completed
+      interactionCount: 0, // Reset interaction count for new session
       userChoices: {},
       checkpointResponses: {},
       checkpointStatuses: {},
@@ -166,6 +170,15 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     setState(current => ({
       ...current,
       currentPhase: phase,
+      lastUpdated: new Date().toISOString(),
+    }));
+  }, []);
+
+  // Increment interaction count (called when user sends a message in Practice Dojo)
+  const incrementInteractionCount = useCallback(() => {
+    setState(current => ({
+      ...current,
+      interactionCount: current.interactionCount + 1,
       lastUpdated: new Date().toISOString(),
     }));
   }, []);
@@ -283,6 +296,7 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     advancePhase,
     setPhase,
     markPhaseCompleted,
+    incrementInteractionCount,
     setCheckpointResponse,
     setCheckpointStatus,
     setUserChoice,

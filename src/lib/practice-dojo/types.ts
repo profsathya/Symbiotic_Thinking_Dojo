@@ -130,6 +130,10 @@ export interface PracticeDojoState {
   completedPhases: number[];
   pathway: Pathway | null;
 
+  // Interaction tracking for progressive scaffolding
+  // Counts user responses (not including welcome message)
+  interactionCount: number;
+
   // User choices made during the session
   userChoices: Record<string, string>;
 
@@ -164,6 +168,7 @@ export const INITIAL_PRACTICE_DOJO_STATE: PracticeDojoState = {
   currentPhase: 0,
   completedPhases: [],
   pathway: null,
+  interactionCount: 0,
   userChoices: {},
   checkpointResponses: {},
   checkpointStatuses: {},
@@ -181,4 +186,6 @@ export interface PracticeDojoContext {
   completedPhases: number[];
   userChoices: Record<string, string>;
   checkpointStatuses: Record<string, CheckpointStatus>;
+  // Interaction count for progressive scaffolding
+  interactionCount: number;
 }

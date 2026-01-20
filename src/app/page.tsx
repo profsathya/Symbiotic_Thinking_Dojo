@@ -52,7 +52,7 @@ export default function Home() {
 
   // Compute Practice Dojo context if in Practice Dojo mode
   // Note: We destructure specific fields to avoid re-computing when unrelated state changes (like savedMessages)
-  const { isActive, topicId, pathway, currentPhase: currentPhaseIndex, completedPhases, userChoices, checkpointStatuses } = practiceDojoState.state;
+  const { isActive, topicId, pathway, currentPhase: currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, interactionCount } = practiceDojoState.state;
 
   const practiceDojoContext = useMemo((): PracticeDojoContext | null => {
     // Only compute context when session is actively running
@@ -73,8 +73,9 @@ export default function Home() {
       completedPhases,
       userChoices,
       checkpointStatuses,
+      interactionCount,
     };
-  }, [isActive, topicId, pathway, currentPhaseIndex, completedPhases, userChoices, checkpointStatuses]);
+  }, [isActive, topicId, pathway, currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, interactionCount]);
 
   const {
     messages,
@@ -207,6 +208,15 @@ export default function Home() {
     }, 100);
   }, [practiceDojoState, resetChat, messages.length, getSerializedMessages]);
 
+  // Wrap sendMessage to track interactions in Practice Dojo mode
+  const handleSendMessage = useCallback((message: string) => {
+    // Increment interaction count when in Practice Dojo mode
+    if (isInPracticeDojo) {
+      practiceDojoState.incrementInteractionCount();
+    }
+    sendMessage(message);
+  }, [isInPracticeDojo, practiceDojoState, sendMessage]);
+
   // Handle visual component interactions (e.g., clicking selection cards)
   const handleVisualInteraction = useCallback((action: string, data: Record<string, string>) => {
     if (action === 'select' && data.optionTitle) {
@@ -214,10 +224,10 @@ export default function Home() {
       if (data.optionId) {
         practiceDojoState.setUserChoice(data.optionId, data.optionTitle);
       }
-      // Send the selection as a message
-      sendMessage(`I choose: ${data.optionTitle}`);
+      // Send the selection as a message (this goes through handleSendMessage)
+      handleSendMessage(`I choose: ${data.optionTitle}`);
     }
-  }, [practiceDojoState, sendMessage]);
+  }, [practiceDojoState, handleSendMessage]);
 
   // Check if user has started a conversation (more than just the welcome message)
   const hasStartedConversation = messages.length > 1;
@@ -267,7 +277,7 @@ export default function Home() {
           isLoading={isLoading}
           error={error}
           quotaRetryTime={quotaRetryTime}
-          onSendMessage={sendMessage}
+          onSendMessage={handleSendMessage}
           balance={balance}
           onVisualInteraction={handleVisualInteraction}
           headerContent={

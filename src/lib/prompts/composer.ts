@@ -247,7 +247,7 @@ This isn't about finding the "right" answer. It's about developing self-awarenes
  * Composes the Practice Dojo-specific prompt section
  */
 function composePracticeDojoPrompt(context: PracticeDojoContext): string {
-  const { topic, currentPhase, pathway, completedPhases, userChoices, checkpointStatuses } = context;
+  const { topic, currentPhase, pathway, completedPhases, userChoices, checkpointStatuses, interactionCount } = context;
 
   const sections: string[] = [];
 
@@ -259,7 +259,8 @@ function composePracticeDojoPrompt(context: PracticeDojoContext): string {
 - **Topic:** ${topic.title}
 - **Pathway:** ${pathway.charAt(0).toUpperCase() + pathway.slice(1)}
 - **Current Phase:** ${currentPhase.phaseId + 1} of ${topic.phases.length} - "${currentPhase.title}"
-- **Completed Phases:** ${completedPhases.length > 0 ? completedPhases.map(p => p + 1).join(', ') : 'None yet'}`);
+- **Completed Phases:** ${completedPhases.length > 0 ? completedPhases.map(p => p + 1).join(', ') : 'None yet'}
+- **Interaction Count:** ${interactionCount}`);
 
   // User choices context
   if (Object.keys(userChoices).length > 0) {
@@ -287,6 +288,72 @@ ${currentPhase.checkpointCriteria || 'Use judgment to assess understanding.'}` :
 ${previousCheckpoints.map(([phase, status]) => `- ${phase}: ${status}`).join('\n')}`);
   }
 
+  // Progressive scaffolding based on interaction count
+  // This helps students build momentum - start with clicks, transition to text
+  let scaffoldingGuidance: string;
+  if (interactionCount <= 4) {
+    // Early phase: Heavy interactive scaffolding
+    scaffoldingGuidance = `## ENGAGEMENT SCAFFOLDING (Early Phase - Interaction ${interactionCount + 1})
+
+**PRIORITY: Use interactive elements to build momentum.**
+
+In these early interactions, students are warming up. Make it easy for them to engage:
+
+1. **End EVERY response with a selection-cards element** - Give 3-4 clickable options
+2. **Keep text brief** - 2-3 short paragraphs max before the interactive element
+3. **Make options feel safe** - No "wrong" answers, each option leads somewhere valuable
+4. **If asking a question, offer structured responses** - Don't leave them staring at a blank input
+
+Example pattern:
+- Brief acknowledgment/insight (1-2 sentences)
+- One key point or question (1 paragraph)
+- Selection cards with clear options
+
+\`\`\`dojo-visual
+{
+  "type": "selection-cards",
+  "prompt": "Your prompt here",
+  "options": [
+    {"id": "opt1", "icon": "🎯", "title": "Option 1", "description": "Brief description"},
+    {"id": "opt2", "icon": "💡", "title": "Option 2", "description": "Brief description"},
+    {"id": "opt3", "icon": "🤔", "title": "Option 3", "description": "Brief description"}
+  ]
+}
+\`\`\``;
+  } else if (interactionCount <= 8) {
+    // Middle phase: Mixed scaffolding
+    scaffoldingGuidance = `## ENGAGEMENT SCAFFOLDING (Building Phase - Interaction ${interactionCount + 1})
+
+**PRIORITY: Mix interactive elements with guided text responses.**
+
+The student has momentum now. Start asking for more:
+
+1. **Alternate between interactive and text prompts** - Every other response can ask for text input
+2. **When asking for text, scaffold it** - "In 1-2 sentences..." or "What's one example..."
+3. **Use info-boxes and comparison tables** - Visual elements that don't require clicking
+4. **Still offer selection cards for big decisions** - But allow text for reflection
+
+Example patterns:
+- Ask a focused question, then provide an info-box to react to
+- Present a comparison table, then ask what they notice
+- Use selection cards for "which direction" questions, text for "what do you think" questions`;
+  } else {
+    // Later phase: Text-primary with periodic interactive elements
+    scaffoldingGuidance = `## ENGAGEMENT SCAFFOLDING (Fluent Phase - Interaction ${interactionCount + 1})
+
+**PRIORITY: Natural conversation with periodic visual elements.**
+
+The student is engaged and thinking. Trust them more:
+
+1. **Text responses are fine** - They're warmed up and contributing
+2. **Use interactive elements every 2-3 responses** - Keep variety but don't force it
+3. **Reserve selection cards for genuine choices** - Not just to have something clickable
+4. **Use info-boxes for reveals and summaries** - Visual punctuation for key moments
+
+At this stage, match the natural flow of the conversation. If they're giving thoughtful responses, don't interrupt with unnecessary interactive elements.`;
+  }
+  sections.push(scaffoldingGuidance);
+
   // Sensei behavior guidelines
   sections.push(`## SENSEI BEHAVIOR IN PRACTICE DOJO
 
@@ -302,13 +369,13 @@ ${previousCheckpoints.map(([phase, status]) => `- ${phase}: ${status}`).join('\n
 
 /**
  * Creates a welcome message for Practice Dojo mode
- * The welcome immediately starts Phase 1 content since pathway was selected in the UI modal
+ * Uses selection cards for initial engagement to build momentum
  */
 export function createPracticeDojoWelcome(topic: TopicConfig, pathway: string): string {
   const pathwayConfig = topic.pathways.find(p => p.id === pathway);
   const pathwayName = pathwayConfig?.title || pathway;
 
-  // For Symbiotic Thinking topic, include the Phase 1 thought experiment directly
+  // For Symbiotic Thinking topic, start with the thought experiment + initial reaction cards
   if (topic.topicId === 'symbiotic-thinking') {
     return `**Sensei:** Welcome to the Practice Dojo! 🥋
 
@@ -320,12 +387,25 @@ Let me start with a thought experiment:
 
 *"I'm assigning you a direct report. They're an expert in a specific area, diligent, creative, and great at remembering things. They're very capable, but it will be up to you to figure out how to best utilize their skills. With this additional resource, I'll naturally be expecting more value from your work."*
 
-Take a moment to consider this scenario. What questions would you want to ask? What would you need to figure out first?`;
+**What's your first reaction to this news?**
+
+\`\`\`dojo-visual
+{
+  "type": "selection-cards",
+  "prompt": "How do you feel about suddenly having a direct report?",
+  "options": [
+    {"id": "excited", "icon": "🎉", "title": "Excited!", "description": "More resources means I can do more"},
+    {"id": "nervous", "icon": "😰", "title": "A bit nervous", "description": "I've never managed anyone before"},
+    {"id": "curious", "icon": "🤔", "title": "Curious", "description": "I want to know more about their skills"},
+    {"id": "skeptical", "icon": "🧐", "title": "Skeptical", "description": "What's the catch here?"}
+  ]
+}
+\`\`\``;
   }
 
-  // For course topics, include the opening question from Phase 0
+  // For course topics, start with interactive cards
   if (topic.category === 'course') {
-    // CST395 opening question
+    // CST395 opening
     if (topic.topicId === 'course-cst395-overview') {
       return `**Sensei:** Welcome to the Practice Dojo! 🥋
 
@@ -333,12 +413,23 @@ Let's explore **${topic.title}** together.
 
 This is an interactive experience to help you deeply understand the course—not just what it covers, but how it's designed and how to get the most out of it.
 
-Before I explain what this course is about, I'm curious:
+**What brings you here today?**
 
-**When you hear "AI-Native Solution Engineering," what do you picture? What do you think makes solution engineering "AI-native" versus traditional?**`;
+\`\`\`dojo-visual
+{
+  "type": "selection-cards",
+  "prompt": "What would you like to focus on?",
+  "options": [
+    {"id": "understand", "icon": "🎯", "title": "Understand the course", "description": "What is this course really about?"},
+    {"id": "succeed", "icon": "🏆", "title": "How to succeed", "description": "What does it take to do well?"},
+    {"id": "ai-native", "icon": "🤖", "title": "What's 'AI-native'?", "description": "I want to understand this concept"},
+    {"id": "explore", "icon": "🗺️", "title": "Just exploring", "description": "Show me what this is about"}
+  ]
+}
+\`\`\``;
     }
 
-    // CST349 opening question
+    // CST349 opening
     if (topic.topicId === 'course-cst349-overview') {
       return `**Sensei:** Welcome to the Practice Dojo! 🥋
 
@@ -346,9 +437,20 @@ Let's explore **${topic.title}** together.
 
 This is an interactive experience to help you deeply understand the course—not just what it covers, but how it's designed and how to get the most out of it.
 
-Before I explain what this course is about, I'm curious:
+**What brings you here today?**
 
-**What do you think a "CS Professional Seminar" should prepare you for? What comes to mind when you hear that title?**`;
+\`\`\`dojo-visual
+{
+  "type": "selection-cards",
+  "prompt": "What would you like to focus on?",
+  "options": [
+    {"id": "understand", "icon": "🎯", "title": "Understand the course", "description": "What is this course really about?"},
+    {"id": "succeed", "icon": "🏆", "title": "How to succeed", "description": "What does it take to do well?"},
+    {"id": "professional", "icon": "💼", "title": "Career preparation", "description": "How does this help my career?"},
+    {"id": "explore", "icon": "🗺️", "title": "Just exploring", "description": "Show me what this is about"}
+  ]
+}
+\`\`\``;
     }
 
     // Generic course welcome (fallback)
@@ -358,7 +460,17 @@ Let's explore **${topic.title}** together.
 
 This is an interactive experience to help you deeply understand the course—not just what it covers, but how it's designed and how to get the most out of it.
 
-What's your first impression of this course? What do you hope to get out of it?`;
+\`\`\`dojo-visual
+{
+  "type": "selection-cards",
+  "prompt": "What would you like to focus on?",
+  "options": [
+    {"id": "understand", "icon": "🎯", "title": "Understand the course", "description": "What is this course really about?"},
+    {"id": "succeed", "icon": "🏆", "title": "How to succeed", "description": "What does it take to do well?"},
+    {"id": "explore", "icon": "🗺️", "title": "Just exploring", "description": "Show me what this is about"}
+  ]
+}
+\`\`\``;
   }
 
   // Generic welcome for other topics
