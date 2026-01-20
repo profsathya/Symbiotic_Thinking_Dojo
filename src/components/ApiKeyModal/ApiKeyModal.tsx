@@ -1,22 +1,29 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { testApiKey } from '@/lib/gemini-client';
+import { AIProvider, PROVIDERS } from '@/lib/providers/types';
+import { testApiKey } from '@/lib/providers';
 
 interface ApiKeyModalProps {
   isOpen: boolean;
   onClose: () => void;
+  currentProvider: AIProvider;
   currentKey: string | null;
+  onSelectProvider: (provider: AIProvider) => void;
   onSaveKey: (key: string) => void;
   onClearKey: () => void;
+  hasKeyForProvider: (provider: AIProvider) => boolean;
 }
 
 export function ApiKeyModal({
   isOpen,
   onClose,
+  currentProvider,
   currentKey,
+  onSelectProvider,
   onSaveKey,
   onClearKey,
+  hasKeyForProvider,
 }: ApiKeyModalProps) {
   const [keyInput, setKeyInput] = useState('');
   const [isValidating, setIsValidating] = useState(false);
@@ -26,14 +33,16 @@ export function ApiKeyModal({
   } | null>(null);
   const [showKey, setShowKey] = useState(false);
 
-  // Reset state when modal opens
+  const providerConfig = PROVIDERS[currentProvider];
+
+  // Reset state when modal opens or provider changes
   useEffect(() => {
     if (isOpen) {
       setKeyInput('');
       setValidationResult(null);
       setShowKey(false);
     }
-  }, [isOpen]);
+  }, [isOpen, currentProvider]);
 
   // Handle escape key
   useEffect(() => {
@@ -52,7 +61,7 @@ export function ApiKeyModal({
     setIsValidating(true);
     setValidationResult(null);
 
-    const result = await testApiKey(keyInput.trim());
+    const result = await testApiKey(currentProvider, keyInput.trim());
     setValidationResult(result);
 
     if (result.valid) {
@@ -83,10 +92,10 @@ export function ApiKeyModal({
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative bg-gray-900 border border-gray-700 rounded-xl shadow-2xl w-full max-w-lg overflow-hidden mx-4">
+      <div className="relative bg-gray-900 border border-gray-700 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden mx-4 flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-100">API Key Settings</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 flex-shrink-0">
+          <h2 className="text-lg font-semibold text-gray-100">API Settings</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-200 transition-colors"
@@ -97,8 +106,48 @@ export function ApiKeyModal({
           </button>
         </div>
 
-        {/* Content */}
-        <div className="px-6 py-4 space-y-6">
+        {/* Content - scrollable */}
+        <div className="px-6 py-4 space-y-6 overflow-y-auto flex-1">
+          {/* Provider Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-3">
+              AI Provider
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              {(Object.keys(PROVIDERS) as AIProvider[]).map((providerId) => {
+                const config = PROVIDERS[providerId];
+                const isSelected = currentProvider === providerId;
+                const hasKey = hasKeyForProvider(providerId);
+
+                return (
+                  <button
+                    key={providerId}
+                    onClick={() => onSelectProvider(providerId)}
+                    className={`p-3 rounded-lg border text-left transition-all ${
+                      isSelected
+                        ? 'border-purple-500 bg-purple-900/30'
+                        : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-sm font-semibold ${isSelected ? 'text-purple-300' : 'text-gray-200'}`}>
+                        {config.name}
+                      </span>
+                      {hasKey && (
+                        <span className="text-xs text-emerald-400 flex items-center gap-1">
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400">{config.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Privacy Notice */}
           <div className="bg-emerald-900/30 border border-emerald-700/50 rounded-lg p-4">
             <div className="flex gap-3">
@@ -109,8 +158,7 @@ export function ApiKeyModal({
                 <h3 className="text-sm font-semibold text-emerald-300 mb-1">Your Privacy is Protected</h3>
                 <p className="text-xs text-emerald-200/80">
                   Your API key is stored <strong>only in your browser</strong> and never sent to our servers.
-                  All conversations happen directly between your browser and Google&apos;s Gemini API.
-                  We have <strong>zero access</strong> to your conversations or API key.
+                  All conversations happen directly between your browser and {providerConfig.name}&apos;s API.
                 </p>
               </div>
             </div>
@@ -120,7 +168,7 @@ export function ApiKeyModal({
           {currentKey && (
             <div className="bg-gray-800/50 rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-300">Current API Key</span>
+                <span className="text-sm font-medium text-gray-300">Current {providerConfig.name} API Key</span>
                 <span className="text-xs text-emerald-400 flex items-center gap-1">
                   <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -164,13 +212,13 @@ export function ApiKeyModal({
           {/* New Key Input */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              {currentKey ? 'Replace with New API Key' : 'Enter Your Gemini API Key'}
+              {currentKey ? `Replace with New ${providerConfig.name} API Key` : `Enter Your ${providerConfig.name} API Key`}
             </label>
             <input
               type="password"
               value={keyInput}
               onChange={e => setKeyInput(e.target.value)}
-              placeholder="AIza..."
+              placeholder={providerConfig.keyPlaceholder}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 font-mono text-sm"
             />
 
@@ -198,47 +246,39 @@ export function ApiKeyModal({
 
           {/* How to Get API Key */}
           <div className="bg-gray-800/50 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-gray-200 mb-2">How to Get a Free API Key</h3>
+            <h3 className="text-sm font-semibold text-gray-200 mb-2">How to Get a Free {providerConfig.name} API Key</h3>
             <ol className="text-xs text-gray-400 space-y-2">
-              <li className="flex gap-2">
-                <span className="text-purple-400 font-medium">1.</span>
-                <span>
-                  Go to{' '}
-                  <a
-                    href="https://aistudio.google.com/apikey"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-purple-400 hover:text-purple-300 underline"
-                  >
-                    Google AI Studio
-                  </a>
-                </span>
-              </li>
-              <li className="flex gap-2">
-                <span className="text-purple-400 font-medium">2.</span>
-                <span>Sign in with your Google account</span>
-              </li>
-              <li className="flex gap-2">
-                <span className="text-purple-400 font-medium">3.</span>
-                <span>Click &quot;Create API key&quot;</span>
-              </li>
-              <li className="flex gap-2">
-                <span className="text-purple-400 font-medium">4.</span>
-                <span>Select &quot;Create API key in new project&quot; (or choose an existing project)</span>
-              </li>
-              <li className="flex gap-2">
-                <span className="text-purple-400 font-medium">5.</span>
-                <span>Copy the generated key and paste it above</span>
-              </li>
+              {providerConfig.getKeyInstructions.map((step, index) => (
+                <li key={index} className="flex gap-2">
+                  <span className="text-purple-400 font-medium">{index + 1}.</span>
+                  <span>
+                    {index === 0 ? (
+                      <>
+                        Go to{' '}
+                        <a
+                          href={providerConfig.getKeyUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-purple-400 hover:text-purple-300 underline"
+                        >
+                          {providerConfig.getKeyUrl.replace('https://', '')}
+                        </a>
+                      </>
+                    ) : (
+                      step
+                    )}
+                  </span>
+                </li>
+              ))}
             </ol>
             <p className="text-xs text-gray-500 mt-3">
-              The free tier includes generous usage limits (~15 requests/min, ~1M tokens/day).
+              {providerConfig.freeInfo}
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-800 flex justify-end gap-3">
+        <div className="px-6 py-4 border-t border-gray-800 flex justify-end gap-3 flex-shrink-0">
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-gray-200 transition-colors"

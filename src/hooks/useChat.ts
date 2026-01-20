@@ -17,19 +17,18 @@ import {
   DIKW_ORDER,
 } from '@/lib/types';
 import { createWelcomeMessage, composeSystemPrompt, createPracticeDojoWelcome } from '@/lib/prompts';
-import { streamGeminiChat, QuotaExceededError } from '@/lib/gemini-client';
+import { streamChat, getDefaultModel, QuotaExceededError } from '@/lib/providers';
+import { AIProvider } from '@/lib/providers/types';
 import { parseMentions } from '@/lib/mentions';
 import { ImportedSession } from '@/lib/export';
 import { PracticeDojoContext, TopicConfig, Pathway, SerializedMessage } from '@/lib/practice-dojo/types';
-
-// Default model for Gemini
-const DEFAULT_MODEL = 'gemini-2.5-flash';
 
 interface UseChatOptions {
   config: DojoConfig;
   activeConstruct: Construct;
   activePartners: SparringPartner[];
   apiKey: string | null;
+  provider: AIProvider;
   isGuidedPractice?: boolean;
   practiceDojoContext?: PracticeDojoContext | null;
 }
@@ -128,7 +127,7 @@ function updateDIKWState(current: DIKWState, newLevel: DIKWLevel): DIKWState {
   };
 }
 
-export function useChat({ config, activeConstruct, activePartners, apiKey, practiceDojoContext }: UseChatOptions): UseChatReturn {
+export function useChat({ config, activeConstruct, activePartners, apiKey, provider, practiceDojoContext }: UseChatOptions): UseChatReturn {
   const [isGuidedPractice, setIsGuidedPractice] = useState(false);
   const [isImportedSession, setIsImportedSession] = useState(false);
 
@@ -162,7 +161,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
 
     // Check for API key
     if (!apiKey) {
-      setError('Please set your Gemini API key in Settings to start chatting.');
+      setError('Please set your API key in Settings to start chatting.');
       return;
     }
 
@@ -220,9 +219,9 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
     try {
       let accumulatedContent = '';
 
-      await streamGeminiChat({
+      await streamChat(provider, {
         apiKey,
-        modelName: DEFAULT_MODEL,
+        modelName: getDefaultModel(provider),
         systemPrompt,
         messages: apiMessages,
         signal: abortControllerRef.current.signal,
@@ -304,7 +303,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, pract
     } finally {
       setIsLoading(false);
     }
-  }, [messages, config, activeConstruct, activePartners, apiKey, isLoading, isGuidedPractice, practiceDojoContext, consecutiveTextOnlyResponses]);
+  }, [messages, config, activeConstruct, activePartners, apiKey, provider, isLoading, isGuidedPractice, practiceDojoContext, consecutiveTextOnlyResponses]);
 
   const resetChat = useCallback(() => {
     // Cancel any existing request

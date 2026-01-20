@@ -25,7 +25,7 @@ export default function Home() {
   const [mounted, setMounted] = useState(false);
 
   // API Key management (stored in browser localStorage)
-  const { apiKey, isKeySet, setApiKey, clearApiKey } = useApiKey();
+  const { apiKey, isKeySet, setApiKey, clearApiKey, provider, setProvider, hasKeyForProvider } = useApiKey();
 
   // Practice Dojo state management (stored in browser localStorage)
   const practiceDojoState = usePracticeDojoState();
@@ -97,6 +97,7 @@ export default function Home() {
     activeConstruct,
     activePartners,
     apiKey,
+    provider,
     practiceDojoContext,
   });
 
@@ -312,9 +313,12 @@ export default function Home() {
       <ApiKeyModal
         isOpen={isApiKeyModalOpen}
         onClose={() => setIsApiKeyModalOpen(false)}
+        currentProvider={provider}
         currentKey={apiKey}
+        onSelectProvider={setProvider}
         onSaveKey={setApiKey}
         onClearKey={clearApiKey}
+        hasKeyForProvider={hasKeyForProvider}
       />
 
       {/* Configuration Modal */}
