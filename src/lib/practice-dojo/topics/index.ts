@@ -1,13 +1,14 @@
 import { TopicConfig, TopicCategory } from '../types';
 import { SYMBIOTIC_THINKING_TOPIC } from './symbiotic-thinking';
-import { CST395_TOPIC, CST349_TOPIC, GENERAL_SUBJECTS_PLACEHOLDER } from './course-topics';
+import { CST395_TOPIC, CST349_TOPIC } from './course-topics';
+import { INTRODUCTORY_PROGRAMMING_TOPIC } from './introductory-programming';
 
 // All available topics
 export const ALL_TOPICS: TopicConfig[] = [
   SYMBIOTIC_THINKING_TOPIC,
   CST395_TOPIC,
   CST349_TOPIC,
-  GENERAL_SUBJECTS_PLACEHOLDER,
+  INTRODUCTORY_PROGRAMMING_TOPIC,
 ];
 
 // Get only enabled topics
@@ -40,4 +41,5 @@ export function getTopicsOrganizedByCategory(): TopicsByCategory {
 
 // Re-export individual topics
 export { SYMBIOTIC_THINKING_TOPIC } from './symbiotic-thinking';
-export { CST395_TOPIC, CST349_TOPIC, GENERAL_SUBJECTS_PLACEHOLDER } from './course-topics';
+export { CST395_TOPIC, CST349_TOPIC } from './course-topics';
+export { INTRODUCTORY_PROGRAMMING_TOPIC } from './introductory-programming';

@@ -586,16 +586,3 @@ Close warmly, encouraging them to use the Symbiotic Thinking Dojo throughout the
     ],
   },
 };
-
-// Placeholder for general subjects
-export const GENERAL_SUBJECTS_PLACEHOLDER: TopicConfig = {
-  topicId: 'general-subjects',
-  title: 'General Subjects',
-  description: 'Coming soon...',
-  estimatedTime: '--',
-  category: 'general',
-  enabled: false,
-  icon: '📖',
-  pathways: [],
-  phases: [],
-};
