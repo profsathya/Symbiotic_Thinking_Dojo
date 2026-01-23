@@ -125,8 +125,14 @@ function PhilosophyContent() {
     <div className="space-y-6 text-gray-300 text-sm">
       <section>
         <h3 className="text-base font-semibold text-gray-100 mb-2">What is the Symbiotic Thinking Dojo?</h3>
+        <p className="mb-3">
+          <span className="text-lg text-purple-400">道場</span> (dōjō) means &quot;place of the way&quot;—a space for disciplined practice toward mastery. We chose this name deliberately.
+        </p>
+        <p className="mb-3">
+          The Dojo asks you to slow down when everything else accelerates, to struggle productively when shortcuts beckon, to develop capability when dependency is easier. This isn&apos;t about speed. It&apos;s about becoming someone who thinks well.
+        </p>
         <p>
-          The Dojo is a space for developing your thinking skills alongside AI. Rather than having AI do your thinking for you, we help you become a better thinker <em>with</em> AI as your partner.
+          Here, AI becomes your thinking partner, not your replacement. The goal isn&apos;t faster answers—it&apos;s stronger judgment.
         </p>
       </section>
 
@@ -162,7 +168,7 @@ function PhilosophyContent() {
           </li>
           <li className="flex gap-2">
             <span className="text-emerald-500">•</span>
-            <span><strong>Productive struggle</strong> — Some difficulty is necessary for learning. We don't rush to resolve every challenge.</span>
+            <span><strong>Productive struggle</strong> — Some difficulty is necessary for learning. We don&apos;t rush to resolve every challenge.</span>
           </li>
         </ul>
       </section>
@@ -170,7 +176,7 @@ function PhilosophyContent() {
       <section>
         <h3 className="text-base font-semibold text-gray-100 mb-2">The Sensei & Sparring Partners</h3>
         <p className="mb-2">
-          The <strong>Sensei</strong> is your metacognitive coach — asking questions to help you reflect on your own thinking.
+          The <strong>Sensei</strong> is your metacognitive coach—asking questions to help you reflect on your own thinking.
         </p>
         <p className="mb-3">
           <strong>Sparring Partners</strong> challenge you from different angles:
