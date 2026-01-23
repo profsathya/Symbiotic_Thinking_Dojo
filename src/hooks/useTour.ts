@@ -69,12 +69,12 @@ export const TOUR_STEPS: TourStep[] = [
     position: 'left',
   },
   {
-    id: 'export',
-    target: '[data-tour="export"]',
+    id: 'session-controls',
+    target: '[data-tour="session-controls"]',
     title: 'Your Progress Persists',
-    content: 'Export your session to save your thinking journey. Import it later to continue where you left off—or share it with others for feedback.',
+    content: 'Import a saved session to continue where you left off. Save Session appears in the chat area once you start—export your thinking journey as JSON or Markdown.',
     yourPart: 'Treat your sessions as artifacts of growth. Review them. Learn from the patterns.',
-    position: 'bottom',
+    position: 'right',
   },
   {
     id: 'chat',

@@ -171,7 +171,7 @@ export function Sidebar({
         )}
 
         {/* Session buttons row */}
-        <div className="flex gap-2">
+        <div className="flex gap-2" data-tour="session-controls">
           <button
             onClick={onNewSession}
             className="flex-1 px-3 py-2 text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors flex items-center justify-center gap-1.5"
