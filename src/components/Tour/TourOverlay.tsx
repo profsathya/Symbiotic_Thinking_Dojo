@@ -44,7 +44,7 @@ export function TourOverlay({
 
       // Calculate tooltip position based on step.position
       const tooltipWidth = 360;
-      const tooltipHeight = 220;
+      const tooltipHeight = 300; // Increased to fit all content including buttons
       const gap = 16;
 
       let style: React.CSSProperties = {};
@@ -163,7 +163,7 @@ export function TourOverlay({
 
       {/* Tooltip */}
       <div
-        className="absolute bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-5 w-[360px]"
+        className="absolute bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-5 w-[360px] max-h-[calc(100vh-32px)] overflow-y-auto"
         style={tooltipStyle}
       >
         {/* Header */}
