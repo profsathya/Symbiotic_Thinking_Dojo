@@ -112,7 +112,7 @@ export function ExportButton({
   }
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative" ref={menuRef} data-tour="export">
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={disabled}

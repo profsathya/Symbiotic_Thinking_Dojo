@@ -79,7 +79,7 @@ export function ChatContainer({
   const isCreating = balance.score > 2 && balance.history.length >= 2;
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-950 overflow-hidden relative">
+    <div className="flex-1 flex flex-col bg-gray-950 overflow-hidden relative" data-tour="chat">
       {/* Balance-based color overlay */}
       {overlayOpacity > 0 && (
         <div

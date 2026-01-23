@@ -69,7 +69,7 @@ export function Sidebar({
   return (
     <aside className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b border-gray-800">
+      <div className="p-4 border-b border-gray-800" data-tour="welcome">
         <div className="flex items-center gap-3">
           <Image
             src="/CTI.png"
@@ -119,7 +119,7 @@ export function Sidebar({
       </div>
 
       {/* Practice Dojo */}
-      <div className="px-4 pt-4">
+      <div className="px-4 pt-4" data-tour="practice-dojo">
         <button
           onClick={onGuidedPractice}
           disabled={!isApiKeySet}
@@ -135,13 +135,15 @@ export function Sidebar({
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        <ConstructSelector
-          constructs={config.constructs}
-          activeConstruct={activeConstruct}
-          onSelect={onSelectConstruct}
-        />
+        <div data-tour="constructs">
+          <ConstructSelector
+            constructs={config.constructs}
+            activeConstruct={activeConstruct}
+            onSelect={onSelectConstruct}
+          />
+        </div>
 
-        <div className="border-t border-gray-800 pt-4">
+        <div className="border-t border-gray-800 pt-4" data-tour="partners">
           <PartnerSelector
             partners={config.partners}
             activePartners={activePartners}

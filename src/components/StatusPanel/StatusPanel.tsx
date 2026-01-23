@@ -61,19 +61,25 @@ export function StatusPanel({
       </div>
 
       {/* DIKW Pyramid */}
-      <DIKWPyramid dikwState={dikw} />
+      <div data-tour="dikw">
+        <DIKWPyramid dikwState={dikw} />
+      </div>
 
       {/* UMPIRE Tracker */}
-      <UmpireTracker
-        currentStage={umpireStage}
-        onStageChange={onUmpireStageChange}
-      />
+      <div data-tour="umpire">
+        <UmpireTracker
+          currentStage={umpireStage}
+          onStageChange={onUmpireStageChange}
+        />
+      </div>
 
       {/* Creating-Consuming Balance */}
-      <CreatingConsumingBalance
-        balance={balance}
-        hasStartedConversation={hasStartedConversation}
-      />
+      <div data-tour="balance">
+        <CreatingConsumingBalance
+          balance={balance}
+          hasStartedConversation={hasStartedConversation}
+        />
+      </div>
     </aside>
   );
 }
