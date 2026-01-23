@@ -126,10 +126,7 @@ function PhilosophyContent() {
       <section>
         <h3 className="text-base font-semibold text-gray-100 mb-2">What is the Symbiotic Thinking Dojo?</h3>
         <p className="mb-3">
-          <span className="text-lg text-purple-400">道場</span> (dōjō) means &quot;place of the way&quot;—a space for disciplined practice toward mastery. We chose this name deliberately.
-        </p>
-        <p className="mb-3">
-          The Dojo asks you to slow down when everything else accelerates, to struggle productively when shortcuts beckon, to develop capability when dependency is easier. This isn&apos;t about speed. It&apos;s about becoming someone who thinks well.
+          <span className="text-lg text-purple-400">道場</span> (dōjō) means &quot;place of the way&quot;—a space for disciplined practice toward mastery. We chose this name deliberately, aspiring for this tool to have the same transformative impact on learners that a traditional dojo has on its students. True to this spirit, the Dojo asks you to slow down when everything else accelerates, to struggle productively when shortcuts beckon, to develop capability when dependency is easier. This isn&apos;t about speed. It&apos;s about becoming someone who thinks well.
         </p>
         <p>
           Here, AI becomes your thinking partner, not your replacement. The goal isn&apos;t faster answers—it&apos;s stronger judgment.
