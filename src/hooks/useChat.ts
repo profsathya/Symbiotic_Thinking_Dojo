@@ -208,12 +208,13 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, provi
       content: msg.content,
     }));
 
-    // Compose system prompt with mentioned partners and practice dojo context
+    // Compose system prompt with mentioned partners, practice dojo context, and provider
     const systemPrompt = composeSystemPrompt(config, activeConstruct, activePartners, {
       isGuidedPractice,
       mentionedPartners,
       practiceDojoContext: practiceDojoContext || undefined,
       consecutiveTextOnlyResponses,
+      provider,
     });
 
     try {

@@ -1,11 +1,13 @@
 import { DojoConfig, Construct, SparringPartner } from '../types';
 import { PracticeDojoContext, TopicConfig, PhaseConfig } from '../practice-dojo/types';
+import { AIProvider } from '../providers/types';
 
 export interface ComposeOptions {
   isGuidedPractice?: boolean;
   mentionedPartners?: SparringPartner[];  // Partners invoked via @ mention for this message
   practiceDojoContext?: PracticeDojoContext;  // Context for Practice Dojo mode
   consecutiveTextOnlyResponses?: number;  // Count of consecutive AI responses without interactive elements
+  provider?: AIProvider;  // The AI provider being used (for model-specific adjustments)
 }
 
 /**
@@ -17,8 +19,9 @@ export function composeSystemPrompt(
   activePartners: SparringPartner[],
   options: ComposeOptions = {}
 ): string {
-  const { isGuidedPractice = false, mentionedPartners = [], practiceDojoContext, consecutiveTextOnlyResponses = 0 } = options;
+  const { isGuidedPractice = false, mentionedPartners = [], practiceDojoContext, consecutiveTextOnlyResponses = 0, provider } = options;
   const parts: string[] = [];
+  const isGroq = provider === 'groq';
 
   // Determine threshold for interactive element encouragement
   // Practice Dojo: 3 consecutive text-only responses, Regular: 5
@@ -189,7 +192,51 @@ Use visuals when they genuinely help organize thinking or present clear choices 
 Remember: The goal is to develop the student's judgment and cognitive skills, not just to complete their tasks.`);
   }
 
+  // 7. Brevity constraints (for all models, but especially important for Groq/Llama)
+  const brevitySection = composeBrevityConstraints(isGroq, !!practiceDojoContext);
+  parts.push(brevitySection);
+
   return parts.join('\n\n---\n\n');
+}
+
+/**
+ * Composes brevity and response length constraints
+ * More explicit for Groq/Llama, lighter for frontier models
+ */
+function composeBrevityConstraints(isGroq: boolean, isPracticeDojo: boolean): string {
+  if (isGroq) {
+    // Explicit, direct constraints for Llama
+    return `# CRITICAL: RESPONSE RULES
+
+**You MUST follow these rules exactly:**
+
+1. **KEEP RESPONSES SHORT.** Maximum 50 words of text per response. Visuals do not count.
+2. **ONE MOVE PER RESPONSE.** Either ask ONE question, OR make ONE point, OR present ONE choice. Never all three.
+3. **NEVER write paragraphs of explanation.** If you need to explain, use an info-box visual.
+4. **ASK, THEN STOP.** After asking a question, stop writing. Do not add more text.
+5. **THE STUDENT SHOULD TALK MORE THAN YOU.** If your response is longer than theirs, it's too long.
+
+${isPracticeDojo ? `**IN PRACTICE DOJO:**
+- End with a selection-cards visual when possible
+- Keep setup text to 1-2 short sentences before the visual
+- Do NOT lecture. Ask one thing and wait.` : ''}
+
+**GOOD RESPONSE:** "What matters most to you about this?" (8 words)
+**BAD RESPONSE:** "That's a great question. There are several things to consider here. First, we should think about..." (too long, lecturing)
+
+REMEMBER: Short. One move. Then stop.`;
+  } else {
+    // Lighter guidance for frontier models
+    return `# RESPONSE STYLE
+
+Keep responses concise:
+- One question or one insight per response
+- Under 50 words typical (visuals don't count)
+- The student should talk more than you
+- Ask, then wait. Don't fill silence with more text.
+
+${isPracticeDojo ? 'In Practice Dojo: Prefer ending with interactive visuals over open-ended questions.' : ''}`;
+  }
 }
 
 /**
