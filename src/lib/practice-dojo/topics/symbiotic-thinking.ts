@@ -1,10 +1,18 @@
 import { TopicConfig } from '../types';
 
+/**
+ * Symbiotic Thinking Foundations - Redesigned with Learning Design Principles
+ *
+ * Core approach: Students PRACTICE symbiotic thinking while learning about it.
+ * Every phase follows: ANCHOR → CHALLENGE → CONTRAST → NAME → BRIDGE
+ *
+ * The AI should be brief (under 50 words per response, one move at a time).
+ */
 export const SYMBIOTIC_THINKING_TOPIC: TopicConfig = {
   topicId: 'symbiotic-thinking',
   title: 'Symbiotic Thinking Foundations',
   description: 'Learn to think WITH AI, not just use it',
-  estimatedTime: '30-45 minutes',
+  estimatedTime: '25-35 minutes',
   category: 'foundations',
   enabled: true,
   icon: '🥋',
@@ -15,14 +23,14 @@ export const SYMBIOTIC_THINKING_TOPIC: TopicConfig = {
       title: 'Guided Journey',
       description: 'Full experience with all phases',
       icon: '🎯',
-      estimatedTime: '30-45 min',
+      estimatedTime: '25-35 min',
     },
     {
       id: 'quick',
       title: 'Quick Overview',
       description: 'Key concepts, shorter experience',
       icon: '⚡',
-      estimatedTime: '15-20 min',
+      estimatedTime: '12-15 min',
     },
     {
       id: 'test',
@@ -34,310 +42,215 @@ export const SYMBIOTIC_THINKING_TOPIC: TopicConfig = {
   ],
 
   phases: [
+    // ============================================================
+    // PHASE 0: WELCOME
+    // Hook them with the thought experiment immediately
+    // ============================================================
     {
       phaseId: 0,
-      title: 'Welcome & Pathway',
-      purpose: 'Orient and select engagement style',
+      title: 'Welcome',
+      purpose: 'Hook with the direct report scenario',
       hasCheckpoint: false,
       contentGuidance: `
-Welcome the student warmly to Symbiotic Thinking Foundations. Explain that this experience will help them develop a framework for thinking WITH AI, not just using it.
+PURPOSE: Create curiosity and personal investment through a thought experiment.
 
-Present the pathway selection using a dojo-visual selection-cards component:
-- Guided Journey (🎯): Full experience, 30-45 min
-- Quick Overview (⚡): Key concepts, 15-20 min
-- Test My Understanding (🔍): Skip what I know, varies
+The welcome message already presents the "direct report" scenario. The student has just been told they're getting a capable direct report and asked for their first reaction.
 
-After they select, acknowledge their choice and transition to Phase 1.
+DO NOT add anything here. Wait for their response. One move only.
 `,
     },
+
+    // ============================================================
+    // PHASE 1: THE MANAGER INSIGHT
+    // They experience managing before knowing it's AI
+    // ============================================================
     {
       phaseId: 1,
-      title: 'The Direct Report',
-      purpose: 'Understand WHY (AI as intelligence resources)',
+      title: 'The Manager Insight',
+      purpose: 'Experience the "manager of intelligence" realization',
       hasCheckpoint: true,
       contentGuidance: `
-NOTE: The thought experiment ("direct report" scenario) was already presented in the welcome message. The student has seen it and is now responding.
+PURPOSE: They commit to how they'd manage BEFORE knowing it's AI. Then the reveal creates contrast.
 
-CONTINUE FROM THEIR RESPONSE - do NOT re-present the thought experiment.
+ANCHOR: Their response to "you have a direct report" - this is THEIR instinct, THEIR approach.
 
-## ENGAGEMENT GUIDELINES FOR THIS PHASE:
-- Do NOT ask more than 2 similar open-ended questions in a row
-- If the student gives short answers, PROVIDE SCAFFOLDING with concrete options (use selection-cards)
-- Vary your approach: question → scaffolded choices → scenario → reflection
-- Keep the energy up - this should feel like discovery, not an interrogation
+CHALLENGE: Ask ONE follow-up about their approach. Then escalate: "Now you have FIVE direct reports."
 
-## PHASE FLOW:
-
-**Step 1: Initial Response (1-2 exchanges)**
-Guide their thinking based on their response. If they seem stuck or give brief answers, offer 2-3 concrete options using selection-cards:
+CONTRAST: After they respond to five, REVEAL the twist:
 \`\`\`dojo-visual
-{
-  "type": "selection-cards",
-  "prompt": "What's your first priority with this new direct report?",
-  "options": [
-    {"id": "strengths", "icon": "💪", "title": "Understand their strengths", "description": "Figure out what they're good at"},
-    {"id": "tasks", "icon": "📋", "title": "Identify tasks to delegate", "description": "Find work they can take off your plate"},
-    {"id": "relationship", "icon": "🤝", "title": "Build the relationship", "description": "Establish trust and communication"}
-  ]
-}
+{"type": "info-box", "style": "reveal", "title": "The Twist", "content": "Your direct reports are **AI systems**.\\n\\nThey can solve olympiad problems, write code in seconds, analyze thousands of documents, never tire, never forget—and they're getting better every few months."}
 \`\`\`
 
-**Step 2: Escalation (after 2-3 exchanges)**
-Escalate to FIVE direct reports: "Just as you're getting the hang of this, your boss returns: 'Actually, you now have FIVE direct reports!...'"
+Then ask: "What changes? What stays the same?"
 
-**Step 3: THE REVEAL - REQUIRED VISUAL**
-After discussing the 5-report scenario, you MUST use this info-box to reveal the twist:
-\`\`\`dojo-visual
-{
-  "type": "info-box",
-  "style": "reveal",
-  "title": "The Twist",
-  "content": "Your direct reports are **AI systems**.\\n\\n• They can solve International Math Olympiad problems\\n• Write functional code in seconds\\n• Analyze thousands of documents instantly\\n• Generate professional-quality writing\\n• Trained on essentially all public human knowledge\\n• Never tired, never forget, available 24/7\\n• Getting dramatically better every few months"
-}
-\`\`\`
+NAMING: After they reflect, name it briefly: "You just described delegation skills. Everyone with AI access needs these now."
 
-**Step 4: Post-reveal reflection**
-Ask: "Look back at what you said about managing your direct reports. What changes now that you know they're AI? What stays the same?"
+CHECKPOINT: "Why do delegation skills matter when the 'direct report' is AI?"
 
-**CHECKPOINT:** Ask them to explain why having access to AI makes 'delegation skills' important for everyone.
+SUCCESS: They articulate that AI is capable but needs human direction/judgment/priorities.
 `,
       checkpointCriteria: `
-Student should demonstrate understanding that:
-1. AI capabilities are substantial (can do many tasks well)
-2. But AI needs human direction/management
-3. The human provides judgment, context, priorities that AI cannot determine on its own
-4. This makes "delegation skills" universal - everyone with AI access needs them
-
-If response is shallow, probe: "You mentioned [X]. Can you say more about what the human provides that the AI can't provide for itself?"
+They should express: AI can do a lot, but humans provide direction, judgment, context, priorities.
+If shallow, ask: "What do YOU provide that AI can't provide for itself?"
 `,
     },
+
+    // ============================================================
+    // PHASE 2: FEEL THE DIFFERENCE
+    // The core experiential exercise - personal writing
+    // ============================================================
     {
       phaseId: 2,
-      title: 'The Value Question',
-      purpose: 'Bridge: why not just accept AI output',
+      title: 'Feel the Difference',
+      purpose: 'Experience the gap between generic AI output and THEIR output',
       hasCheckpoint: true,
       contentGuidance: `
-## PHASE FLOW:
+PURPOSE: They FEEL (not just understand) that their contribution matters.
 
-**Step 1: Bridge from Phase 1**
-"So you're a manager of AI now. Here's a question: If your direct report hands you something, do you just pass it along to your boss? Or do you review it, shape it, make sure it represents YOUR judgment?"
-
-**Step 2: Make it concrete with a scenario**
-"Imagine you ask AI to write an email to an important client. AI produces something perfectly grammatical, professional, covers all the points. But... is it YOUR email?"
-
-**Step 3: REQUIRED VISUAL - Comparison Table**
-You MUST present this comparison:
+ANCHOR: Ask them to pick something personal:
 \`\`\`dojo-visual
-{
-  "type": "comparison-table",
-  "leftHeader": "Pass-through Manager",
-  "rightHeader": "Value-added Manager",
-  "rows": [
-    {"left": "Ask AI → Accept output → Submit", "right": "Ask AI → Review → Shape → Verify → Submit"},
-    {"left": "\\"AI did this\\"", "right": "\\"I did this with AI\\""},
-    {"left": "Easily replaceable", "right": "Creates unique value"},
-    {"left": "No judgment applied", "right": "Judgment is the product"}
-  ]
-}
+{"type": "selection-cards", "prompt": "Pick something that matters to YOU:", "options": [{"id": "message", "icon": "💌", "title": "A personal message", "description": "To someone important in your life"}, {"id": "creative", "icon": "📝", "title": "Something creative", "description": "A poem, story idea, or song"}, {"id": "professional", "icon": "💼", "title": "Professional writing", "description": "Cover letter, pitch, or email"}, {"id": "other", "icon": "✨", "title": "Something else", "description": "You tell me"}]}
 \`\`\`
 
-**Step 4: Discussion**
-Ask: "Which manager creates more value? Which one could be replaced by just giving everyone direct access to the AI?"
+CHALLENGE: Get brief context (who, what, why). Then generate a GENERIC version—competent but impersonal.
 
-CHECKPOINT: "When does AI output become YOUR output? What has to happen in between?"
+Ask: "Would you send this? What's missing?"
 
-Then transition: "Let's experience this difference directly. We're going to try something where it MATTERS that the output is yours—where you'd actually feel the difference."
+CONTRAST: Through 2-3 quick exchanges, help them make it THEIRS. Ask ONE specific question at a time:
+- "What would only YOU know about this person?"
+- "What tone fits YOUR relationship?"
+- "How should they FEEL reading this?"
+
+Then: "Compare first version to now. What did YOU add?"
+
+CHECKPOINT: "What did you contribute that I couldn't have known?"
+
+SUCCESS: They identify specific personal context, choices, or judgment they added.
 `,
       checkpointCriteria: `
-Student should articulate that some form of human input/judgment transforms AI output into their own work:
-- Review and verification
-- Shaping/editing to match intent
-- Injecting personal knowledge/context
-- Making decisions about what to keep/change
-
-If insufficient, probe: "Imagine two people submit the same AI-generated report. One just submitted it. One revised it extensively. Are they creating the same value?"
+Experiential checkpoint. They should:
+1. Have engaged genuinely (not just going through motions)
+2. Identify what THEY added (details, tone, personal knowledge)
+3. Feel the difference, not just understand it conceptually
 `,
     },
+
+    // ============================================================
+    // PHASE 3: NAME THE 3Cs
+    // Name the framework AFTER they've experienced it
+    // ============================================================
     {
       phaseId: 3,
-      title: 'Something You Care About',
-      purpose: 'FEEL the difference through hands-on experience',
+      title: 'The 3Cs',
+      purpose: 'Name what they just did: Context, Choices, Confirmation',
       hasCheckpoint: true,
       contentGuidance: `
-Present scenario selection using dojo-visual selection-cards:
-- 💌 A message to someone important (birthday note, thank you, apology)
-- 📝 Something creative (poem, song idea, short story concept)
-- 🎯 A personal goal or plan (career decision, life plan, resolution)
-- 💼 Professional communication that represents you (cover letter, important email, pitch)
-- ✨ Something else (I'll describe it)
+PURPOSE: Name the framework AFTER they've experienced it. Discovery before naming.
 
-After selection, get specifics: "Tell me more about the specific situation. Who is this for? What's the context? What do you want to achieve or convey?"
+BRIDGE: "Let's name what you just did."
 
-First attempt (generic AI): Generate a competent but generic, impersonal version of what they asked for. Then ask: "Would you send this? What's missing?"
+NAMING: Surface each C from THEIR work:
+- "You gave me [specific detail]. That's CONTEXT—what only you knew."
+- "You decided [their choice]. That's a CHOICE—you picked a direction."
+- "You knew when it felt right. That's CONFIRMATION—checking against your intent."
 
-Guided iteration: Ask probing questions:
-- What specific memories or inside jokes would make this feel like it's from YOU?
-- What tone matches your actual relationship?
-- What do you want them to FEEL when they read this?
+Show the framework:
+\`\`\`dojo-visual
+{"type": "framework-diagram", "diagram": "3cs", "caption": "The 3Cs: What YOU bring to every AI interaction"}
+\`\`\`
 
-Guide through 2-3 iterations with specific questions based on their responses.
+CHECKPOINT: "Point to one moment in our exercise where you used each C."
 
-Comparison: "Look at where we started versus where we ended. What's different? What did YOU add that I couldn't have known or decided on my own?"
-
-CHECKPOINT: This is experiential—evaluate whether they:
-1. Engaged genuinely (not just going through motions)
-2. Can articulate what changed between versions
-3. Feel the difference (not just intellectually understand it)
+SUCCESS: They give concrete examples from their own work, not abstract definitions.
 `,
       checkpointCriteria: `
-This is an experiential checkpoint. Evaluate:
-1. Did they provide meaningful personal context (specific details, relationships, emotions)?
-2. Can they identify what changed between the generic and personalized versions?
-3. Do they recognize that THEY provided what made it better?
+They should point to THEIR OWN work:
+- Context: A specific detail they provided
+- Choice: A decision they made
+- Confirmation: How they knew it was right
 
-The goal is felt understanding, not just intellectual agreement.
+Not looking for definitions. Looking for application.
 `,
     },
+
+    // ============================================================
+    // PHASE 4: THE PERSONAL STACK
+    // Integrate: Mindset + Metacognition + Motivation
+    // ============================================================
     {
       phaseId: 4,
-      title: 'The 3Cs Discovery',
-      purpose: 'NAME what they did: Context, Choices, Confirmation',
+      title: 'The Personal Stack',
+      purpose: 'Integrate the three layers that make symbiotic thinking work',
       hasCheckpoint: true,
       contentGuidance: `
-Surface the pattern from Phase 3: "Looking back at what you just did—what made your final version better than the generic one? What specifically did YOU contribute?"
+PURPOSE: Connect 3Cs to the bigger picture—Mindset, Metacognition, Motivation.
 
-Guide toward each C based on their responses:
+BUILD from their experience:
 
-For CONTEXT: "You mentioned [specific details about their situation]. That's information I couldn't have known. What else did you provide that I didn't have?"
+MINDSET: "Remember the first version vs. your final version? That's the spectrum from Consuming to Creating."
+\`\`\`dojo-visual
+{"type": "info-box", "style": "insight", "title": "Mindset", "content": "**Creating vs Consuming**\\n\\nConsuming: Accept AI output passively.\\nCreating: Infuse it with your Context, Choices, Confirmation.\\n\\nThe goal isn't to never consume—it's to CREATE more than you consume."}
+\`\`\`
 
-For CHOICES: "You decided the tone should be [their choice]. That was a choice—I could have gone either direction. What other decisions did you make?"
+METACOGNITION: "The 3Cs are your tools for thinking about thinking. That's metacognition."
 
-For CONFIRMATION: "How did you know when it was right? What told you 'yes, this sounds like me' versus 'no, this still feels off'?"
+MOTIVATION: "But why bother? Because there's a difference between getting answers and building wisdom."
+\`\`\`dojo-visual
+{"type": "framework-diagram", "diagram": "dikw", "caption": "Climb from Data to Wisdom"}
+\`\`\`
 
-After they've articulated the concepts, NAME the framework using dojo-visual framework-diagram with diagram type "3cs":
+Relate DIKW to their exercise:
+- Data: "Write me a message"
+- Information: "Show me styles"
+- Knowledge: "What makes it personal?"
+- Wisdom: "What would THIS person value from ME?"
 
-"What you just did has a name. The three things you contributed are called the 3Cs:
-- CONTEXT: What you bring (details, memories, situation)
-- CHOICES: What you decide (tone, approach, direction)
-- CONFIRMATION: How you verify (does it match intent?)"
+Show the stack:
+\`\`\`dojo-visual
+{"type": "framework-diagram", "diagram": "personal-stack", "caption": "Three layers that build on each other"}
+\`\`\`
 
-Show the iterative loop.
+CHECKPOINT: "What happens if one layer is missing?"
 
-CHECKPOINT: "Go back to your [their scenario]. Point to a specific moment where you applied each C:
-- What was your Context? (What did you provide that I didn't have?)
-- What Choice did you make? (What did you decide rather than leaving to me?)
-- How did you Confirm? (How did you know it was right?)"
+SUCCESS: They articulate that all three layers need each other.
 `,
       checkpointCriteria: `
-Student should identify concrete examples from their own Phase 3 work:
-- Context: Specific details they provided (names, relationships, memories, situation)
-- Choice: A decision they made (tone, focus, what to include/exclude)
-- Confirmation: How they evaluated it (felt right, matched their voice, would actually send it)
-
-Not looking for perfect definitions—looking for demonstrated application to their own work.
+They should understand integration:
+- Mindset without technique = good intentions, no tools
+- Technique without motivation = going through the motions
+- All three together = symbiotic thinking
 `,
     },
+
+    // ============================================================
+    // PHASE 5: TRANSFER
+    // Connect to their real challenges
+    // ============================================================
     {
       phaseId: 5,
-      title: 'Connecting to UMPIRE',
-      purpose: 'PROCESS scaffold',
-      hasCheckpoint: true,
-      contentGuidance: `
-Introduce the idea: "The 3Cs are powerful, but they fit into a larger process. When you're tackling any problem—with or without AI—there's a structure that helps."
-
-Present UMPIRE using dojo-visual framework-diagram with diagram type "umpire":
-"It's called UMPIRE: Understand, Map, Plan, Implement, Review, Evaluate"
-
-Show the mapping using dojo-visual framework-diagram with diagram type "3cs-umpire-mapping":
-- CONTEXT → UNDERSTAND + MAP (Define the problem, connect to what you know)
-- CHOICES → PLAN + IMPLEMENT (Decide approach, execute it)
-- CONFIRMATION → REVIEW + EVALUATE (Check results, align with goals, loop back if needed)
-
-Key insight: "Notice that UMPIRE loops back. When you Review and it's not right, you Plan again. When you Evaluate and realize you misunderstood the problem, you go back to Understand. This is how real thinking works—it's iterative, not linear."
-
-CHECKPOINT: "Think of a time you were stuck on a problem—school, work, personal. Where in UMPIRE did you get stuck? Looking back, what would it have looked like to loop back earlier?"
-`,
-      checkpointCriteria: `
-Student should:
-1. Apply UMPIRE to a real situation from their experience
-2. Identify where they got stuck (which phase)
-3. Recognize the iterative nature—that looping back is part of the process
-
-Not looking for perfect analysis—looking for genuine application and understanding of iteration.
-`,
-    },
-    {
-      phaseId: 6,
-      title: 'The Personal Stack',
-      purpose: 'INTEGRATE Mindset, Metacognition, Motivation',
-      hasCheckpoint: true,
-      contentGuidance: `
-Connect the pieces:
-
-MINDSET (Creating vs Consuming):
-"Remember the first version of your [their scenario] versus the final one? That's the spectrum from Consuming to Creating. Pure Consuming: Accept AI output passively. Creating: Infuse it with your Context, Choices, and Confirmation. The goal isn't to never consume—it's to infuse consuming with the habits of creating."
-
-METACOGNITION (3Cs + UMPIRE):
-"The techniques you learned—3Cs and UMPIRE—these are tools for thinking about your thinking. That's what metacognition means: awareness and control of your own thought process."
-
-MOTIVATION (DIKW):
-"But why bother? Why not just accept AI output and move on? Because there's a difference between getting answers and building knowledge."
-
-Present DIKW using dojo-visual framework-diagram with diagram type "dikw", relating to their example:
-- Data: "Write me a birthday message" (just getting an answer)
-- Information: "Show me different styles of messages" (organized options)
-- Knowledge: "What makes a message feel personal?" (understanding principles)
-- Wisdom: "What would MY partner value most hearing from me?" (judgment for this specific situation)
-
-Present the Personal Stack using dojo-visual framework-diagram with diagram type "personal-stack":
-- MOTIVATION (The WHY): Climbing from Data → Wisdom. Why bother creating when consuming is easier?
-- METACOGNITION (The HOW): 3Cs + UMPIRE. The techniques that make creating possible.
-- MINDSET (The WHAT): Creating vs Consuming. The foundation.
-
-"Each layer builds on the one below. All three are needed—like a three-legged stool."
-
-CHECKPOINT: "In your own words, explain how the three layers work together. Why do you need all three? What happens if one is missing?"
-`,
-      checkpointCriteria: `
-Student should articulate the integration:
-- Mindset without technique is just intention
-- Technique without motivation leads to going through the motions
-- Motivation without mindset means you don't know what you're trying to do
-- All three work together
-
-Examples of good responses:
-- Connecting each layer to the others
-- Identifying what breaks without each layer
-- Using their own examples to illustrate
-`,
-    },
-    {
-      phaseId: 7,
       title: 'Ready for the Dojo',
-      purpose: 'TRANSITION to open Dojo',
+      purpose: 'Transfer learning to their real challenges',
       hasCheckpoint: false,
       contentGuidance: `
-Summarize what they've built:
-- You understand that AI makes you a manager of intelligence resources
-- You've experienced the difference between pass-through and value-added work
-- You know the 3Cs: Context, Choices, Confirmation
-- You have UMPIRE as a process for structured thinking
-- You understand the Personal Stack: Mindset, Metacognition, Motivation
-- You can see learning as climbing from Data to Wisdom
+PURPOSE: Connect what they learned to what they'll DO next.
 
-Self-assessment: "Which of these feels solid? Which do you want to practice more?"
+SUMMARY (brief):
+\`\`\`dojo-visual
+{"type": "info-box", "style": "summary", "title": "What You've Built", "content": "• You're a manager of AI, not just a user\\n• The 3Cs: Context, Choices, Confirmation\\n• Mindset: Create more than you consume\\n• Motivation: Climb from Data to Wisdom"}
+\`\`\`
 
-Preview Dojo modes using dojo-visual framework-diagram with diagram type "dojo-modes":
-- Learn Mode: Safe exploration. Build understanding. Mistakes are expected and valuable.
-- Learn + Solve Mode: Apply learning to defined problems. Real but bounded stakes.
-- Learn + Solve + Build Mode: Create real value for real stakeholders. High stakes. Quality matters.
+TRANSFER: "Which of these feels solid? Which do you want to practice?"
 
-Remind about @reflector for generating session summaries.
+Then: "What real challenge could you bring to the Dojo right now?"
 
-Transition: "You're ready. What challenge do you want to bring to the Dojo?"
+OPTIONS:
+\`\`\`dojo-visual
+{"type": "selection-cards", "prompt": "What's next?", "options": [{"id": "challenge", "icon": "🎯", "title": "Bring a challenge", "description": "I have something to work on"}, {"id": "practice", "icon": "🔄", "title": "Practice more", "description": "I want to solidify these concepts"}, {"id": "done", "icon": "✅", "title": "I'm good for now", "description": "End the session"}]}
+\`\`\`
 
-If they provide something → transition to Open Dojo mode with their challenge.
-If they're not ready → offer to continue practicing or end session.
+If they bring a challenge → transition to Open Dojo with their challenge.
+If they want practice → suggest using a sparring partner.
+If they're done → close warmly, remind them the Dojo is always open.
 `,
     },
   ],
