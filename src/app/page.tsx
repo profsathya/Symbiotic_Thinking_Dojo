@@ -5,6 +5,7 @@ import { useDojoConfig } from '@/hooks/useDojoConfig';
 import { useChat } from '@/hooks/useChat';
 import { useApiKey } from '@/hooks/useApiKey';
 import { usePracticeDojoState } from '@/hooks/usePracticeDojoState';
+import { useTour } from '@/hooks/useTour';
 import { Sidebar } from '@/components/Sidebar';
 import { ChatContainer } from '@/components/Chat';
 import { StatusPanel } from '@/components/StatusPanel';
@@ -13,6 +14,7 @@ import { HelpButtons, HelpModal } from '@/components/HelpPanel';
 import { ExportButton } from '@/components/ExportButton';
 import { ApiKeyModal } from '@/components/ApiKeyModal';
 import { TopicSelectionModal, ProgressIndicator } from '@/components/PracticeDojo';
+import { TourOverlay, TourPrompt } from '@/components/Tour';
 import { ImportedSession } from '@/lib/export';
 import { getTopicById } from '@/lib/practice-dojo/topics';
 import { PracticeDojoContext, Pathway } from '@/lib/practice-dojo/types';
@@ -29,6 +31,9 @@ export default function Home() {
 
   // Practice Dojo state management (stored in browser localStorage)
   const practiceDojoState = usePracticeDojoState();
+
+  // Tour state management
+  const tour = useTour();
 
   const {
     config,
@@ -341,6 +346,7 @@ export default function Home() {
       <HelpModal
         isOpen={isHelpOpen}
         onClose={() => setIsHelpOpen(false)}
+        onStartTour={tour.startTour}
       />
 
       {/* Practice Dojo Topic Selection Modal */}
@@ -352,6 +358,24 @@ export default function Home() {
         onResume={handleResumePracticeDojo}
         onStartFresh={handleStartFresh}
       />
+
+      {/* Tour components */}
+      {tour.shouldShowPrompt && (
+        <TourPrompt
+          onStartTour={tour.startTour}
+          onDismiss={tour.dismissPrompt}
+        />
+      )}
+      {tour.isActive && tour.currentStepData && (
+        <TourOverlay
+          step={tour.currentStepData}
+          currentStep={tour.currentStep!}
+          totalSteps={tour.totalSteps}
+          onNext={tour.nextStep}
+          onPrev={tour.prevStep}
+          onSkip={tour.skipTour}
+        />
+      )}
     </div>
   );
 }

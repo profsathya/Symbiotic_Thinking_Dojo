@@ -5,11 +5,12 @@ import { useEffect, useState } from 'react';
 interface HelpModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onStartTour?: () => void;
 }
 
 type TabType = 'philosophy' | 'interface' | 'privacy';
 
-export function HelpModal({ isOpen, onClose }: HelpModalProps) {
+export function HelpModal({ isOpen, onClose, onStartTour }: HelpModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>('philosophy');
 
   // Handle escape key
@@ -107,7 +108,21 @@ export function HelpModal({ isOpen, onClose }: HelpModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-gray-800 flex justify-end">
+        <div className="px-6 py-3 border-t border-gray-800 flex justify-between items-center">
+          {onStartTour ? (
+            <button
+              onClick={() => {
+                onClose();
+                onStartTour();
+              }}
+              className="px-4 py-2 text-sm font-medium text-purple-300 hover:text-purple-200 transition-colors flex items-center gap-2"
+            >
+              <span>🥋</span>
+              Take a Tour
+            </button>
+          ) : (
+            <div />
+          )}
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
