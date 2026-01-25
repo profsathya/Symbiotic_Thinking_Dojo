@@ -89,9 +89,23 @@ export function TourOverlay({
     }
   }, [step.target, step.position]);
 
+  // Scroll target into view when step changes
   useEffect(() => {
-    updatePosition();
+    const element = document.querySelector(step.target);
+    if (element) {
+      // Scroll the element into view with smooth behavior
+      element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
 
+      // Wait for scroll to complete, then update position
+      const timer = setTimeout(() => {
+        updatePosition();
+      }, 300);
+
+      return () => clearTimeout(timer);
+    }
+  }, [step.target, updatePosition]);
+
+  useEffect(() => {
     // Update on resize
     window.addEventListener('resize', updatePosition);
     window.addEventListener('scroll', updatePosition);
