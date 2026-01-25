@@ -97,8 +97,8 @@ export function TopicSelectionModal({
 
   const renderTopicCard = (topic: TopicConfig, isResumeable: boolean = false) => {
     const isCompleted = practiceDojoState.completedTopics.includes(topic.topicId);
-    // Only show edit button for symbiotic-thinking for now
-    const canEdit = topic.topicId === 'symbiotic-thinking' && onEditTopic;
+    // Show edit button for all enabled topics
+    const canEdit = topic.enabled && onEditTopic;
     const isCustomized = hasTopicCustomization?.(topic.topicId);
 
     return (
