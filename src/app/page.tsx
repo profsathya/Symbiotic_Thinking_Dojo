@@ -6,6 +6,7 @@ import { useChat } from '@/hooks/useChat';
 import { useApiKey } from '@/hooks/useApiKey';
 import { usePracticeDojoState } from '@/hooks/usePracticeDojoState';
 import { useTour } from '@/hooks/useTour';
+import { useTopicConfig } from '@/hooks/useTopicConfig';
 import { Sidebar } from '@/components/Sidebar';
 import { ChatContainer } from '@/components/Chat';
 import { StatusPanel } from '@/components/StatusPanel';
@@ -13,7 +14,7 @@ import { ConfigPanel } from '@/components/ConfigPanel';
 import { HelpButtons, HelpModal } from '@/components/HelpPanel';
 import { ExportButton } from '@/components/ExportButton';
 import { ApiKeyModal } from '@/components/ApiKeyModal';
-import { TopicSelectionModal, ProgressIndicator } from '@/components/PracticeDojo';
+import { TopicSelectionModal, TopicEditor, ProgressIndicator } from '@/components/PracticeDojo';
 import { TourOverlay, TourPrompt } from '@/components/Tour';
 import { ImportedSession } from '@/lib/export';
 import { getTopicById } from '@/lib/practice-dojo/topics';
@@ -24,6 +25,7 @@ export default function Home() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
   const [isPracticeDojoModalOpen, setIsPracticeDojoModalOpen] = useState(false);
+  const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
   // API Key management (stored in browser localStorage)
@@ -34,6 +36,9 @@ export default function Home() {
 
   // Tour state management
   const tour = useTour();
+
+  // Topic configuration (custom prompts)
+  const topicConfig = useTopicConfig();
 
   const {
     config,
@@ -65,7 +70,8 @@ export default function Home() {
       return null;
     }
 
-    const topic = getTopicById(topicId);
+    // Use customized topic if available, otherwise fall back to base topic
+    const topic = topicConfig.getTopicWithCustomizations(topicId) || getTopicById(topicId);
     if (!topic) return null;
 
     const currentPhase = topic.phases[currentPhaseIndex];
@@ -80,7 +86,7 @@ export default function Home() {
       checkpointStatuses,
       interactionCount,
     };
-  }, [isActive, topicId, pathway, currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, interactionCount]);
+  }, [isActive, topicId, pathway, currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, interactionCount, topicConfig]);
 
   const {
     messages,
@@ -160,7 +166,8 @@ export default function Home() {
 
   // Handle selecting a topic in Practice Dojo
   const handleSelectTopic = useCallback((topicId: string, pathway: Pathway) => {
-    const topic = getTopicById(topicId);
+    // Use customized topic if available
+    const topic = topicConfig.getTopicWithCustomizations(topicId) || getTopicById(topicId);
     if (!topic) return;
 
     // Start the Practice Dojo session
@@ -171,7 +178,12 @@ export default function Home() {
 
     // Start the chat with Practice Dojo welcome
     startPracticeDojo(topic, pathway);
-  }, [practiceDojoState, setActiveConstruct, startPracticeDojo]);
+  }, [practiceDojoState, setActiveConstruct, startPracticeDojo, topicConfig]);
+
+  // Handle opening topic editor
+  const handleEditTopic = useCallback((topicId: string) => {
+    setEditingTopicId(topicId);
+  }, []);
 
   // Handle resuming Practice Dojo session
   const handleResumePracticeDojo = useCallback(() => {
@@ -357,7 +369,29 @@ export default function Home() {
         practiceDojoState={practiceDojoState.state}
         onResume={handleResumePracticeDojo}
         onStartFresh={handleStartFresh}
+        onEditTopic={handleEditTopic}
+        hasTopicCustomization={topicConfig.hasTopicCustomization}
       />
+
+      {/* Topic Editor Modal */}
+      {editingTopicId && (
+        <TopicEditor
+          isOpen={true}
+          onClose={() => setEditingTopicId(null)}
+          topic={topicConfig.getTopicWithCustomizations(editingTopicId) || getTopicById(editingTopicId)!}
+          onUpdatePhase={(phaseId, field, value) =>
+            topicConfig.updatePhase(editingTopicId, phaseId, field, value)
+          }
+          onResetPhase={(phaseId) => topicConfig.resetPhase(editingTopicId, phaseId)}
+          onResetTopic={() => topicConfig.resetTopic(editingTopicId)}
+          hasPhaseCustomization={(phaseId) =>
+            topicConfig.hasPhaseCustomization(editingTopicId, phaseId)
+          }
+          hasTopicCustomization={topicConfig.hasTopicCustomization(editingTopicId)}
+          onExport={() => topicConfig.exportTopic(editingTopicId)}
+          onImport={topicConfig.importTopic}
+        />
+      )}
 
       {/* Tour components */}
       {tour.shouldShowPrompt && (
