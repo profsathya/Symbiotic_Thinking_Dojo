@@ -123,8 +123,11 @@ export function TourOverlay({
 
   return (
     <div className="fixed inset-0 z-[100]">
-      {/* Semi-transparent backdrop with spotlight cutout */}
-      <svg className="absolute inset-0 w-full h-full">
+      {/* Semi-transparent backdrop with spotlight cutout - click to close */}
+      <svg
+        className="absolute inset-0 w-full h-full cursor-pointer"
+        onClick={onSkip}
+      >
         <defs>
           <mask id="spotlight-mask">
             <rect width="100%" height="100%" fill="white" />
@@ -165,6 +168,7 @@ export function TourOverlay({
       <div
         className="absolute bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-5 w-[360px] max-h-[calc(100vh-32px)] overflow-y-auto"
         style={tooltipStyle}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-3">
