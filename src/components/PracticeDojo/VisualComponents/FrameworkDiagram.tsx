@@ -21,6 +21,16 @@ export function FrameworkDiagram({ data }: FrameworkDiagramProps) {
         return <ThreeCsUmpireMappingDiagram />;
       case 'dojo-modes':
         return <DojoModesDiagram />;
+      case 'ikigai':
+        return <IkigaiDiagram />;
+      case 'ikigai-passion':
+        return <IkigaiDiagram highlight="passion" />;
+      case 'ikigai-mission':
+        return <IkigaiDiagram highlight="mission" />;
+      case 'ikigai-profession':
+        return <IkigaiDiagram highlight="profession" />;
+      case 'ikigai-vocation':
+        return <IkigaiDiagram highlight="vocation" />;
       default:
         return <div className="text-gray-400 text-sm">Unknown diagram type: {type}</div>;
     }
@@ -277,6 +287,121 @@ function DojoModesDiagram() {
       <p className="text-center text-xs text-gray-400 mt-3">
         Use <span className="text-cyan-400">@reflector</span> to generate a session summary
       </p>
+    </div>
+  );
+}
+
+// Ikigai Diagram - Four overlapping circles
+interface IkigaiDiagramProps {
+  highlight?: 'passion' | 'mission' | 'profession' | 'vocation';
+}
+
+function IkigaiDiagram({ highlight }: IkigaiDiagramProps) {
+  // Circle positions (centered in 300x300 viewBox)
+  const cx = 150, cy = 150;
+  const r = 70; // circle radius
+  const offset = 45; // how far circles are from center
+
+  // Four circle centers
+  const circles = {
+    love: { x: cx, y: cy - offset, color: '#ec4899', label: 'What you LOVE' },      // pink - top
+    goodAt: { x: cx - offset, y: cy, color: '#3b82f6', label: 'What you\'re GOOD AT' }, // blue - left
+    need: { x: cx + offset, y: cy, color: '#10b981', label: 'What the WORLD NEEDS' },  // green - right
+    paid: { x: cx, y: cy + offset, color: '#f59e0b', label: 'What you can be PAID FOR' }, // amber - bottom
+  };
+
+  // Intersection highlights
+  const intersections = {
+    passion: { x: cx - offset/2, y: cy - offset/2, label: 'PASSION', desc: 'Love + Good At' },
+    mission: { x: cx + offset/2, y: cy - offset/2, label: 'MISSION', desc: 'Love + Need' },
+    profession: { x: cx - offset/2, y: cy + offset/2, label: 'PROFESSION', desc: 'Good At + Paid' },
+    vocation: { x: cx + offset/2, y: cy + offset/2, label: 'VOCATION', desc: 'Need + Paid' },
+  };
+
+  return (
+    <div className="rounded-lg border border-gray-700 bg-gray-800/50 p-4">
+      <h4 className="text-center text-sm font-semibold text-gray-200 mb-2">生き甲斐 Ikigai</h4>
+      <p className="text-center text-xs text-gray-400 mb-4">Your reason for being</p>
+
+      <div className="flex justify-center">
+        <svg viewBox="0 0 300 300" className="w-full max-w-[280px]">
+          <defs>
+            {/* Gradients for each circle */}
+            <radialGradient id="loveFill">
+              <stop offset="0%" stopColor="#ec4899" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#ec4899" stopOpacity="0.1" />
+            </radialGradient>
+            <radialGradient id="goodAtFill">
+              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.1" />
+            </radialGradient>
+            <radialGradient id="needFill">
+              <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#10b981" stopOpacity="0.1" />
+            </radialGradient>
+            <radialGradient id="paidFill">
+              <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.1" />
+            </radialGradient>
+          </defs>
+
+          {/* Four overlapping circles */}
+          <circle cx={circles.love.x} cy={circles.love.y} r={r} fill="url(#loveFill)" stroke="#ec4899" strokeWidth="2" />
+          <circle cx={circles.goodAt.x} cy={circles.goodAt.y} r={r} fill="url(#goodAtFill)" stroke="#3b82f6" strokeWidth="2" />
+          <circle cx={circles.need.x} cy={circles.need.y} r={r} fill="url(#needFill)" stroke="#10b981" strokeWidth="2" />
+          <circle cx={circles.paid.x} cy={circles.paid.y} r={r} fill="url(#paidFill)" stroke="#f59e0b" strokeWidth="2" />
+
+          {/* Center - Ikigai */}
+          <circle cx={cx} cy={cy} r={18} fill="#a855f7" fillOpacity="0.4" stroke="#a855f7" strokeWidth="2" />
+          <text x={cx} y={cy + 4} textAnchor="middle" className="fill-purple-200 text-[10px] font-bold">IKIGAI</text>
+
+          {/* Highlight specific intersection if requested */}
+          {highlight && (
+            <circle
+              cx={intersections[highlight].x}
+              cy={intersections[highlight].y}
+              r={20}
+              fill="#fff"
+              fillOpacity="0.2"
+              stroke="#fff"
+              strokeWidth="2"
+              className="animate-pulse"
+            />
+          )}
+
+          {/* Labels outside circles */}
+          <text x={cx} y={30} textAnchor="middle" className="fill-pink-400 text-[9px] font-medium">What you LOVE</text>
+          <text x={25} y={cy + 4} textAnchor="middle" className="fill-blue-400 text-[9px] font-medium" transform={`rotate(-90, 25, ${cy})`}>GOOD AT</text>
+          <text x={275} y={cy + 4} textAnchor="middle" className="fill-emerald-400 text-[9px] font-medium" transform={`rotate(90, 275, ${cy})`}>WORLD NEEDS</text>
+          <text x={cx} y={285} textAnchor="middle" className="fill-amber-400 text-[9px] font-medium">What you can be PAID FOR</text>
+
+          {/* Intersection labels (smaller) */}
+          <text x={intersections.passion.x} y={intersections.passion.y} textAnchor="middle" className="fill-gray-300 text-[7px]">Passion</text>
+          <text x={intersections.mission.x} y={intersections.mission.y} textAnchor="middle" className="fill-gray-300 text-[7px]">Mission</text>
+          <text x={intersections.profession.x} y={intersections.profession.y} textAnchor="middle" className="fill-gray-300 text-[7px]">Profession</text>
+          <text x={intersections.vocation.x} y={intersections.vocation.y} textAnchor="middle" className="fill-gray-300 text-[7px]">Vocation</text>
+        </svg>
+      </div>
+
+      {/* Legend below */}
+      <div className="grid grid-cols-2 gap-2 mt-4 text-[10px]">
+        <div className={`p-2 rounded ${highlight === 'passion' ? 'bg-white/10 ring-1 ring-white/30' : 'bg-gray-700/30'}`}>
+          <span className="font-semibold text-gray-200">Passion</span>
+          <span className="text-gray-400"> = Love + Good At</span>
+        </div>
+        <div className={`p-2 rounded ${highlight === 'mission' ? 'bg-white/10 ring-1 ring-white/30' : 'bg-gray-700/30'}`}>
+          <span className="font-semibold text-gray-200">Mission</span>
+          <span className="text-gray-400"> = Love + Need</span>
+        </div>
+        <div className={`p-2 rounded ${highlight === 'profession' ? 'bg-white/10 ring-1 ring-white/30' : 'bg-gray-700/30'}`}>
+          <span className="font-semibold text-gray-200">Profession</span>
+          <span className="text-gray-400"> = Good At + Paid</span>
+        </div>
+        <div className={`p-2 rounded ${highlight === 'vocation' ? 'bg-white/10 ring-1 ring-white/30' : 'bg-gray-700/30'}`}>
+          <span className="font-semibold text-gray-200">Vocation</span>
+          <span className="text-gray-400"> = Need + Paid</span>
+        </div>
+      </div>
     </div>
   );
 }
