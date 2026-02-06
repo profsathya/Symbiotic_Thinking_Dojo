@@ -33,7 +33,7 @@ export interface ComparisonRow {
 }
 
 // Framework diagram types
-export type DiagramType = '3cs' | 'umpire' | 'dikw' | 'personal-stack' | '3cs-umpire-mapping' | 'dojo-modes';
+export type DiagramType = '3cs' | 'umpire' | 'dikw' | 'personal-stack' | '3cs-umpire-mapping' | 'dojo-modes' | 'ikigai' | 'ikigai-passion' | 'ikigai-mission' | 'ikigai-profession' | 'ikigai-vocation';
 
 // Visual component data structures
 export interface SelectionCardsData {

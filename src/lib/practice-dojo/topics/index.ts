@@ -2,10 +2,12 @@ import { TopicConfig, TopicCategory } from '../types';
 import { SYMBIOTIC_THINKING_TOPIC } from './symbiotic-thinking';
 import { CST395_TOPIC, CST349_TOPIC } from './course-topics';
 import { INTRODUCTORY_PROGRAMMING_TOPIC } from './introductory-programming';
+import { IKIGAI_TOPIC } from './ikigai';
 
 // All available topics
 export const ALL_TOPICS: TopicConfig[] = [
   SYMBIOTIC_THINKING_TOPIC,
+  IKIGAI_TOPIC,
   CST395_TOPIC,
   CST349_TOPIC,
   INTRODUCTORY_PROGRAMMING_TOPIC,
@@ -41,5 +43,6 @@ export function getTopicsOrganizedByCategory(): TopicsByCategory {
 
 // Re-export individual topics
 export { SYMBIOTIC_THINKING_TOPIC } from './symbiotic-thinking';
+export { IKIGAI_TOPIC } from './ikigai';
 export { CST395_TOPIC, CST349_TOPIC } from './course-topics';
 export { INTRODUCTORY_PROGRAMMING_TOPIC } from './introductory-programming';
