@@ -86,7 +86,10 @@ export default function Home() {
       checkpointStatuses,
       interactionCount,
     };
-  }, [isActive, topicId, pathway, currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, interactionCount, topicConfig]);
+    // Note: We use topicConfig.getTopicWithCustomizations specifically to avoid
+    // re-running when unrelated topicConfig properties change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, topicId, pathway, currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, interactionCount, topicConfig.getTopicWithCustomizations]);
 
   const {
     messages,
@@ -178,7 +181,8 @@ export default function Home() {
 
     // Start the chat with Practice Dojo welcome
     startPracticeDojo(topic, pathway);
-  }, [practiceDojoState, setActiveConstruct, startPracticeDojo, topicConfig]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [practiceDojoState, setActiveConstruct, startPracticeDojo, topicConfig.getTopicWithCustomizations]);
 
   // Handle opening topic editor
   const handleEditTopic = useCallback((topicId: string) => {
