@@ -1,0 +1,17 @@
+{
+  "name": "symbiotic-dojo-stats-api",
+  "version": "1.0.0",
+  "description": "Anonymous usage statistics API for Symbiotic Thinking Dojo",
+  "type": "module",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0",
+    "@netlify/functions": "^2.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

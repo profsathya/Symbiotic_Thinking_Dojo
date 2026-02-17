@@ -7,6 +7,7 @@ import { useApiKey } from '@/hooks/useApiKey';
 import { usePracticeDojoState } from '@/hooks/usePracticeDojoState';
 import { useTour } from '@/hooks/useTour';
 import { useTopicConfig } from '@/hooks/useTopicConfig';
+import { useStats } from '@/hooks/useStats';
 import { Sidebar } from '@/components/Sidebar';
 import { ChatContainer } from '@/components/Chat';
 import { StatusPanel } from '@/components/StatusPanel';
@@ -16,6 +17,7 @@ import { ExportButton } from '@/components/ExportButton';
 import { ApiKeyModal } from '@/components/ApiKeyModal';
 import { TopicSelectionModal, TopicEditor, ProgressIndicator } from '@/components/PracticeDojo';
 import { TourOverlay, TourPrompt } from '@/components/Tour';
+import { StatsModal } from '@/components/StatsModal';
 import { ImportedSession } from '@/lib/export';
 import { getTopicById } from '@/lib/practice-dojo/topics';
 import { PracticeDojoContext, Pathway } from '@/lib/practice-dojo/types';
@@ -25,6 +27,7 @@ export default function Home() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
   const [isPracticeDojoModalOpen, setIsPracticeDojoModalOpen] = useState(false);
+  const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
   const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -39,6 +42,9 @@ export default function Home() {
 
   // Topic configuration (custom prompts)
   const topicConfig = useTopicConfig();
+
+  // Anonymous usage statistics tracking
+  const stats = useStats();
 
   const {
     config,
@@ -141,6 +147,16 @@ export default function Home() {
 
   // Reset chat when construct changes
   const handleConstructChange = (construct: typeof activeConstruct) => {
+    // Track session end if there's a meaningful conversation
+    if (messages.length > 1) {
+      stats.trackSessionEnd({
+        messageCount: messages.length,
+        dikwState: dikw,
+        partnersUsed: activePartners,
+        construct: activeConstruct,
+      });
+    }
+
     setActiveConstruct(construct);
     resetChat();
     // Exit Practice Dojo if currently in an active session
@@ -173,6 +189,9 @@ export default function Home() {
     const topic = topicConfig.getTopicWithCustomizations(topicId) || getTopicById(topicId);
     if (!topic) return;
 
+    // Track Practice Dojo started
+    stats.trackPracticeDojoStarted(topicId, pathway);
+
     // Start the Practice Dojo session
     practiceDojoState.startSession(topicId, pathway);
 
@@ -182,7 +201,7 @@ export default function Home() {
     // Start the chat with Practice Dojo welcome
     startPracticeDojo(topic, pathway);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [practiceDojoState, setActiveConstruct, startPracticeDojo, topicConfig.getTopicWithCustomizations]);
+  }, [practiceDojoState, setActiveConstruct, startPracticeDojo, topicConfig.getTopicWithCustomizations, stats.trackPracticeDojoStarted]);
 
   // Handle opening topic editor
   const handleEditTopic = useCallback((topicId: string) => {
@@ -214,8 +233,16 @@ export default function Home() {
     // Set flag to prevent auto-save from overwriting during exit
     isExitingPracticeDojoRef.current = true;
 
-    // Save messages explicitly before reset (if there's actual conversation)
+    // Track session end with stats
     if (messages.length > 1) {
+      stats.trackSessionEnd({
+        messageCount: messages.length,
+        dikwState: dikw,
+        partnersUsed: activePartners,
+        construct: activeConstruct,
+      });
+
+      // Save messages explicitly before reset
       const serialized = getSerializedMessages();
       practiceDojoState.saveMessages(serialized);
     }
@@ -228,7 +255,7 @@ export default function Home() {
     setTimeout(() => {
       isExitingPracticeDojoRef.current = false;
     }, 100);
-  }, [practiceDojoState, resetChat, messages.length, getSerializedMessages]);
+  }, [practiceDojoState, resetChat, messages.length, getSerializedMessages, stats, dikw, activePartners, activeConstruct]);
 
   // Wrap sendMessage to track interactions in Practice Dojo mode
   const handleSendMessage = useCallback((message: string) => {
@@ -363,6 +390,13 @@ export default function Home() {
         isOpen={isHelpOpen}
         onClose={() => setIsHelpOpen(false)}
         onStartTour={tour.startTour}
+        onOpenStats={() => setIsStatsModalOpen(true)}
+      />
+
+      {/* Stats Modal */}
+      <StatsModal
+        isOpen={isStatsModalOpen}
+        onClose={() => setIsStatsModalOpen(false)}
       />
 
       {/* Practice Dojo Topic Selection Modal */}
