@@ -17,6 +17,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Accept build-time arguments for NEXT_PUBLIC_ env vars
+ARG NEXT_PUBLIC_STATS_API_URL
+ENV NEXT_PUBLIC_STATS_API_URL=$NEXT_PUBLIC_STATS_API_URL
+
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
