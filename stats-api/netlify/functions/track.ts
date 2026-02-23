@@ -15,7 +15,7 @@ import type { Context } from "@netlify/functions";
  */
 
 interface TrackEvent {
-  type: 'session_end' | 'partner_invoked' | 'practice_dojo_started';
+  type: 'session_end' | 'partner_invoked' | 'practice_dojo_started' | 'interaction';
   data: {
     // For session_end
     messageCount?: number;
@@ -29,12 +29,16 @@ interface TrackEvent {
     // For practice_dojo_started
     topicId?: string;
     pathway?: string;
+
+    // For interaction
+    dikwLevel?: 'data' | 'information' | 'knowledge' | 'wisdom';
   };
 }
 
 interface DailyStats {
   date: string;
   sessions: number;
+  interactions: number;
   messageCounts: {
     '1-5': number;
     '6-10': number;
@@ -47,6 +51,12 @@ interface DailyStats {
     knowledge: number;
     wisdom: number;
     count: number; // For computing averages
+  };
+  interactionDikw: {
+    data: number;
+    information: number;
+    knowledge: number;
+    wisdom: number;
   };
   partners: Record<string, number>;
   constructs: Record<string, number>;
@@ -68,8 +78,10 @@ function createEmptyDailyStats(date: string): DailyStats {
   return {
     date,
     sessions: 0,
+    interactions: 0,
     messageCounts: { '1-5': 0, '6-10': 0, '11-20': 0, '21+': 0 },
     dikwTotals: { data: 0, information: 0, knowledge: 0, wisdom: 0, count: 0 },
+    interactionDikw: { data: 0, information: 0, knowledge: 0, wisdom: 0 },
     partners: {},
     constructs: {},
     practiceDojoTopics: {},
@@ -160,6 +172,15 @@ export default async function handler(req: Request, context: Context) {
             : event.data.topicId;
           dailyStats.practiceDojoTopics[key] =
             (dailyStats.practiceDojoTopics[key] || 0) + 1;
+        }
+        break;
+      }
+
+      case 'interaction': {
+        dailyStats.interactions = (dailyStats.interactions || 0) + 1;
+        if (event.data.dikwLevel) {
+          dailyStats.interactionDikw = dailyStats.interactionDikw || { data: 0, information: 0, knowledge: 0, wisdom: 0 };
+          dailyStats.interactionDikw[event.data.dikwLevel]++;
         }
         break;
       }

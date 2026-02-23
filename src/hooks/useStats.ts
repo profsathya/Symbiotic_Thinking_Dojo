@@ -32,7 +32,7 @@ function dikwStateToScores(state: DIKWState): { data: number; information: numbe
 }
 
 interface TrackEvent {
-  type: 'session_end' | 'partner_invoked' | 'practice_dojo_started';
+  type: 'session_end' | 'partner_invoked' | 'practice_dojo_started' | 'interaction';
   data: {
     messageCount?: number;
     dikwLevels?: { data: number; information: number; knowledge: number; wisdom: number };
@@ -41,6 +41,7 @@ interface TrackEvent {
     partnerId?: string;
     topicId?: string;
     pathway?: string;
+    dikwLevel?: DIKWLevel;
   };
 }
 
@@ -137,11 +138,44 @@ export function useStats() {
     });
   }, [trackEvent]);
 
+  // Track session end using sendBeacon (for page unload)
+  const trackSessionEndBeacon = useCallback((data: {
+    messageCount: number;
+    dikwState: DIKWState;
+    partnersUsed: string[];
+    construct: string;
+  }) => {
+    if (!STATS_API_URL) return;
+
+    const payload = JSON.stringify({
+      type: 'session_end',
+      data: {
+        messageCount: data.messageCount,
+        dikwLevels: dikwStateToScores(data.dikwState),
+        partnersUsed: data.partnersUsed,
+        construct: data.construct,
+      },
+    });
+
+    navigator.sendBeacon(
+      `${STATS_API_URL}/.netlify/functions/track`,
+      payload
+    );
+  }, []);
+
   // Track partner invocation
   const trackPartnerInvoked = useCallback((partnerId: string) => {
     trackEvent({
       type: 'partner_invoked',
       data: { partnerId },
+    });
+  }, [trackEvent]);
+
+  // Track user interaction (message sent)
+  const trackInteraction = useCallback((dikwLevel: DIKWLevel, partnerId?: string) => {
+    trackEvent({
+      type: 'interaction',
+      data: { dikwLevel, partnerId },
     });
   }, [trackEvent]);
 
@@ -193,7 +227,9 @@ export function useStats() {
 
     // Tracking functions
     trackSessionEnd,
+    trackSessionEndBeacon,
     trackPartnerInvoked,
+    trackInteraction,
     trackPracticeDojoStarted,
 
     // Fetching
