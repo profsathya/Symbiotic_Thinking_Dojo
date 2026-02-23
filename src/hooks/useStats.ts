@@ -32,7 +32,7 @@ function dikwStateToScores(state: DIKWState): { data: number; information: numbe
 }
 
 interface TrackEvent {
-  type: 'session_end' | 'partner_invoked' | 'practice_dojo_started';
+  type: 'session_end' | 'partner_invoked' | 'practice_dojo_started' | 'interaction';
   data: {
     messageCount?: number;
     dikwLevels?: { data: number; information: number; knowledge: number; wisdom: number };
@@ -41,6 +41,7 @@ interface TrackEvent {
     partnerId?: string;
     topicId?: string;
     pathway?: string;
+    dikwLevel?: DIKWLevel;
   };
 }
 
@@ -170,6 +171,14 @@ export function useStats() {
     });
   }, [trackEvent]);
 
+  // Track user interaction (message sent)
+  const trackInteraction = useCallback((dikwLevel: DIKWLevel, partnerId?: string) => {
+    trackEvent({
+      type: 'interaction',
+      data: { dikwLevel, partnerId },
+    });
+  }, [trackEvent]);
+
   // Track Practice Dojo started
   const trackPracticeDojoStarted = useCallback((topicId: string, pathway: string) => {
     trackEvent({
@@ -220,6 +229,7 @@ export function useStats() {
     trackSessionEnd,
     trackSessionEndBeacon,
     trackPartnerInvoked,
+    trackInteraction,
     trackPracticeDojoStarted,
 
     // Fetching

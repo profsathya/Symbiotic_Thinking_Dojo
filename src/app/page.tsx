@@ -291,8 +291,10 @@ export default function Home() {
     if (isInPracticeDojo) {
       practiceDojoState.incrementInteractionCount();
     }
+    // Track interaction for analytics (captures usage even if tab dies without beforeunload)
+    stats.trackInteraction(dikw.current, activePartners[0]);
     sendMessage(message);
-  }, [isInPracticeDojo, practiceDojoState, sendMessage]);
+  }, [isInPracticeDojo, practiceDojoState, sendMessage, stats, dikw.current, activePartners]);
 
   // Handle visual component interactions (e.g., clicking selection cards)
   const handleVisualInteraction = useCallback((action: string, data: Record<string, string>) => {
