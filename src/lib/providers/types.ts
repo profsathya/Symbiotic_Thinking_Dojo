@@ -4,7 +4,7 @@
  * Defines the common interface for all AI providers (Gemini, Groq, etc.)
  */
 
-export type AIProvider = 'gemini' | 'groq';
+export type AIProvider = 'gemini' | 'groq' | 'cti';
 
 export interface ProviderConfig {
   id: AIProvider;
@@ -53,7 +53,30 @@ export const PROVIDERS: Record<AIProvider, ProviderConfig> = {
     freeInfo: '~14,400 requests/day, 30 requests/min on free tier',
     defaultModel: 'llama-3.3-70b-versatile',
   },
+  cti: {
+    id: 'cti',
+    name: 'CTI Program',
+    description: 'Claude AI via your CTI program key',
+    keyPrefix: '',
+    keyPlaceholder: 'Enter your CTI program key...',
+    getKeyUrl: '',
+    getKeyInstructions: [
+      'Enter the key provided by your CTI program coordinator',
+    ],
+    freeInfo: 'Token budget managed by your program coordinator',
+    defaultModel: 'claude-sonnet',
+  },
 };
+
+/** Check whether the CTI provider is enabled via env var */
+export function isCtiEnabled(): boolean {
+  return !!process.env.NEXT_PUBLIC_CTI_BACKEND_URL;
+}
+
+/** Get the CTI backend URL */
+export function getCtiBackendUrl(): string {
+  return process.env.NEXT_PUBLIC_CTI_BACKEND_URL || '';
+}
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
