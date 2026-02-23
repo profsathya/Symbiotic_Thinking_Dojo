@@ -129,6 +129,34 @@ export default function Home() {
   // Track if we're in the process of exiting Practice Dojo to prevent save overwrite
   const isExitingPracticeDojoRef = useRef(false);
 
+  // Refs for beforeunload tracking (to avoid stale closures)
+  const messagesRef = useRef(messages);
+  const dikwRef = useRef(dikw);
+  const activePartnersRef = useRef(activePartners);
+  const activeConstructRef = useRef(activeConstruct);
+
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+  useEffect(() => { dikwRef.current = dikw; }, [dikw]);
+  useEffect(() => { activePartnersRef.current = activePartners; }, [activePartners]);
+  useEffect(() => { activeConstructRef.current = activeConstruct; }, [activeConstruct]);
+
+  // Track session end when user closes/navigates away from the page
+  useEffect(() => {
+    const handleUnload = () => {
+      if (messagesRef.current.length > 1) {
+        stats.trackSessionEndBeacon({
+          messageCount: messagesRef.current.length,
+          dikwState: dikwRef.current,
+          partnersUsed: activePartnersRef.current,
+          construct: activeConstructRef.current,
+        });
+      }
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
+  }, [stats.trackSessionEndBeacon]);
+
   // Save messages to Practice Dojo state when in Practice Dojo mode
   // Note: We check isInPracticeDojo (which uses isActive flag) to ensure we only save when
   // actively in a session, not just when there's resumable data from localStorage
