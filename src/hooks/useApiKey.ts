@@ -9,6 +9,8 @@ const PROVIDER_STORAGE_KEY = 'dojo_active_provider';
 // Legacy key for migration
 const LEGACY_GEMINI_KEY = 'dojo_gemini_api_key';
 
+const ALL_PROVIDERS: AIProvider[] = ['gemini', 'groq', 'cti'];
+
 interface UseApiKeyReturn {
   // Current active provider
   provider: AIProvider;
@@ -30,6 +32,7 @@ export function useApiKey(): UseApiKeyReturn {
   const [keys, setKeys] = useState<Record<AIProvider, string | null>>({
     gemini: null,
     groq: null,
+    cti: null,
   });
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -45,7 +48,7 @@ export function useApiKey(): UseApiKeyReturn {
 
       // Load provider preference
       const storedProvider = localStorage.getItem(PROVIDER_STORAGE_KEY) as AIProvider | null;
-      if (storedProvider && (storedProvider === 'gemini' || storedProvider === 'groq')) {
+      if (storedProvider && ALL_PROVIDERS.includes(storedProvider)) {
         setProviderState(storedProvider);
       }
 
@@ -53,6 +56,7 @@ export function useApiKey(): UseApiKeyReturn {
       const loadedKeys: Record<AIProvider, string | null> = {
         gemini: localStorage.getItem(`${STORAGE_KEY_PREFIX}gemini`),
         groq: localStorage.getItem(`${STORAGE_KEY_PREFIX}groq`),
+        cti: localStorage.getItem(`${STORAGE_KEY_PREFIX}cti`),
       };
       setKeys(loadedKeys);
     } catch (e) {

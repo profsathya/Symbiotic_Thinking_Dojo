@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AIProvider, PROVIDERS } from '@/lib/providers/types';
+import { AIProvider, PROVIDERS, isCtiEnabled } from '@/lib/providers/types';
 import { testApiKey } from '@/lib/providers';
+import { fetchCtiBudget, BudgetInfo } from '@/lib/providers';
 
 interface ApiKeyModalProps {
   isOpen: boolean;
@@ -30,10 +31,18 @@ export function ApiKeyModal({
   const [validationResult, setValidationResult] = useState<{
     valid: boolean;
     error?: string;
+    budget?: BudgetInfo;
   } | null>(null);
   const [showKey, setShowKey] = useState(false);
 
   const providerConfig = PROVIDERS[currentProvider];
+  const isCti = currentProvider === 'cti';
+  const ctiEnabled = isCtiEnabled();
+
+  // Build visible provider list (only show CTI if enabled)
+  const visibleProviders = (Object.keys(PROVIDERS) as AIProvider[]).filter(
+    (p) => p !== 'cti' || ctiEnabled
+  );
 
   // Reset state when modal opens or provider changes
   useEffect(() => {
@@ -61,14 +70,31 @@ export function ApiKeyModal({
     setIsValidating(true);
     setValidationResult(null);
 
-    const result = await testApiKey(currentProvider, keyInput.trim());
-    setValidationResult(result);
+    if (isCti) {
+      // For CTI keys, validate via budget endpoint
+      try {
+        const budget = await fetchCtiBudget(keyInput.trim());
+        if (budget.remaining_tokens <= 0) {
+          setValidationResult({ valid: false, error: 'Token budget exhausted', budget });
+        } else {
+          setValidationResult({ valid: true, budget });
+          onSaveKey(keyInput.trim());
+          setTimeout(() => onClose(), 1500);
+        }
+      } catch (error) {
+        setValidationResult({
+          valid: false,
+          error: error instanceof Error ? error.message : 'Failed to validate key',
+        });
+      }
+    } else {
+      const result = await testApiKey(currentProvider, keyInput.trim());
+      setValidationResult(result);
 
-    if (result.valid) {
-      onSaveKey(keyInput.trim());
-      setTimeout(() => {
-        onClose();
-      }, 1000);
+      if (result.valid) {
+        onSaveKey(keyInput.trim());
+        setTimeout(() => onClose(), 1000);
+      }
     }
 
     setIsValidating(false);
@@ -113,8 +139,8 @@ export function ApiKeyModal({
             <label className="block text-sm font-medium text-gray-300 mb-3">
               AI Provider
             </label>
-            <div className="grid grid-cols-2 gap-3">
-              {(Object.keys(PROVIDERS) as AIProvider[]).map((providerId) => {
+            <div className={`grid gap-3 ${visibleProviders.length > 2 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+              {visibleProviders.map((providerId) => {
                 const config = PROVIDERS[providerId];
                 const isSelected = currentProvider === providerId;
                 const hasKey = hasKeyForProvider(providerId);
@@ -148,27 +174,45 @@ export function ApiKeyModal({
             </div>
           </div>
 
-          {/* Privacy Notice */}
-          <div className="bg-emerald-900/30 border border-emerald-700/50 rounded-lg p-4">
-            <div className="flex gap-3">
-              <svg className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-              <div>
-                <h3 className="text-sm font-semibold text-emerald-300 mb-1">Your Privacy is Protected</h3>
-                <p className="text-xs text-emerald-200/80">
-                  Your API key is stored <strong>only in your browser</strong> and never sent to our servers.
-                  All conversations happen directly between your browser and {providerConfig.name}&apos;s API.
-                </p>
+          {/* Privacy Notice - different for CTI vs direct providers */}
+          {isCti ? (
+            <div className="bg-blue-900/30 border border-blue-700/50 rounded-lg p-4">
+              <div className="flex gap-3">
+                <svg className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <h3 className="text-sm font-semibold text-blue-300 mb-1">CTI Program Key</h3>
+                  <p className="text-xs text-blue-200/80">
+                    Enter the key provided by your CTI program coordinator.
+                    Conversations are routed through the program server for token tracking.
+                    No conversation content is logged.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-emerald-900/30 border border-emerald-700/50 rounded-lg p-4">
+              <div className="flex gap-3">
+                <svg className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <div>
+                  <h3 className="text-sm font-semibold text-emerald-300 mb-1">Your Privacy is Protected</h3>
+                  <p className="text-xs text-emerald-200/80">
+                    Your API key is stored <strong>only in your browser</strong> and never sent to our servers.
+                    All conversations happen directly between your browser and {providerConfig.name}&apos;s API.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Current Key Status */}
           {currentKey && (
             <div className="bg-gray-800/50 rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-300">Current {providerConfig.name} API Key</span>
+                <span className="text-sm font-medium text-gray-300">Current {providerConfig.name} Key</span>
                 <span className="text-xs text-emerald-400 flex items-center gap-1">
                   <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -212,7 +256,7 @@ export function ApiKeyModal({
           {/* New Key Input */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              {currentKey ? `Replace with New ${providerConfig.name} API Key` : `Enter Your ${providerConfig.name} API Key`}
+              {currentKey ? `Replace with New ${providerConfig.name} Key` : `Enter Your ${providerConfig.name} Key`}
             </label>
             <input
               type="password"
@@ -230,51 +274,59 @@ export function ApiKeyModal({
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    API key is valid! Saving...
+                    {validationResult.budget ? (
+                      <span>
+                        Key valid! Budget: {Math.round(validationResult.budget.remaining_tokens / validationResult.budget.total_budget * 100)}% remaining
+                      </span>
+                    ) : (
+                      'API key is valid! Saving...'
+                    )}
                   </>
                 ) : (
                   <>
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                     </svg>
-                    {validationResult.error || 'Invalid API key'}
+                    {validationResult.error || 'Invalid key'}
                   </>
                 )}
               </div>
             )}
           </div>
 
-          {/* How to Get API Key */}
-          <div className="bg-gray-800/50 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-gray-200 mb-2">How to Get a Free {providerConfig.name} API Key</h3>
-            <ol className="text-xs text-gray-400 space-y-2">
-              {providerConfig.getKeyInstructions.map((step, index) => (
-                <li key={index} className="flex gap-2">
-                  <span className="text-purple-400 font-medium">{index + 1}.</span>
-                  <span>
-                    {index === 0 ? (
-                      <>
-                        Go to{' '}
-                        <a
-                          href={providerConfig.getKeyUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-purple-400 hover:text-purple-300 underline"
-                        >
-                          {providerConfig.getKeyUrl.replace('https://', '')}
-                        </a>
-                      </>
-                    ) : (
-                      step
-                    )}
-                  </span>
-                </li>
-              ))}
-            </ol>
-            <p className="text-xs text-gray-500 mt-3">
-              {providerConfig.freeInfo}
-            </p>
-          </div>
+          {/* How to Get API Key - only for non-CTI providers */}
+          {!isCti && (
+            <div className="bg-gray-800/50 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-gray-200 mb-2">How to Get a Free {providerConfig.name} API Key</h3>
+              <ol className="text-xs text-gray-400 space-y-2">
+                {providerConfig.getKeyInstructions.map((step, index) => (
+                  <li key={index} className="flex gap-2">
+                    <span className="text-purple-400 font-medium">{index + 1}.</span>
+                    <span>
+                      {index === 0 ? (
+                        <>
+                          Go to{' '}
+                          <a
+                            href={providerConfig.getKeyUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-purple-400 hover:text-purple-300 underline"
+                          >
+                            {providerConfig.getKeyUrl.replace('https://', '')}
+                          </a>
+                        </>
+                      ) : (
+                        step
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+              <p className="text-xs text-gray-500 mt-3">
+                {providerConfig.freeInfo}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Footer */}

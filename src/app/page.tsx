@@ -18,6 +18,7 @@ import { ApiKeyModal } from '@/components/ApiKeyModal';
 import { TopicSelectionModal, TopicEditor, ProgressIndicator } from '@/components/PracticeDojo';
 import { TourOverlay, TourPrompt } from '@/components/Tour';
 import { StatsModal } from '@/components/StatsModal';
+import { BudgetIndicator } from '@/components/BudgetIndicator';
 import { ImportedSession } from '@/lib/export';
 import { getTopicById } from '@/lib/practice-dojo/topics';
 import { PracticeDojoContext, Pathway } from '@/lib/practice-dojo/types';
@@ -361,6 +362,9 @@ export default function Home() {
           onVisualInteraction={handleVisualInteraction}
           headerContent={
             <div className="flex items-center gap-2">
+              {provider === 'cti' && apiKey && (
+                <BudgetIndicator apiKey={apiKey} />
+              )}
               <ExportButton
                 messages={messages}
                 construct={activeConstruct}

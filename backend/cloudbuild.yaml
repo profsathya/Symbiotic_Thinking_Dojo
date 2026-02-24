@@ -1,0 +1,40 @@
+steps:
+  # Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/dojo-backend:$COMMIT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/dojo-backend:latest'
+      - '.'
+    dir: 'backend'
+
+  # Push the image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'gcr.io/$PROJECT_ID/dojo-backend'
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'dojo-backend'
+      - '--image=gcr.io/$PROJECT_ID/dojo-backend:$COMMIT_SHA'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--memory=256Mi'
+      - '--min-instances=0'
+      - '--max-instances=5'
+      - '--set-secrets=ANTHROPIC_API_KEY=anthropic-api-key:latest'
+      - '--set-env-vars=CORS_ORIGINS=https://symbioticthinking.ai,DATABASE_TYPE=sqlite,DATABASE_PATH=/data/cti_keys.db'
+      - '--execution-environment=gen2'
+
+images:
+  - 'gcr.io/$PROJECT_ID/dojo-backend:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/dojo-backend:latest'
