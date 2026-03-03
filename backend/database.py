@@ -2,7 +2,7 @@ import sqlite3
 import threading
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 from config import DATABASE_PATH, DATABASE_TYPE
 
@@ -53,7 +53,7 @@ class _DbWrapper:
     def execute(self, sql: str, params: tuple = ()) -> None:
         self._obj.execute(sql, params)
 
-    def fetchone(self) -> dict[str, Any] | None:
+    def fetchone(self) -> Optional[Dict[str, Any]]:
         if DATABASE_TYPE == "postgres":
             row = self._obj.fetchone()
             return dict(row) if row else None
@@ -61,7 +61,7 @@ class _DbWrapper:
         # We need to use the connection's last cursor
         raise NotImplementedError("Use query() for SELECTs")
 
-    def query_one(self, sql: str, params: tuple = ()) -> dict[str, Any] | None:
+    def query_one(self, sql: str, params: tuple = ()) -> Optional[Dict[str, Any]]:
         if DATABASE_TYPE == "postgres":
             self._obj.execute(sql, params)
             row = self._obj.fetchone()
@@ -70,7 +70,7 @@ class _DbWrapper:
             row = self._obj.execute(sql, params).fetchone()
             return dict(row) if row else None
 
-    def query_all(self, sql: str, params: tuple = ()) -> list[dict[str, Any]]:
+    def query_all(self, sql: str, params: tuple = ()) -> List[Dict[str, Any]]:
         if DATABASE_TYPE == "postgres":
             self._obj.execute(sql, params)
             return [dict(r) for r in self._obj.fetchall()]
@@ -123,7 +123,7 @@ def init_db() -> None:
         db.execute(sql)
 
 
-def get_key(key_id: str) -> dict[str, Any] | None:
+def get_key(key_id: str) -> Optional[Dict[str, Any]]:
     """Look up a CTI key by its ID."""
     with get_db() as db:
         return db.query_one(f"SELECT * FROM cti_keys WHERE id = {_PH}", (key_id,))
@@ -147,10 +147,10 @@ def update_usage(key_id: str, input_tokens: int, output_tokens: int) -> None:
 def create_key(
     key_id: str,
     student_email: str,
-    student_name: str | None = None,
+    student_name: Optional[str] = None,
     total_budget_tokens: int = 5_000_000,
-    expires_at: str | None = None,
-    notes: str | None = None,
+    expires_at: Optional[str] = None,
+    notes: Optional[str] = None,
 ) -> None:
     """Insert a new CTI key."""
     with get_db() as db:
@@ -178,7 +178,7 @@ def add_budget(key_id: str, tokens: int) -> None:
         )
 
 
-def list_keys(active_only: bool = False) -> list[dict[str, Any]]:
+def list_keys(active_only: bool = False) -> List[Dict[str, Any]]:
     """List all keys, optionally filtered to active-only."""
     with get_db() as db:
         query = "SELECT * FROM cti_keys"

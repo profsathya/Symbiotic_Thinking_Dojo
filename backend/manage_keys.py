@@ -4,6 +4,7 @@
 import csv
 import sys
 import uuid
+from typing import Optional
 
 import click
 
@@ -22,7 +23,7 @@ def cli():
 @click.option("--budget", default=5_000_000, help="Total token budget (default: 5000000)")
 @click.option("--expires", default=None, help="Expiration date (YYYY-MM-DD)")
 @click.option("--notes", default=None, help="Optional notes")
-def create(email: str, name: str | None, budget: int, expires: str | None, notes: str | None):
+def create(email: str, name: Optional[str], budget: int, expires: Optional[str], notes: Optional[str]):
     """Create a single CTI key for a student."""
     key_id = str(uuid.uuid4())
     database.create_key(
@@ -45,7 +46,7 @@ def create(email: str, name: str | None, budget: int, expires: str | None, notes
 @click.option("--budget", default=5_000_000, help="Total token budget per student")
 @click.option("--expires", default=None, help="Expiration date (YYYY-MM-DD)")
 @click.option("--output", default=None, help="Output CSV path (default: stdout)")
-def bulk_create(csv_path: str, budget: int, expires: str | None, output: str | None):
+def bulk_create(csv_path: str, budget: int, expires: Optional[str], output: Optional[str]):
     """Bulk create keys from a CSV file (columns: email, name)."""
     results = []
     with open(csv_path, newline="") as f:
