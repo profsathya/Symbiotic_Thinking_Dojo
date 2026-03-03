@@ -42,7 +42,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --max-instances=5 \
   --add-cloudsql-instances="${PROJECT_ID}:${REGION}:${INSTANCE_NAME}" \
   --set-secrets=ANTHROPIC_API_KEY=anthropic-api-key:latest,DATABASE_URL=database-url:latest \
-  --set-env-vars="CORS_ORIGINS=https://symbioticthinking.ai,http://localhost:3000,DATABASE_TYPE=postgres" \
+  --set-env-vars="^@^CORS_ORIGINS=https://symbioticthinking.ai,http://localhost:3000@DATABASE_TYPE=postgres" \
   --execution-environment=gen2
 
 # Print the service URL
