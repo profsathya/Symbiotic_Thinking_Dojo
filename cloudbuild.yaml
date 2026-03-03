@@ -32,8 +32,8 @@ steps:
 substitutions:
   _SERVICE_NAME: symbiotic-thinking-dojo
   _REGION: us-central1
-  _NEXT_PUBLIC_STATS_API_URL: ''
-  _NEXT_PUBLIC_CTI_BACKEND_URL: ''
+  _NEXT_PUBLIC_STATS_API_URL: 'https://dojo-stats-api.netlify.app'
+  _NEXT_PUBLIC_CTI_BACKEND_URL: 'https://dojo-backend-dgn5kavnea-uc.a.run.app'
 
 images:
   - 'gcr.io/$PROJECT_ID/${_SERVICE_NAME}:$BUILD_ID'
