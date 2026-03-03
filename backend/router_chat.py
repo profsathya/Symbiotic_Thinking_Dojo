@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, Optional
 
 import anthropic
 from fastapi import APIRouter, Depends
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-_client: anthropic.Anthropic | None = None
+_client: Optional[anthropic.Anthropic] = None
 
 
 def _get_client() -> anthropic.Anthropic:

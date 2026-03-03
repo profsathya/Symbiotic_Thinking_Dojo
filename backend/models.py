@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -7,7 +9,7 @@ class ChatMessage(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    messages: list[ChatMessage]
+    messages: List[ChatMessage]
     system: str = ""
     request_type: str = Field(default="reasoning", pattern="^(reasoning|extraction)$")
     max_tokens: int = Field(default=4096, ge=1, le=8192)
@@ -23,9 +25,9 @@ class BudgetResponse(BaseModel):
     remaining_tokens: int
     total_budget: int
     used_tokens: int
-    expires_at: str | None
+    expires_at: Optional[str]
 
 
 class ErrorResponse(BaseModel):
     error: str
-    detail: str | None = None
+    detail: Optional[str] = None
