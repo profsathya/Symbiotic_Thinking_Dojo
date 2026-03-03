@@ -26,7 +26,7 @@ INSTANCE_NAME="dojo-db"
 IMAGE="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
 
 echo "Building Docker image..."
-docker build -t "${IMAGE}:latest" .
+docker build --platform linux/amd64 -t "${IMAGE}:latest" .
 
 echo "Pushing to Container Registry..."
 docker push "${IMAGE}:latest"
