@@ -62,23 +62,33 @@ python manage_keys.py add-budget --key <key-id> --tokens 1000000
 ### First-time setup
 
 ```bash
-# Enable required APIs
-gcloud services enable run.googleapis.com containerregistry.googleapis.com secretmanager.googleapis.com
+# 1. Enable required APIs
+gcloud services enable run.googleapis.com containerregistry.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com
 
-# Store the Anthropic API key as a secret
+# 2. Store the Anthropic API key as a secret
 echo -n "sk-ant-..." | gcloud secrets create anthropic-api-key --data-file=-
 
-# Grant Cloud Run service account access
-gcloud secrets add-iam-policy-binding anthropic-api-key \
-  --member="serviceAccount:YOUR_PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
-  --role="roles/secretmanager.secretAccessor"
+# 3. Set up Cloud SQL PostgreSQL (creates instance, database, and stores connection URL)
+cd backend
+./setup-cloudsql.sh
 ```
+
+The `setup-cloudsql.sh` script will:
+- Create a Cloud SQL PostgreSQL instance (`dojo-db`)
+- Create the `cti_keys` database
+- Generate and store the `DATABASE_URL` in Secret Manager
+- Grant necessary IAM permissions
 
 ### Deploy
 
 ```bash
 cd backend
 ./deploy.sh
+```
+
+Or trigger via Cloud Build:
+```bash
+gcloud builds submit --config=backend/cloudbuild.yaml
 ```
 
 After deployment, set the service URL in the dojo frontend:
@@ -103,24 +113,26 @@ gcloud run services update dojo-backend --min-instances=0 --region=us-central1
 
 ## Database Options
 
-### SQLite (default, recommended for pilot)
+### Cloud SQL PostgreSQL (recommended for production)
 
-Set `DATABASE_TYPE=sqlite` and `DATABASE_PATH=/data/cti_keys.db`. For Cloud Run persistence, mount a Cloud Storage bucket:
+The default configuration uses Cloud SQL PostgreSQL for persistent, reliable storage. Run `./setup-cloudsql.sh` once to create the instance, then all deployments will automatically connect to it.
+
+The `cloudbuild.yaml` sets:
+- `DATABASE_TYPE=postgres`
+- `DATABASE_URL` from Secret Manager
+- Cloud SQL connection via `--add-cloudsql-instances`
+
+### SQLite (local development only)
+
+For local development, SQLite is used by default:
 
 ```bash
-# Create a bucket
-gsutil mb gs://YOUR_PROJECT-dojo-data
-
-# Mount during deployment (add to deploy.sh gcloud run deploy command):
---add-volume=name=data,type=cloud-storage,bucket=YOUR_PROJECT-dojo-data \
---add-volume-mount=volume=data,mount-path=/data
+export DATABASE_TYPE=sqlite
+export DATABASE_PATH=./cti_keys.db
+uvicorn main:app --reload
 ```
 
-### PostgreSQL (for larger scale)
-
-Set `DATABASE_TYPE=postgres` and `DATABASE_URL=postgresql://user:pass@host:5432/dojo`.
-
-The code handles both backends transparently behind a config flag.
+Note: SQLite is NOT recommended for Cloud Run as the filesystem is ephemeral.
 
 ## Environment Variables
 
