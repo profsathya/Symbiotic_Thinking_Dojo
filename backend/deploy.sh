@@ -7,15 +7,13 @@ set -euo pipefail
 #
 # First-time setup (run once):
 #   1. Enable required APIs:
-#      gcloud services enable run.googleapis.com containerregistry.googleapis.com secretmanager.googleapis.com
+#      gcloud services enable run.googleapis.com containerregistry.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com
 #
 #   2. Create the Anthropic API key secret:
 #      echo -n "sk-ant-..." | gcloud secrets create anthropic-api-key --data-file=-
 #
-#   3. Grant Cloud Run access to the secret:
-#      gcloud secrets add-iam-policy-binding anthropic-api-key \
-#        --member="serviceAccount:$(gcloud iam service-accounts list --filter='Cloud Run' --format='value(email)' | head -1)" \
-#        --role="roles/secretmanager.secretAccessor"
+#   3. Run the Cloud SQL setup script:
+#      ./setup-cloudsql.sh
 #
 # To set minimum instances to 1 during program weeks:
 #   gcloud run services update dojo-backend --min-instances=1 --region=us-central1
@@ -24,6 +22,7 @@ set -euo pipefail
 PROJECT_ID=$(gcloud config get-value project)
 REGION="us-central1"
 SERVICE_NAME="dojo-backend"
+INSTANCE_NAME="dojo-db"
 IMAGE="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
 
 echo "Building Docker image..."
@@ -32,7 +31,7 @@ docker build -t "${IMAGE}:latest" .
 echo "Pushing to Container Registry..."
 docker push "${IMAGE}:latest"
 
-echo "Deploying to Cloud Run..."
+echo "Deploying to Cloud Run with Cloud SQL..."
 gcloud run deploy "${SERVICE_NAME}" \
   --image="${IMAGE}:latest" \
   --region="${REGION}" \
@@ -41,8 +40,9 @@ gcloud run deploy "${SERVICE_NAME}" \
   --memory=256Mi \
   --min-instances=0 \
   --max-instances=5 \
-  --set-secrets=ANTHROPIC_API_KEY=anthropic-api-key:latest \
-  --set-env-vars="CORS_ORIGINS=https://symbioticthinking.ai,http://localhost:3000" \
+  --add-cloudsql-instances="${PROJECT_ID}:${REGION}:${INSTANCE_NAME}" \
+  --set-secrets=ANTHROPIC_API_KEY=anthropic-api-key:latest,DATABASE_URL=database-url:latest \
+  --set-env-vars="CORS_ORIGINS=https://symbioticthinking.ai,http://localhost:3000,DATABASE_TYPE=postgres" \
   --execution-environment=gen2
 
 # Print the service URL

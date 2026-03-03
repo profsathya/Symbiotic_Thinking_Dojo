@@ -17,7 +17,7 @@ steps:
       - '--all-tags'
       - 'gcr.io/$PROJECT_ID/dojo-backend'
 
-  # Deploy to Cloud Run
+  # Deploy to Cloud Run with Cloud SQL connection
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'gcloud'
     args:
@@ -31,8 +31,9 @@ steps:
       - '--memory=256Mi'
       - '--min-instances=0'
       - '--max-instances=5'
-      - '--set-secrets=ANTHROPIC_API_KEY=anthropic-api-key:latest'
-      - '--set-env-vars=CORS_ORIGINS=https://symbioticthinking.ai,DATABASE_TYPE=sqlite,DATABASE_PATH=/data/cti_keys.db'
+      - '--add-cloudsql-instances=${PROJECT_ID}:us-central1:dojo-db'
+      - '--set-secrets=ANTHROPIC_API_KEY=anthropic-api-key:latest,DATABASE_URL=database-url:latest'
+      - '--set-env-vars=CORS_ORIGINS=https://symbioticthinking.ai,DATABASE_TYPE=postgres'
       - '--execution-environment=gen2'
 
 images:
