@@ -81,14 +81,39 @@ else
     echo "   Secret created."
 fi
 
-# Get the Cloud Run service account
+# Get the Cloud Run service account (Compute Engine default)
 echo "6. Granting Cloud Run access to secrets..."
-SERVICE_ACCOUNT=$(gcloud iam service-accounts list \
-    --filter="displayName:Compute Engine default" \
-    --format="value(email)" | head -1)
+PROJECT_NUMBER=$(gcloud projects describe "${PROJECT_ID}" --format="value(projectNumber)")
+SERVICE_ACCOUNT="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 
-if [ -z "$SERVICE_ACCOUNT" ]; then
-    SERVICE_ACCOUNT="${PROJECT_ID}@appspot.gserviceaccount.com"
+# Ensure the Compute Engine default service account exists
+if ! gcloud iam service-accounts describe "${SERVICE_ACCOUNT}" &>/dev/null; then
+    echo "   Note: Compute Engine default service account not found."
+    echo "   It will be created automatically on first Cloud Run deployment."
+    echo "   Run the following after your first deployment to grant access:"
+    echo ""
+    echo "   gcloud secrets add-iam-policy-binding database-url \\"
+    echo "       --member=\"serviceAccount:${SERVICE_ACCOUNT}\" \\"
+    echo "       --role=\"roles/secretmanager.secretAccessor\""
+    echo ""
+    echo "   gcloud projects add-iam-policy-binding ${PROJECT_ID} \\"
+    echo "       --member=\"serviceAccount:${SERVICE_ACCOUNT}\" \\"
+    echo "       --role=\"roles/cloudsql.client\""
+    echo ""
+    echo "   Skipping IAM bindings for now..."
+    echo ""
+    echo "==================================="
+    echo "Cloud SQL Setup Complete!"
+    echo "==================================="
+    echo ""
+    echo "Instance:    ${INSTANCE_NAME}"
+    echo "Database:    ${DATABASE_NAME}"
+    echo "Connection:  ${CONNECTION_NAME}"
+    echo ""
+    echo "The DATABASE_URL has been stored in Secret Manager."
+    echo "Deploy the backend first, then run the IAM commands above."
+    echo "==================================="
+    exit 0
 fi
 
 # Grant access to the database secret
