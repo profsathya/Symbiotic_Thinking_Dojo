@@ -37,7 +37,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --region="${REGION}" \
   --platform=managed \
   --allow-unauthenticated \
-  --memory=256Mi \
+  --memory=512Mi \
   --min-instances=0 \
   --max-instances=5 \
   --add-cloudsql-instances="${PROJECT_ID}:${REGION}:${INSTANCE_NAME}" \
