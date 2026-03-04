@@ -17,7 +17,7 @@ DATABASE_URL: str = os.environ.get("DATABASE_URL", "")  # For postgres
 CORS_ORIGINS: list[str] = [
     origin.strip()
     for origin in os.environ.get(
-        "CORS_ORIGINS", "https://symbioticthinking.ai,http://localhost:3000,http://127.0.0.1:3000"
+        "CORS_ORIGINS", "https://symbioticthinking.ai,https://dojo.symbioticthinking.ai,http://localhost:3000,http://127.0.0.1:3000"
     ).split(",")
     if origin.strip()
 ]
