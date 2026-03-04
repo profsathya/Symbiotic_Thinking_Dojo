@@ -25,6 +25,8 @@ The Dojo flips the script. Instead of AI doing the thinking *for* you, it challe
 
 The goal isn't to slow you down — it's to ensure that when you move fast, you're building real capability, not just accumulating outputs.
 
+---
+
 ## Features
 
 ### Training Constructs
@@ -53,6 +55,25 @@ Invoke partners via toggles (always active) or @ mentions (single message): `@fr
 
 Your metacognitive coach — guides through questions, not answers. The Sensei helps you stay aware of your thinking process without doing the thinking for you.
 
+### Practice Dojo
+
+Structured learning experiences with phased progression and interactive visual elements:
+
+| Topic | Category | Description |
+|-------|----------|-------------|
+| **Symbiotic Thinking** | Foundations | Learn the core philosophy and frameworks |
+| **Ikigai Discovery** | Foundations | Explore your purpose through guided self-reflection |
+| **CST 395 - Software Engineering** | Course | Course overview and key concepts |
+| **CST 349 - Algorithms & Data Structures** | Course | Course overview and key concepts |
+| **Introductory Programming** | General | Foundational programming concepts |
+
+Practice Dojo features:
+- **Three pathways**: Guided (full scaffolding), Quick (condensed), Test (challenge mode)
+- **Visual components**: Selection cards, comparison tables, framework diagrams
+- **Progressive scaffolding**: Support adapts based on your interaction count
+- **Session persistence**: Resume interrupted sessions
+- **Customizable prompts**: Edit topic prompts via the TopicEditor
+
 ### Frameworks
 
 - **UMPIRE Cycle**: Understand → Map → Plan → Implement → Review → Evaluate
@@ -60,9 +81,15 @@ Your metacognitive coach — guides through questions, not answers. The Sensei h
 - **DIKW Pyramid**: Track depth from Data → Information → Knowledge → Wisdom
 - **Creating-Consuming Balance**: Visual feedback on active vs. passive engagement
 
-### Guided Practice
+### Guided Tour
 
-Start with an Ikigai discovery session — a structured journey to explore your interests, strengths, and purpose.
+New users are offered an interactive guided tour that highlights key UI elements and explains the Dojo philosophy. The tour can be restarted anytime from the Help menu.
+
+### Session Management
+
+- **Export**: Save your session as Markdown or JSON for future reference
+- **Import**: Restore a previously exported session to continue where you left off
+- **Statistics**: View anonymous aggregate usage statistics (opt-in)
 
 ### Use Without the App (Portable Dojo)
 
@@ -71,7 +98,23 @@ Don't want to set up an API key or use the web app? You can get the full Dojo ex
 - **[Portable Dojo Guide](docs/Portable-Dojo-Guide.md)** — Setup instructions and system prompt
 - **[Knowledge Base](docs/Symbiotic-Thinking-Knowledge-Base.md)** — Complete reference document to attach
 
-Works with Claude Projects, ChatGPT, Gemini, and other AI assistants. The guide includes platform-specific setup instructions.
+Works with Claude Projects, ChatGPT, Gemini, and other AI assistants.
+
+---
+
+## AI Providers
+
+The Dojo supports multiple AI providers. Select your preferred provider in Settings:
+
+| Provider | Model | Free Tier Limits | Best For |
+|----------|-------|------------------|----------|
+| **Google Gemini** | Gemini 2.5 Flash | ~15 req/min, ~20 req/day | Default choice, good balance |
+| **Groq** | Llama 3.3 70B | ~30 req/min, ~14,400 req/day | Higher rate limits, fast inference |
+| **CTI Program** | Claude Sonnet | Token budget managed by coordinator | Institutional/classroom use |
+
+> **Note**: Groq (groq.com) provides ultra-fast Llama inference. This is different from Grok (xAI's chatbot).
+
+Your API key is stored in your browser's localStorage and never passes through our servers. Conversations flow directly from your browser to the AI provider.
 
 ---
 
@@ -87,19 +130,23 @@ Works with Claude Projects, ChatGPT, Gemini, and other AI assistants. The guide 
 | Your conversations | Browser memory only | **None** |
 | Chat history | Not persisted anywhere | **None** |
 
-We serve the application code. That's it. Your data flows directly between your browser and Google's Gemini API.
+We serve the application code. That's it. Your data flows directly between your browser and your chosen AI provider.
 
-> **Important: Conversations are not saved.** When you close or refresh the browser, your conversation is gone. There is no session persistence — each visit starts fresh. If you want to keep a record of your session, use `@reflector` to generate a summary before leaving.
+> **Important: Conversations are not saved.** When you close or refresh the browser, your conversation is gone. There is no session persistence — each visit starts fresh. If you want to keep a record of your session, use `@reflector` to generate a summary or use the Export button before leaving.
 
 ### What the AI Provider Sees
 
-When you use the Dojo, your conversations are sent to **Google's Gemini API** under your own API key. This means:
+When you use the Dojo, your conversations are sent to your chosen AI provider (Google Gemini, Groq, or CTI backend) under your own API key. Each provider's privacy policies apply to data sent to their API.
 
-- Google receives and processes your messages according to their [Gemini API Terms of Service](https://ai.google.dev/gemini-api/terms)
-- Google's privacy policies apply to data sent to their API
-- We have no access to or control over data once it reaches Google
+**Our privacy guarantee applies only to our infrastructure** — we never see your conversations. Review your chosen provider's policies if you have concerns about how they handle your data.
 
-**Our privacy guarantee applies only to our infrastructure** — we never see your conversations. But you should review Google's policies if you have concerns about how the AI provider handles your data.
+### CTI Program Provider
+
+When using a CTI (Computing Talent Initiative) program key:
+- Conversations route through the CTI backend service (hosted on Google Cloud Run)
+- No conversation content is logged server-side
+- Token usage is tracked for budget management
+- Your coordinator manages key allocation and budgets
 
 ### How to Verify (For Engineers)
 
@@ -108,17 +155,18 @@ We encourage you to audit the code. Here's where to look:
 | Claim | File to Check | What You'll Find |
 |-------|---------------|------------------|
 | API key stored locally only | `src/hooks/useApiKey.ts` | Uses `localStorage`, never sent to server |
-| API calls from browser only | `src/lib/gemini-client.ts` | Direct `@google/generative-ai` SDK calls |
-| No server-side chat processing | `src/app/api/` | Empty — no chat endpoints |
-| Chat state is client-side only | `src/hooks/useChat.ts` | React state, no server calls |
+| Gemini API calls from browser | `src/lib/gemini-client.ts` | Direct `@google/generative-ai` SDK calls |
+| Groq API calls from browser | `src/lib/providers/groq-client.ts` | Direct OpenAI-compatible API calls |
+| CTI routing (no logging) | `src/lib/providers/cti-client.ts` | Proxies to backend with X-CTI-Key header |
+| Chat state is client-side only | `src/hooks/useChat.ts` | React state, no server persistence |
 
 ### Data Flow
 
 ```
 ┌─────────────────┐                      ┌─────────────────┐
-│                 │   Your API Key &     │                 │
-│   Your Browser  │ ──── Messages ─────▶ │   Google AI     │
-│   (Your Device) │                      │   (Gemini API)  │
+│                 │   Your API Key &     │   Google/Groq   │
+│   Your Browser  │ ──── Messages ─────▶ │   AI Provider   │
+│   (Your Device) │                      │                 │
 │                 │ ◀──── Response ───── │                 │
 └─────────────────┘                      └─────────────────┘
          │
@@ -130,9 +178,25 @@ We encourage you to audit the code. Here's where to look:
 └─────────────────┘
 ```
 
-### What Google Sees
+---
 
-When you use the Dojo, your conversations go to Google's Gemini API under your own API key. Google's [API terms](https://ai.google.dev/gemini-api/terms) apply. We recommend reviewing their privacy practices if you have concerns.
+## Anonymous Usage Statistics
+
+The Dojo optionally collects anonymous, aggregate usage statistics to help improve the platform. This is **completely separate** from your conversations.
+
+**What we collect:**
+- Session counts (not content)
+- Message count ranges (1-5, 6-10, 11-20, 21+)
+- DIKW level distributions
+- Partner and construct usage counts
+- Practice Dojo topic usage
+
+**What we never collect:**
+- Conversation content
+- API keys
+- Personal identifiers
+
+Statistics are stored via Netlify Functions and viewable in the Help menu. See `stats-api/netlify/functions/` for implementation details.
 
 ---
 
@@ -141,17 +205,23 @@ When you use the Dojo, your conversations go to Google's Gemini API under your o
 ### Prerequisites
 
 - Node.js 18+
-- A Google AI API key (free tier available)
+- An API key from one of the supported providers (free tiers available)
 
 ### Get a Free API Key
 
+**Google Gemini:**
 1. Go to [Google AI Studio](https://aistudio.google.com/apikey)
 2. Sign in with your Google account
 3. Click "Create API key"
-4. Select "Create API key in new project" (or choose existing)
+4. Select "Create API key in new project"
 5. Copy the generated key
 
-The free tier includes ~15 requests/minute and ~1M tokens/day — more than enough for personal learning.
+**Groq:**
+1. Go to [Groq Console](https://console.groq.com/keys)
+2. Sign up or sign in (Google/GitHub)
+3. Click "API Keys" in sidebar
+4. Click "Create API Key"
+5. Copy the generated key
 
 ### Installation (Local Development)
 
@@ -179,18 +249,26 @@ The app can be deployed to any static hosting or serverless platform:
 npm run build
 ```
 
-The build output is a standard Next.js static export.
+The build output is a standard Next.js application. We use:
+- **Google Cloud Run** for the main frontend
+- **Netlify Functions** for statistics API
+- **Google Cloud SQL** for CTI key management (institutional deployments)
+
+See `cloudbuild.yaml` and `backend/cloudbuild.yaml` for deployment configuration.
 
 ---
 
 ## Usage
 
-1. **Enter your API key** — Click "Set API Key" in the sidebar
-2. **Select a Construct** — Choose your training mode based on stakes
-3. **Activate Sparring Partners** — Toggle or @ mention partners to challenge your thinking
-4. **Engage with the Sensei** — Share your challenge and work through it
-5. **Track Your Progress** — Watch the DIKW pyramid and Creating-Consuming balance
-6. **Reflect with @reflector** — Generate a summary when you're ready to wrap up
+1. **Enter your API key** — Click "Set API Key" in the sidebar, select your provider
+2. **Take the Tour** — New users see a guided tour; restart anytime from Help
+3. **Choose a Mode**:
+   - **Practice Dojo** — Structured learning topics with visual progression
+   - **Free Mode** — Open-ended conversation with the Sensei
+4. **Select a Construct** — Choose your training mode based on stakes
+5. **Activate Sparring Partners** — Toggle or @ mention partners to challenge your thinking
+6. **Track Your Progress** — Watch the DIKW pyramid and Creating-Consuming balance
+7. **Export Your Session** — Save as Markdown/JSON before leaving
 
 ---
 
@@ -199,34 +277,72 @@ The build output is a standard Next.js static export.
 ```
 src/
 ├── app/                    # Next.js App Router
-│   └── page.tsx           # Main application page
+│   └── page.tsx            # Main application page
 ├── components/
-│   ├── Chat/              # Chat interface components
-│   ├── ApiKeyModal/       # API key configuration
-│   ├── HelpPanel/         # Help and documentation
-│   ├── Sidebar/           # Construct and partner selectors
-│   └── StatusPanel/       # DIKW, UMPIRE, balance trackers
+│   ├── Chat/               # Chat interface components
+│   ├── ApiKeyModal/        # API key and provider configuration
+│   ├── ConfigPanel/        # System prompt customization
+│   ├── HelpPanel/          # Help and documentation
+│   ├── PracticeDojo/       # Topic selection, editor, progress, visual components
+│   ├── Sidebar/            # Construct and partner selectors
+│   ├── StatusPanel/        # DIKW, UMPIRE, balance trackers
+│   ├── Tour/               # Guided tour overlay and prompt
+│   ├── ExportButton/       # Session export functionality
+│   └── StatsModal/         # Usage statistics display
 ├── hooks/
-│   ├── useChat.ts         # Chat state management (client-side)
-│   ├── useApiKey.ts       # API key management (localStorage)
-│   └── useDojoConfig.ts   # Configuration state
+│   ├── useChat.ts          # Chat state management
+│   ├── useApiKey.ts        # API key and provider management (localStorage)
+│   ├── useDojoConfig.ts    # Configuration state
+│   ├── usePracticeDojoState.ts  # Practice Dojo session state
+│   ├── useTopicConfig.ts   # Topic customizations
+│   ├── useTour.ts          # Tour state management
+│   └── useStats.ts         # Anonymous statistics tracking
 └── lib/
-    ├── gemini-client.ts   # Direct browser-to-Gemini API calls
-    ├── mentions.ts        # @ mention parsing
-    ├── prompts/           # System prompts and composer
-    └── types.ts           # TypeScript definitions
+    ├── gemini-client.ts    # Google Gemini API client
+    ├── providers/          # Multi-provider abstraction
+    │   ├── types.ts        # Provider configuration
+    │   ├── groq-client.ts  # Groq API client
+    │   ├── cti-client.ts   # CTI backend proxy client
+    │   └── index.ts        # Unified provider interface
+    ├── practice-dojo/      # Practice Dojo topics and types
+    ├── mentions.ts         # @ mention parsing
+    ├── export.ts           # Session export/import utilities
+    └── prompts/            # System prompts and composer
+
+backend/                    # CTI Backend Service (FastAPI)
+├── main.py                 # FastAPI application
+├── router_chat.py          # Chat proxy endpoint
+├── router_budget.py        # Budget check endpoint
+├── database.py             # Cloud SQL connection
+├── auth.py                 # CTI key authentication
+├── manage_keys.py          # Key management utilities
+└── cloudbuild.yaml         # Backend deployment config
+
+stats-api/                  # Anonymous Statistics API (Netlify Functions)
+└── netlify/functions/
+    └── stats.ts            # Statistics endpoint
+
+docs/
+├── Portable-Dojo-Guide.md           # Use Dojo with any AI chatbot
+├── Symbiotic-Thinking-Knowledge-Base.md  # Complete reference document
+└── Practice-Dojo-Learning-Design.md # Learning design principles
 ```
 
 ---
 
 ## Technology Stack
 
-- **Framework**: Next.js 14 (App Router)
+- **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **LLM**: Google Gemini API (client-side)
-- **State**: React hooks (no server state)
-- **Privacy**: Zero server-side data handling
+- **Styling**: Tailwind CSS 4
+- **AI Providers**:
+  - Google Gemini 2.5 Flash (via @google/generative-ai)
+  - Groq Llama 3.3 70B (via OpenAI-compatible API)
+  - Anthropic Claude (via CTI backend proxy)
+- **State**: React hooks with localStorage persistence
+- **Privacy**: Zero server-side data handling for conversations
+- **Backend** (optional): FastAPI on Google Cloud Run
+- **Statistics**: Netlify Functions with Netlify Blobs storage
 
 ---
 
