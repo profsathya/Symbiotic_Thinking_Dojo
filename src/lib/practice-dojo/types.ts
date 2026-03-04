@@ -111,6 +111,8 @@ export interface TopicConfig {
   icon: string;
   pathways: PathwayConfig[];
   phases: PhaseConfig[];
+  // Topic-level instructions that apply to ALL phases (tone, anti-gaming, response style)
+  systemInstructions?: string;
   // Additional content for course topics
   courseContent?: {
     syllabus: string;

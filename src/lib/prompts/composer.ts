@@ -317,6 +317,11 @@ function composePracticeDojoPrompt(context: PracticeDojoContext): string {
 - **Completed Phases:** ${completedPhases.length > 0 ? completedPhases.map(p => p + 1).join(', ') : 'None yet'}
 - **Interaction Count:** ${interactionCount}`);
 
+  // Topic-level system instructions (tone, anti-gaming, response style)
+  if (topic.systemInstructions) {
+    sections.push(`## TOPIC INSTRUCTIONS\n\n${topic.systemInstructions}`);
+  }
+
   // User choices context
   if (Object.keys(userChoices).length > 0) {
     sections.push(`## User Context from Earlier Phases
