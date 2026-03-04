@@ -56,6 +56,12 @@ const SPEAKER_STYLES: Record<Speaker, { bg: string; border: string; label: strin
     label: 'The Reflector',
     icon: '🪞',
   },
+  advocate: {
+    bg: 'bg-teal-600/20',
+    border: 'border-teal-500/30',
+    label: 'The Advocate',
+    icon: '🗣️',
+  },
 };
 
 // Hidden watermark component - invisible on screen but copied with text selection

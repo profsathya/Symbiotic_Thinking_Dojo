@@ -4,7 +4,7 @@
 export type Construct = 'learn' | 'learn-solve' | 'learn-solve-build';
 
 // Sparring Partner types
-export type SparringPartner = 'framer' | 'auditor' | 'connector' | 'challenger' | 'reflector';
+export type SparringPartner = 'framer' | 'auditor' | 'connector' | 'challenger' | 'reflector' | 'advocate';
 
 // UMPIRE stages for tracking progress
 export type UmpireStage = 'understand' | 'map' | 'plan' | 'implement' | 'review' | 'evaluate';

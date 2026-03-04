@@ -473,6 +473,9 @@ function determineSpeaker(content: string, activePartners: SparringPartner[]): M
   if (lowerContent.includes('**the reflector:**') || lowerContent.includes('the reflector:')) {
     return 'reflector';
   }
+  if (lowerContent.includes('**the advocate:**') || lowerContent.includes('the advocate:')) {
+    return 'advocate';
+  }
 
   // Default to sensei
   return 'sensei';

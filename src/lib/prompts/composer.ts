@@ -500,6 +500,33 @@ This is an interactive experience to help you deeply understand the course—not
 \`\`\``;
     }
 
+    // CST395 Sprint 2 Learn+Solve
+    if (topic.topicId === 'cst395-s2-learn-solve') {
+      return `**Sensei:** Welcome to the Sprint 2 Practice Dojo. 🔬
+
+This is **Learn + Solve** mode — you're not just practicing, you're producing real deliverables. By the end, you'll have your MVP statement, prototype plan, and build log content ready for submission.
+
+Three blocks, your pace:
+- **Block 1** — Narrow to a locked MVP (best done in class with your pair partner)
+- **Block 2** — Plan your prototype
+- **Block 3** — Build your build log
+
+**Let's start. Who is the person whose problem you're solving?**
+
+\`\`\`dojo-visual
+{
+  "type": "selection-cards",
+  "prompt": "Where are you right now in Sprint 2?",
+  "options": [
+    {"id": "discovery", "icon": "🔍", "title": "Done discovery", "description": "I've talked to my stakeholder and understand the problem area"},
+    {"id": "narrowed", "icon": "🎯", "title": "Already narrowing", "description": "I have a sense of what to build but haven't locked it"},
+    {"id": "building", "icon": "🔨", "title": "Already building", "description": "I started a prototype and need to plan/document"},
+    {"id": "behind", "icon": "😅", "title": "Behind", "description": "I haven't done much discovery yet"}
+  ]
+}
+\`\`\``;
+    }
+
     // Generic course welcome (fallback)
     return `**Sensei:** Welcome to the Practice Dojo! 🥋
 
