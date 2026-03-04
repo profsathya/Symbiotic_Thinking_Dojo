@@ -158,6 +158,14 @@ Available visual types:
 - info-box: style can be "reveal", "insight", "summary", "warning" with title and content
 - checkpoint-prompt: question and optional hint for checkpoint verification
 
+CRITICAL RULE — Do NOT combine open-ended questions with selection cards:
+- If you ask the student to WRITE something (share their words, describe a moment, explain their thinking), do NOT include selection-cards in the same response. Let them type their answer.
+- Selection cards should only appear when the options ARE the complete response — choosing a direction, picking a focus, making a decision.
+- BAD: "Tell me what your stakeholder said." + selection cards with "Their voice first" / "A specific moment" — this lets students skip the writing.
+- GOOD: "Tell me what your stakeholder said. Take a moment to recall their exact words or a specific moment." (no cards — wait for their text)
+- GOOD: "How should we approach this?" + selection cards with distinct approaches (cards ARE the answer)
+- If a question requires reflection or articulation, trust the student to type. The text input IS the learning.
+
 Remember: Guide through questions, not lectures. Let them discover before you name. Meet them where they are.`);
   } else {
     parts.push(`# RESPONSE FORMAT
@@ -346,15 +354,16 @@ ${previousCheckpoints.map(([phase, status]) => `- ${phase}: ${status}`).join('\n
 
 In these early interactions, students are warming up. Make it easy for them to engage:
 
-1. **End EVERY response with a selection-cards element** - Give 3-4 clickable options
+1. **Use selection-cards frequently** - Give 3-4 clickable options for direction/choice questions
 2. **Keep text brief** - 2-3 short paragraphs max before the interactive element
 3. **Make options feel safe** - No "wrong" answers, each option leads somewhere valuable
-4. **If asking a question, offer structured responses** - Don't leave them staring at a blank input
+4. **IMPORTANT: Choose ONE response type per turn** - Either ask for text input OR present selection cards, NEVER both
+5. **When you need their own words** - Ask the question without cards. Scaffold with "In 1-2 sentences..." to reduce blank-input anxiety
+6. **When offering a choice or direction** - Use selection cards where clicking IS the complete answer
 
-Example pattern:
-- Brief acknowledgment/insight (1-2 sentences)
-- One key point or question (1 paragraph)
-- Selection cards with clear options
+Example patterns:
+- Direction question → Selection cards (clicking = complete response)
+- Reflection question → Text prompt only, scaffolded ("In a sentence or two, what did they say?")
 
 \`\`\`dojo-visual
 {
@@ -379,11 +388,12 @@ The student has momentum now. Start asking for more:
 2. **When asking for text, scaffold it** - "In 1-2 sentences..." or "What's one example..."
 3. **Use info-boxes and comparison tables** - Visual elements that don't require clicking
 4. **Still offer selection cards for big decisions** - But allow text for reflection
+5. **Never combine text questions with selection cards** - Each response is either a text prompt or a selection; mixing them lets students skip the thinking
 
 Example patterns:
-- Ask a focused question, then provide an info-box to react to
-- Present a comparison table, then ask what they notice
-- Use selection cards for "which direction" questions, text for "what do you think" questions`;
+- Ask a focused question (text only), then next turn provide an info-box to react to
+- Present a comparison table, then ask what they notice (text only)
+- Use selection cards ONLY for "which direction" questions where clicking IS the answer`;
   } else {
     // Later phase: Text-primary with periodic interactive elements
     scaffoldingGuidance = `## ENGAGEMENT SCAFFOLDING (Fluent Phase - Interaction ${interactionCount + 1})
