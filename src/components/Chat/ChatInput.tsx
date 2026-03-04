@@ -86,7 +86,7 @@ export function ChatInput({
         </button>
       </div>
       <p className="mt-2 text-xs text-gray-500">
-        Press Enter to send, Shift+Enter for new line • Use @framer, @auditor, @connector, @challenger, or @reflector to invoke partners
+        Press Enter to send, Shift+Enter for new line • Use @framer, @auditor, @connector, @challenger, @reflector, or @advocate to invoke partners
       </p>
     </div>
   );

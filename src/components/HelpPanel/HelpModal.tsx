@@ -253,6 +253,7 @@ function InterfaceContent() {
             <code className="bg-gray-900 text-purple-400 px-2 py-1 rounded">@connector</code>
             <code className="bg-gray-900 text-purple-400 px-2 py-1 rounded">@challenger</code>
             <code className="bg-gray-900 text-purple-400 px-2 py-1 rounded">@reflector</code>
+            <code className="bg-gray-900 text-purple-400 px-2 py-1 rounded">@advocate</code>
           </div>
           <p className="text-gray-500 text-xs mt-2">
             <strong>Toggle</strong> = partner is always active • <strong>@ mention</strong> = partner is invoked for just this message

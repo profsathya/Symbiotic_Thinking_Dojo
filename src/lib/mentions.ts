@@ -34,6 +34,11 @@ const MENTION_MAP: Record<string, SparringPartner> = {
   '@reflector': 'reflector',
   '@thereflector': 'reflector',
   '@the-reflector': 'reflector',
+
+  // The Advocate
+  '@advocate': 'advocate',
+  '@theadvocate': 'advocate',
+  '@the-advocate': 'advocate',
 };
 
 // Regex to match @ mentions (case insensitive)
@@ -90,6 +95,7 @@ export function getAllMentionTriggers(): { trigger: string; partner: SparringPar
     { trigger: '@connector', partner: 'connector', name: 'The Connector' },
     { trigger: '@challenger', partner: 'challenger', name: 'The Challenger' },
     { trigger: '@reflector', partner: 'reflector', name: 'The Reflector' },
+    { trigger: '@advocate', partner: 'advocate', name: 'The Advocate' },
   ];
 }
 
