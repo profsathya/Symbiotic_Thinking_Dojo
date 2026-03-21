@@ -38,13 +38,13 @@ export const PROVIDERS: Record<AIProvider, ProviderConfig> = {
   },
   groq: {
     id: 'groq',
-    name: 'Groq',
-    description: 'Ultra-fast Llama 3.3 70B inference (not to be confused with Grok from xAI)',
+    name: 'Llama',
+    description: 'Ultra-fast Llama 3.3 70B inference via Groq',
     keyPrefix: 'gsk_',
     keyPlaceholder: 'gsk_...',
     getKeyUrl: 'https://console.groq.com/keys',
     getKeyInstructions: [
-      'Go to console.groq.com',
+      'Go to console.groq.com (Note: Groq is NOT Grok from xAI — different companies)',
       'Sign up or sign in (Google/GitHub)',
       'Click "API Keys" in sidebar',
       'Click "Create API Key"',

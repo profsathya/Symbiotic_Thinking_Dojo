@@ -34,7 +34,7 @@ The goal isn't to slow you down — it's to ensure that when you move fast, you'
 | Provider | Model | Free Tier Limits | Best For |
 |----------|-------|------------------|----------|
 | **Google Gemini** | Gemini 2.5 Flash | ~15 requests/min, ~20 requests/day | Default choice, reliable |
-| **Groq** | Llama 3.3 70B | ~30 requests/min, ~14,400 requests/day | Higher daily limits, ultra-fast |
+| **Llama (via Groq)** | Llama 3.3 70B | ~30 requests/min, ~14,400 requests/day | Higher daily limits, ultra-fast |
 | **CTI Program** | Claude Sonnet | Token budget managed by coordinator | Institutional/classroom use |
 
 ### Provider Details
@@ -44,13 +44,11 @@ The goal isn't to slow you down — it's to ensure that when you move fast, you'
 - Get a free API key at [Google AI Studio](https://aistudio.google.com/apikey)
 - Good balance of quality and availability
 
-**Groq**
+**Llama (via Groq)**
 - Ultra-fast inference using Meta's Llama 3.3 70B model
-- Get a free API key at [console.groq.com](https://console.groq.com/keys)
+- Get a free API key at [console.groq.com](https://console.groq.com/keys) *(Note: Groq is NOT Grok from xAI — they are completely different companies)*
 - Much higher daily request limits than Gemini
 - Best if you hit Gemini's daily quota frequently
-
-> **Important Clarification**: **Groq** (groq.com) is an AI inference company that runs open-source models like Llama. It is **completely different** from **Grok**, which is xAI's chatbot. The similar names cause confusion, but they are unrelated companies and products.
 
 **CTI Program** (Institutional Only)
 - Available when your institution has deployed the CTI backend service
@@ -62,7 +60,7 @@ The goal isn't to slow you down — it's to ensure that when you move fast, you'
 
 Your API key is stored **only** in your browser's localStorage. Conversations flow **directly** from your browser to your chosen AI provider:
 - **Gemini**: Browser → Google's Gemini API
-- **Groq**: Browser → Groq's API
+- **Llama**: Browser → Groq's API
 - **CTI**: Browser → CTI Backend → Anthropic's Claude API
 
 **We never see your API key or conversations.** See the [Privacy Architecture](#privacy-architecture) section for details.
@@ -191,7 +189,7 @@ We serve the application code. That's it.
 
 ### Data Flow by Provider
 
-**Gemini and Groq** — Direct browser-to-API communication:
+**Gemini and Llama** — Direct browser-to-API communication:
 
 ```
 ┌─────────────────┐                      ┌─────────────────┐
@@ -233,7 +231,7 @@ When you use the Dojo, your conversations are sent to your chosen provider under
 | Provider | What They Receive | Their Privacy Policy |
 |----------|-------------------|----------------------|
 | **Google Gemini** | Messages + your Gemini API key | [Gemini API Terms](https://ai.google.dev/gemini-api/terms) |
-| **Groq** | Messages + your Groq API key | [Groq Privacy Policy](https://groq.com/privacy-policy/) |
+| **Llama (Groq)** | Messages + your Groq API key | [Groq Privacy Policy](https://groq.com/privacy-policy/) |
 | **CTI/Claude** | Messages via CTI backend | [Anthropic Privacy Policy](https://www.anthropic.com/privacy) |
 
 **Our privacy guarantee applies only to our infrastructure.** Review your chosen provider's policies if you have concerns about how they handle your data.
@@ -259,7 +257,7 @@ We encourage you to audit the code:
 ### Prerequisites
 
 - Node.js 18+
-- A free API key from Google Gemini or Groq
+- A free API key from Google Gemini or Groq (for Llama)
 
 ### Get a Free API Key
 
@@ -270,8 +268,8 @@ We encourage you to audit the code:
 4. Select "Create API key in new project"
 5. Copy the generated key (starts with `AIza...`)
 
-**Option 2: Groq** (Higher rate limits)
-1. Go to [Groq Console](https://console.groq.com/keys)
+**Option 2: Llama via Groq** (Higher rate limits)
+1. Go to [Groq Console](https://console.groq.com/keys) *(Note: Groq is NOT Grok from xAI)*
 2. Sign up or sign in with Google/GitHub
 3. Click "API Keys" in the sidebar
 4. Click "Create API Key"
@@ -314,7 +312,7 @@ See `cloudbuild.yaml` for frontend deployment and `backend/cloudbuild.yaml` for 
 
 ## Usage
 
-1. **Enter your API key** — Click the settings icon, select your provider (Gemini or Groq), paste your key
+1. **Enter your API key** — Click the settings icon, select your provider (Gemini or Llama), paste your key
 2. **Take the Tour** — New users see a guided tour; restart anytime from Help menu
 3. **Choose a Mode**:
    - **Practice Dojo** — Select a topic for structured learning
@@ -353,7 +351,7 @@ src/
 └── lib/
     ├── gemini-client.ts    # Google Gemini API client
     ├── providers/          # Multi-provider abstraction
-    │   ├── types.ts        # Provider configs (Gemini, Groq, CTI)
+    │   ├── types.ts        # Provider configs (Gemini, Llama, CTI)
     │   ├── groq-client.ts  # Groq API client
     │   ├── cti-client.ts   # CTI backend proxy client
     │   └── index.ts        # Unified provider interface
