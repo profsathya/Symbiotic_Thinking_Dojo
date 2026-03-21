@@ -542,6 +542,31 @@ Three blocks, your pace:
 \`\`\``;
     }
 
+    // CST395 Sprint 3 Problem Stake Defense
+    if (topic.topicId === 'cst395-s3-problem-stake') {
+      return `**Sensei:** Welcome to the Sprint 3 Practice Dojo. 🎯
+
+Sprint 3 is different. You're solving a real problem in a domain none of us are experts in — Bhutan's MDRO clinical guideline. Your job is to stake a **specific human moment** where the guideline fails the person who needs it.
+
+This session does two things:
+1. **Sharpens your stake** — pressure-tests your user, moment, and pain point
+2. **Trains your questioning** — practice spotting gaps in someone else's stake
+
+You'll need this for class, where you'll defend your stake and interrogate a classmate's.
+
+\`\`\`dojo-visual
+{
+  "type": "selection-cards",
+  "prompt": "Where are you with your Sprint 3 problem stake?",
+  "options": [
+    {"id": "have-stake", "icon": "📋", "title": "I have a stake", "description": "I've written or drafted my Problem Stake Brief"},
+    {"id": "finding", "icon": "🔍", "title": "Still finding my moment", "description": "I read the guideline but haven't locked a specific problem"},
+    {"id": "stuck", "icon": "🤔", "title": "Started but stuck", "description": "I have some ideas but something isn't clicking"}
+  ]
+}
+\`\`\``;
+    }
+
     // Generic course welcome (fallback)
     return `**Sensei:** Welcome to the Practice Dojo! 🥋
 
