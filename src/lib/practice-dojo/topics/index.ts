@@ -3,6 +3,7 @@ import { SYMBIOTIC_THINKING_TOPIC } from './symbiotic-thinking';
 import { CST395_TOPIC, CST349_TOPIC } from './course-topics';
 import { INTRODUCTORY_PROGRAMMING_TOPIC } from './introductory-programming';
 import { CST395_S2_LEARN_SOLVE_TOPIC } from './cst395-s2-learn-solve';
+import { CST395_S3_PROBLEM_STAKE_TOPIC } from './cst395-s3-problem-stake';
 import { IKIGAI_TOPIC } from './ikigai';
 
 // All available topics
@@ -13,6 +14,7 @@ export const ALL_TOPICS: TopicConfig[] = [
   CST349_TOPIC,
   INTRODUCTORY_PROGRAMMING_TOPIC,
   CST395_S2_LEARN_SOLVE_TOPIC,
+  CST395_S3_PROBLEM_STAKE_TOPIC,
 ];
 
 // Get only enabled topics
@@ -49,3 +51,4 @@ export { IKIGAI_TOPIC } from './ikigai';
 export { CST395_TOPIC, CST349_TOPIC } from './course-topics';
 export { INTRODUCTORY_PROGRAMMING_TOPIC } from './introductory-programming';
 export { CST395_S2_LEARN_SOLVE_TOPIC } from './cst395-s2-learn-solve';
+export { CST395_S3_PROBLEM_STAKE_TOPIC } from './cst395-s3-problem-stake';
