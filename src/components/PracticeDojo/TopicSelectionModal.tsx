@@ -312,6 +312,37 @@ export function TopicSelectionModal({
 
         {/* Content */}
         <div className="px-6 py-4 space-y-6 overflow-y-auto flex-1">
+          {/* CST395: AI-Native Solution Engineering */}
+          {(topics.cst395Assignments.length > 0 || topics.cst395Overview.length > 0) && (
+            <div>
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                CST395: AI-Native Solution Engineering
+              </h3>
+              <div className="space-y-2">
+                {topics.cst395Assignments.map((topic) =>
+                  renderTopicCard(topic, topic.topicId === resumeTopicId)
+                )}
+                {topics.cst395Overview.map((topic) =>
+                  renderTopicCard(topic, topic.topicId === resumeTopicId)
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* CST349: CS Professional Seminar */}
+          {topics.cst349.length > 0 && (
+            <div>
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                CST349: CS Professional Seminar
+              </h3>
+              <div className="space-y-2">
+                {topics.cst349.map((topic) =>
+                  renderTopicCard(topic, topic.topicId === resumeTopicId)
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Foundations */}
           {topics.foundations.length > 0 && (
             <div>
@@ -320,23 +351,6 @@ export function TopicSelectionModal({
               </h3>
               <div className="space-y-2">
                 {topics.foundations.map((topic) =>
-                  renderTopicCard(topic, topic.topicId === resumeTopicId)
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Courses */}
-          {topics.course.length > 0 && (
-            <div>
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                Course Topics
-              </h3>
-              <p className="text-xs text-gray-500 mb-3">
-                Understand your course structure, goals, and how to succeed
-              </p>
-              <div className="space-y-2">
-                {topics.course.map((topic) =>
                   renderTopicCard(topic, topic.topicId === resumeTopicId)
                 )}
               </div>

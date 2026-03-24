@@ -35,13 +35,32 @@ export interface TopicsByCategory {
   foundations: TopicConfig[];
   course: TopicConfig[];
   general: TopicConfig[];
+  cst395Assignments: TopicConfig[];
+  cst395Overview: TopicConfig[];
+  cst349: TopicConfig[];
 }
 
 export function getTopicsOrganizedByCategory(): TopicsByCategory {
+  const courseTopics = ALL_TOPICS.filter(t => t.category === 'course');
+
+  // CST395 assignments (session topics) in reverse chronological order (newest first)
+  const cst395Assignments = courseTopics
+    .filter(t => t.courseCode === 'CST395' && t.topicId !== 'course-cst395-overview')
+    .reverse();
+
+  // CST395 overview
+  const cst395Overview = courseTopics.filter(t => t.topicId === 'course-cst395-overview');
+
+  // CST349 topics
+  const cst349 = courseTopics.filter(t => t.courseCode === 'CST349');
+
   return {
     foundations: ALL_TOPICS.filter(t => t.category === 'foundations'),
-    course: ALL_TOPICS.filter(t => t.category === 'course'),
+    course: courseTopics,
     general: ALL_TOPICS.filter(t => t.category === 'general'),
+    cst395Assignments,
+    cst395Overview,
+    cst349,
   };
 }
 
