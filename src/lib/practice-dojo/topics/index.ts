@@ -5,6 +5,8 @@ import { INTRODUCTORY_PROGRAMMING_TOPIC } from './introductory-programming';
 import { CST395_S2_LEARN_SOLVE_TOPIC } from './cst395-s2-learn-solve';
 import { CST395_S3_PROBLEM_STAKE_TOPIC } from './cst395-s3-problem-stake';
 import { IKIGAI_TOPIC } from './ikigai';
+import { CAREER_KNOW_YOURSELF_TOPIC } from './career-know-yourself';
+import { CAREER_KNOW_MARKET_TOPIC } from './career-know-market';
 
 // All available topics
 export const ALL_TOPICS: TopicConfig[] = [
@@ -15,6 +17,8 @@ export const ALL_TOPICS: TopicConfig[] = [
   INTRODUCTORY_PROGRAMMING_TOPIC,
   CST395_S2_LEARN_SOLVE_TOPIC,
   CST395_S3_PROBLEM_STAKE_TOPIC,
+  CAREER_KNOW_YOURSELF_TOPIC,
+  CAREER_KNOW_MARKET_TOPIC,
 ];
 
 // Get only enabled topics
@@ -30,11 +34,31 @@ export function getTopicById(topicId: string): TopicConfig | undefined {
   return ALL_TOPICS.find(t => t.topicId === topicId);
 }
 
+// URL slug → topicId mapping for direct URL routing
+export const TOPIC_SLUGS: Record<string, string> = {
+  'know-yourself': 'career-know-yourself',
+  'know-market': 'career-know-market',
+  'symbiotic-thinking': 'symbiotic-thinking',
+  'ikigai': 'ikigai-discovery',
+  'cst395': 'course-cst395-overview',
+  'cst349': 'course-cst349-overview',
+  'cst395-s2': 'cst395-s2-learn-solve',
+  'cst395-s3': 'cst395-s3-problem-stake',
+  'intro-programming': 'intro-programming',
+};
+
+export function getTopicBySlug(slug: string): TopicConfig | undefined {
+  const topicId = TOPIC_SLUGS[slug];
+  if (!topicId) return undefined;
+  return ALL_TOPICS.find(t => t.topicId === topicId);
+}
+
 // Get topics organized by category for display
 export interface TopicsByCategory {
   foundations: TopicConfig[];
   course: TopicConfig[];
   general: TopicConfig[];
+  career: TopicConfig[];
   cst395Assignments: TopicConfig[];
   cst395Overview: TopicConfig[];
   cst349: TopicConfig[];
@@ -58,6 +82,7 @@ export function getTopicsOrganizedByCategory(): TopicsByCategory {
     foundations: ALL_TOPICS.filter(t => t.category === 'foundations'),
     course: courseTopics,
     general: ALL_TOPICS.filter(t => t.category === 'general'),
+    career: ALL_TOPICS.filter(t => t.category === 'career'),
     cst395Assignments,
     cst395Overview,
     cst349,
@@ -71,3 +96,5 @@ export { CST395_TOPIC, CST349_TOPIC } from './course-topics';
 export { INTRODUCTORY_PROGRAMMING_TOPIC } from './introductory-programming';
 export { CST395_S2_LEARN_SOLVE_TOPIC } from './cst395-s2-learn-solve';
 export { CST395_S3_PROBLEM_STAKE_TOPIC } from './cst395-s3-problem-stake';
+export { CAREER_KNOW_YOURSELF_TOPIC } from './career-know-yourself';
+export { CAREER_KNOW_MARKET_TOPIC } from './career-know-market';

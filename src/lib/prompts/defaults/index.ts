@@ -2,6 +2,7 @@
 export { DEFAULT_DOJO_PROMPT } from './dojo';
 export { DEFAULT_SENSEI_PROMPT } from './sensei';
 export { DEFAULT_IKIGAI_PROMPT } from './ikigai';
+export { DEFAULT_CAREER_INTELLIGENCE_PROMPT } from './career-intelligence';
 export { DEFAULT_CONSTRUCTS } from './constructs';
 export { DEFAULT_PARTNERS } from './partners';
 

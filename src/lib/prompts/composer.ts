@@ -1,6 +1,7 @@
 import { DojoConfig, Construct, SparringPartner } from '../types';
 import { PracticeDojoContext, TopicConfig, PhaseConfig } from '../practice-dojo/types';
 import { AIProvider } from '../providers/types';
+import { DEFAULT_CAREER_INTELLIGENCE_PROMPT } from './defaults/career-intelligence';
 
 export interface ComposeOptions {
   isGuidedPractice?: boolean;
@@ -36,6 +37,11 @@ export function composeSystemPrompt(
   // 2b. Practice Dojo mode (if active)
   if (practiceDojoContext) {
     parts.push(composePracticeDojoPrompt(practiceDojoContext));
+
+    // Career Intelligence persona for career topics
+    if (practiceDojoContext.topic.topicId.startsWith('career-')) {
+      parts.push('# CAREER INTELLIGENCE PERSONA\n\n' + DEFAULT_CAREER_INTELLIGENCE_PROMPT);
+    }
   }
   // 2c. Ikigai guided practice (if active and not in Practice Dojo)
   else if (isGuidedPractice) {
@@ -582,6 +588,41 @@ This is an interactive experience to help you deeply understand the course—not
     {"id": "understand", "icon": "🎯", "title": "Understand the course", "description": "What is this course really about?"},
     {"id": "succeed", "icon": "🏆", "title": "How to succeed", "description": "What does it take to do well?"},
     {"id": "explore", "icon": "🗺️", "title": "Just exploring", "description": "Show me what this is about"}
+  ]
+}
+\`\`\``;
+  }
+
+  // Career Intelligence: Know Yourself
+  if (topic.topicId === 'career-know-yourself') {
+    return `**Sensei:** Welcome to the Career Intelligence Dojo. 🪞
+
+This is about translating what you know about yourself into language that has market value. By the end, you'll have a **Value Statement** — not a resume blurb, but a clear articulation of what you uniquely bring and why it matters to an employer.
+
+We'll build on what came out of the Story Swap session. You don't need to remember everything perfectly — rough notes are fine.
+
+**Let's start with what stuck with you from the session.**
+
+What capabilities did your partner identify in your story that surprised you?`;
+  }
+
+  // Career Intelligence: Know the Market
+  if (topic.topicId === 'career-know-market') {
+    return `**Sensei:** Welcome to the Career Intelligence Dojo. 🗺️
+
+This is required work before the next synchronous session. By the end, you'll have a **Market Map** — a research-backed picture of where your capabilities have real value, what employers in that space actually ask for, and how to position yourself in their language.
+
+This isn't about browsing job boards. It's about testing a hypothesis: *does the market actually value what I bring?*
+
+**First, let's establish where you're starting.**
+
+\`\`\`dojo-visual
+{
+  "type": "selection-cards",
+  "prompt": "Where are you coming from?",
+  "options": [
+    {"id": "know-yourself", "icon": "🪞", "title": "I completed the Know Yourself Dojo", "description": "I have a Value Statement and intersection ready"},
+    {"id": "story-swap", "icon": "🤝", "title": "I'm starting from the Story Swap session", "description": "I did the live session but skipped Know Yourself"}
   ]
 }
 \`\`\``;
