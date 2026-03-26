@@ -20,7 +20,7 @@ import { TourOverlay, TourPrompt } from '@/components/Tour';
 import { StatsModal } from '@/components/StatsModal';
 import { BudgetIndicator } from '@/components/BudgetIndicator';
 import { ImportedSession } from '@/lib/export';
-import { getTopicById } from '@/lib/practice-dojo/topics';
+import { getTopicById, getTopicBySlug } from '@/lib/practice-dojo/topics';
 import { PracticeDojoContext, Pathway } from '@/lib/practice-dojo/types';
 
 export default function Home() {
@@ -31,6 +31,7 @@ export default function Home() {
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
   const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [pendingTopicSlug, setPendingTopicSlug] = useState<string | null>(null);
 
   // API Key management (stored in browser localStorage)
   const { apiKey, isKeySet, setApiKey, clearApiKey, provider, setProvider, hasKeyForProvider } = useApiKey();
@@ -126,6 +127,9 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Track if we've already processed a ?topic= URL parameter
+  const topicUrlProcessedRef = useRef(false);
 
   // Track if we're in the process of exiting Practice Dojo to prevent save overwrite
   const isExitingPracticeDojoRef = useRef(false);
@@ -250,6 +254,58 @@ export default function Home() {
       restoreMessages(savedMessages);
     }
   }, [practiceDojoState, restoreMessages]);
+
+  // Auto-start a Practice Dojo topic from URL query parameter (?topic=slug)
+  // Flow: URL loads → check API key → if no key, show modal → after key entry, auto-start topic
+  useEffect(() => {
+    if (!mounted || topicUrlProcessedRef.current) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const topicSlug = params.get('topic');
+    if (!topicSlug) return;
+
+    // Mark as processed so we don't re-trigger on re-renders
+    topicUrlProcessedRef.current = true;
+
+    // Clear the query param from the URL without reload
+    const url = new URL(window.location.href);
+    url.searchParams.delete('topic');
+    window.history.replaceState({}, '', url.pathname);
+
+    // Validate the slug maps to a real, enabled topic
+    const topic = getTopicBySlug(topicSlug);
+    if (!topic || !topic.enabled) return;
+
+    // If no API key set, store the slug and open the API key modal.
+    // The pending slug will be picked up after the key is set.
+    if (!isKeySet) {
+      setPendingTopicSlug(topicSlug);
+      setIsApiKeyModalOpen(true);
+      return;
+    }
+
+    // API key is set — start the topic directly
+    if (topic.pathways.length === 1) {
+      handleSelectTopic(topic.topicId, topic.pathways[0].id as Pathway);
+    } else {
+      setIsPracticeDojoModalOpen(true);
+    }
+  }, [mounted, isKeySet, handleSelectTopic]);
+
+  // After API key is set, auto-start the pending topic from URL
+  useEffect(() => {
+    if (!pendingTopicSlug || !isKeySet) return;
+
+    const topic = getTopicBySlug(pendingTopicSlug);
+    setPendingTopicSlug(null);
+    if (!topic || !topic.enabled) return;
+
+    if (topic.pathways.length === 1) {
+      handleSelectTopic(topic.topicId, topic.pathways[0].id as Pathway);
+    } else {
+      setIsPracticeDojoModalOpen(true);
+    }
+  }, [pendingTopicSlug, isKeySet, handleSelectTopic]);
 
   // Handle starting fresh in Practice Dojo
   const handleStartFresh = useCallback(() => {

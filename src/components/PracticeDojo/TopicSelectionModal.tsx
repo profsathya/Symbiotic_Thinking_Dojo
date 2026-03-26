@@ -343,6 +343,20 @@ export function TopicSelectionModal({
             </div>
           )}
 
+          {/* Career Intelligence */}
+          {topics.career.length > 0 && (
+            <div>
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                Career Intelligence
+              </h3>
+              <div className="space-y-2">
+                {topics.career.map((topic) =>
+                  renderTopicCard(topic, topic.topicId === resumeTopicId)
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Foundations */}
           {topics.foundations.length > 0 && (
             <div>

@@ -4,7 +4,7 @@
 export type Pathway = 'guided' | 'quick' | 'test';
 
 // Topic categories
-export type TopicCategory = 'foundations' | 'course' | 'general';
+export type TopicCategory = 'foundations' | 'course' | 'general' | 'career';
 
 // Phase checkpoint status
 export type CheckpointStatus = 'pending' | 'passed' | 'needs-work';
