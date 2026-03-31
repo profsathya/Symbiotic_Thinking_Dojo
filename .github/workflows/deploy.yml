@@ -1,0 +1,79 @@
+name: Deploy Frontend to Cloud Run
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'backend/**'
+      - 'stats-api/**'
+      - 'docs/**'
+      - '*.md'
+
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  SERVICE_NAME: symbiotic-thinking-dojo
+  REGION: us-central1
+  IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/symbiotic-thinking-dojo
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy Frontend
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker --quiet
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_STATS_API_URL=${{ vars.NEXT_PUBLIC_STATS_API_URL || 'https://dojo-stats-api.netlify.app' }} \
+            --build-arg NEXT_PUBLIC_CTI_BACKEND_URL=${{ vars.NEXT_PUBLIC_CTI_BACKEND_URL || '' }} \
+            --build-arg NEXT_PUBLIC_COMMONS_ENABLED=${{ vars.NEXT_PUBLIC_COMMONS_ENABLED || 'false' }} \
+            -t ${{ env.IMAGE }}:${{ github.sha }} \
+            -t ${{ env.IMAGE }}:latest \
+            .
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.IMAGE }}:${{ github.sha }}
+          docker push ${{ env.IMAGE }}:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image ${{ env.IMAGE }}:${{ github.sha }} \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars "NEXT_PUBLIC_STATS_API_URL=${{ vars.NEXT_PUBLIC_STATS_API_URL || 'https://dojo-stats-api.netlify.app' }}" \
+            --set-env-vars "COMMONS_PROVIDER=${{ vars.COMMONS_PROVIDER || 'gemini' }}" \
+            --set-env-vars "COMMONS_MODEL=${{ vars.COMMONS_MODEL || 'gemini-2.5-flash' }}" \
+            --set-secrets "COMMONS_API_KEY=commons-api-key:latest" \
+            --quiet
+
+      - name: Show deployment URL
+        run: |
+          URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format 'value(status.url)')
+          echo "## Deployed to: $URL" >> $GITHUB_STEP_SUMMARY
