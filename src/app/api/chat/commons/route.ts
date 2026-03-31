@@ -111,6 +111,7 @@ interface ChatMessage {
 }
  
 // Format sent by The Commons app
+// Note: conversationHistory is nested inside context
 interface CommonsAppRequest {
   message: string;
   partner: string;
@@ -118,6 +119,10 @@ interface CommonsAppRequest {
     challenge?: string;
     tension?: string;
     layer?: string;
+    conversationHistory?: Array<{
+      role: string;
+      text: string;
+    }>;
   };
   conversationHistory?: Array<{
     role: string;
@@ -253,9 +258,11 @@ export async function POST(request: NextRequest) {
     system = contextParts.join('\n\n');
  
     // Convert conversation history to ChatMessage format
+    // Commons sends conversationHistory inside context OR at top level
+    const history = appBody.conversationHistory || appBody.context?.conversationHistory;
     messages = [];
-    if (appBody.conversationHistory && Array.isArray(appBody.conversationHistory)) {
-      for (const entry of appBody.conversationHistory) {
+    if (history && Array.isArray(history)) {
+      for (const entry of history) {
         const role = entry.role === 'user' ? 'user' : 'assistant';
         const content = entry.text || '';
         if (content) {
@@ -342,20 +349,33 @@ export async function POST(request: NextRequest) {
       },
       { headers: cors },
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Commons Chat API error:', error);
  
-    const message =
+    const errMessage =
       error instanceof Error ? error.message : 'An unexpected error occurred';
  
-    // Don't leak API key details
-    const safeMessage = message.includes('API key')
-      ? 'Server configuration error. Please try again later.'
-      : message;
+    // Detect specific error types and return helpful messages
+    let status = 502;
+    let userMessage = 'The AI service encountered an error. Please try again.';
+ 
+    if (errMessage.includes('overloaded') || errMessage.includes('529')) {
+      status = 529;
+      userMessage = 'The AI service is temporarily overloaded. Please wait a moment and try again.';
+    } else if (errMessage.includes('rate') || errMessage.includes('429')) {
+      status = 429;
+      userMessage = 'Too many requests to the AI service. Please wait a moment and try again.';
+    } else if (errMessage.includes('API key') || errMessage.includes('auth') || errMessage.includes('401')) {
+      status = 502;
+      userMessage = 'Server configuration error. Please try again later.';
+    } else if (errMessage.includes('timeout') || errMessage.includes('ETIMEDOUT')) {
+      status = 504;
+      userMessage = 'The AI service took too long to respond. Please try again.';
+    }
  
     return NextResponse.json(
-      { error: 'Chat request failed', detail: safeMessage },
-      { status: 502, headers: cors },
+      { error: userMessage, detail: userMessage, errorType: status === 529 ? 'overloaded' : 'server_error' },
+      { status, headers: cors },
     );
   }
 }
@@ -376,3 +396,4 @@ export async function GET(request: NextRequest) {
     { headers: cors },
   );
 }
+ 
