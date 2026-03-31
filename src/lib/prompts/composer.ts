@@ -210,6 +210,9 @@ Remember: The goal is to develop the student's judgment and cognitive skills, no
   const brevitySection = composeBrevityConstraints(isGroq, !!practiceDojoContext);
   parts.push(brevitySection);
 
+  // 8. Chat panel space constraint
+  parts.push('Important: Keep responses brief and conversational. This is a chat side panel with limited space.');
+
   return parts.join('\n\n---\n\n');
 }
 
