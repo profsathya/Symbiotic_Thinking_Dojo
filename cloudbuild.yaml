@@ -9,12 +9,12 @@ steps:
       - '-t'
       - 'gcr.io/$PROJECT_ID/${_SERVICE_NAME}:$BUILD_ID'
       - '.'
-
+ 
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
       - 'gcr.io/$PROJECT_ID/${_SERVICE_NAME}:$BUILD_ID'
-
+ 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -27,16 +27,21 @@ steps:
       - '${_REGION}'
       - '--allow-unauthenticated'
       - '--set-env-vars'
-      - 'NEXT_PUBLIC_STATS_API_URL=${_NEXT_PUBLIC_STATS_API_URL}'
-
+      - 'NEXT_PUBLIC_STATS_API_URL=${_NEXT_PUBLIC_STATS_API_URL},COMMONS_PROVIDER=${_COMMONS_PROVIDER},COMMONS_MODEL=${_COMMONS_MODEL}'
+      - '--set-secrets'
+      - 'COMMONS_API_KEY=commons-api-key:latest'
+ 
 substitutions:
   _SERVICE_NAME: symbiotic-thinking-dojo
   _REGION: us-central1
   _NEXT_PUBLIC_STATS_API_URL: 'https://dojo-stats-api.netlify.app'
   _NEXT_PUBLIC_CTI_BACKEND_URL: 'https://dojo-backend-dgn5kavnea-uc.a.run.app'
-
+  _COMMONS_PROVIDER: 'anthropic'
+  _COMMONS_MODEL: 'claude-sonnet-4-6'
+ 
 images:
   - 'gcr.io/$PROJECT_ID/${_SERVICE_NAME}:$BUILD_ID'
-
+ 
 options:
   logging: CLOUD_LOGGING_ONLY
+ 
