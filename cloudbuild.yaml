@@ -37,3 +37,6 @@ substitutions:
 
 images:
   - 'gcr.io/$PROJECT_ID/${_SERVICE_NAME}:$BUILD_ID'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
