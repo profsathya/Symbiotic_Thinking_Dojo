@@ -11,6 +11,24 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+// --- CORS ---
+
+const ALLOWED_ORIGINS = [
+  'https://the-commons-9efbd.web.app',
+  'http://localhost:5173',
+];
+
+function getCorsHeaders(request?: NextRequest): Record<string, string> {
+  const origin = request?.headers.get('origin') || '';
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+}
+
 // --- Configuration ---
 
 const COMMONS_API_KEY = process.env.COMMONS_API_KEY || '';
@@ -138,12 +156,18 @@ async function callAnthropic(
 
 // --- Route handler ---
 
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: getCorsHeaders(request) });
+}
+
 export async function POST(request: NextRequest) {
+  const cors = getCorsHeaders(request);
+
   // Check that the Commons API is configured
   if (!COMMONS_API_KEY) {
     return NextResponse.json(
       { error: 'Commons Chat API is not configured on this server' },
-      { status: 503 },
+      { status: 503, headers: cors },
     );
   }
 
@@ -161,7 +185,7 @@ export async function POST(request: NextRequest) {
       },
       {
         status: 429,
-        headers: { 'Retry-After': String(retryAfterSeconds) },
+        headers: { ...cors, 'Retry-After': String(retryAfterSeconds) },
       },
     );
   }
@@ -171,7 +195,7 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400, headers: cors });
   }
 
   const { messages, system = '' } = body;
@@ -179,14 +203,14 @@ export async function POST(request: NextRequest) {
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     return NextResponse.json(
       { error: 'messages array is required and must not be empty' },
-      { status: 400 },
+      { status: 400, headers: cors },
     );
   }
 
   if (messages.length > MAX_MESSAGES) {
     return NextResponse.json(
       { error: `Too many messages (max ${MAX_MESSAGES})` },
-      { status: 400 },
+      { status: 400, headers: cors },
     );
   }
 
@@ -195,19 +219,19 @@ export async function POST(request: NextRequest) {
     if (!msg.role || !msg.content) {
       return NextResponse.json(
         { error: 'Each message must have role and content' },
-        { status: 400 },
+        { status: 400, headers: cors },
       );
     }
     if (!['user', 'assistant'].includes(msg.role)) {
       return NextResponse.json(
         { error: 'Message role must be "user" or "assistant"' },
-        { status: 400 },
+        { status: 400, headers: cors },
       );
     }
     if (msg.content.length > MAX_MESSAGE_LENGTH) {
       return NextResponse.json(
         { error: `Message content too long (max ${MAX_MESSAGE_LENGTH} characters)` },
-        { status: 400 },
+        { status: 400, headers: cors },
       );
     }
   }
@@ -222,11 +246,14 @@ export async function POST(request: NextRequest) {
       result = await callGemini(messages, system);
     }
 
-    return NextResponse.json({
-      content: result.content,
-      model: result.model,
-      provider: COMMONS_PROVIDER,
-    });
+    return NextResponse.json(
+      {
+        content: result.content,
+        model: result.model,
+        provider: COMMONS_PROVIDER,
+      },
+      { headers: cors },
+    );
   } catch (error) {
     console.error('Commons Chat API error:', error);
 
@@ -240,20 +267,24 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { error: 'Chat request failed', detail: safeMessage },
-      { status: 502 },
+      { status: 502, headers: cors },
     );
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const cors = getCorsHeaders(request);
   const configured = !!COMMONS_API_KEY;
-  return NextResponse.json({
-    status: configured ? 'available' : 'not_configured',
-    provider: configured ? COMMONS_PROVIDER : null,
-    model: configured ? COMMONS_MODEL : null,
-    rate_limit: {
-      max_requests: RATE_LIMIT_MAX,
-      window_seconds: Math.round(RATE_LIMIT_WINDOW_MS / 1000),
+  return NextResponse.json(
+    {
+      status: configured ? 'available' : 'not_configured',
+      provider: configured ? COMMONS_PROVIDER : null,
+      model: configured ? COMMONS_MODEL : null,
+      rate_limit: {
+        max_requests: RATE_LIMIT_MAX,
+        window_seconds: Math.round(RATE_LIMIT_WINDOW_MS / 1000),
+      },
     },
-  });
+    { headers: cors },
+  );
 }
