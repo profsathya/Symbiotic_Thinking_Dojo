@@ -4,7 +4,7 @@
  * Defines the common interface for all AI providers (Gemini, Groq, etc.)
  */
 
-export type AIProvider = 'gemini' | 'groq' | 'cti';
+export type AIProvider = 'gemini' | 'groq' | 'cti' | 'commons';
 
 export interface ProviderConfig {
   id: AIProvider;
@@ -66,11 +66,29 @@ export const PROVIDERS: Record<AIProvider, ProviderConfig> = {
     freeInfo: 'Token budget managed by your program coordinator',
     defaultModel: 'claude-sonnet',
   },
+  commons: {
+    id: 'commons',
+    name: 'Commons',
+    description: 'Shared AI access — no API key needed',
+    keyPrefix: '',
+    keyPlaceholder: '',
+    getKeyUrl: '',
+    getKeyInstructions: [
+      'No key required. Commons provides shared access to the Dojo.',
+    ],
+    freeInfo: 'Shared resource with rate limiting per user',
+    defaultModel: 'gemini-2.5-flash',
+  },
 };
 
 /** Check whether the CTI provider is enabled via env var */
 export function isCtiEnabled(): boolean {
   return !!process.env.NEXT_PUBLIC_CTI_BACKEND_URL;
+}
+
+/** Check whether the Commons provider is enabled via env var */
+export function isCommonsEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_COMMONS_ENABLED === 'true';
 }
 
 /** Get the CTI backend URL */

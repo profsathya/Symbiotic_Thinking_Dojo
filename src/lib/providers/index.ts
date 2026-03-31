@@ -8,11 +8,13 @@ export * from './types';
 export { streamGroqChat, testGroqApiKey } from './groq-client';
 export { streamCtiChat, testCtiApiKey, fetchCtiBudget } from './cti-client';
 export type { BudgetInfo } from './cti-client';
+export { streamCommonsChat, testCommonsApiKey, checkCommonsAvailability } from './commons-client';
 
 import { AIProvider, StreamChatOptions, PROVIDERS } from './types';
 import { streamGeminiChat, testApiKey as testGeminiApiKey } from '../gemini-client';
 import { streamGroqChat, testGroqApiKey } from './groq-client';
 import { streamCtiChat, testCtiApiKey } from './cti-client';
+import { streamCommonsChat, testCommonsApiKey } from './commons-client';
 
 /**
  * Stream chat using the selected provider
@@ -28,6 +30,8 @@ export async function streamChat(
       return streamGroqChat(options);
     case 'cti':
       return streamCtiChat(options);
+    case 'commons':
+      return streamCommonsChat(options);
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }
@@ -47,6 +51,8 @@ export async function testApiKey(
       return testGroqApiKey(apiKey);
     case 'cti':
       return testCtiApiKey(apiKey);
+    case 'commons':
+      return testCommonsApiKey();
     default:
       return { valid: false, error: `Unknown provider: ${provider}` };
   }
