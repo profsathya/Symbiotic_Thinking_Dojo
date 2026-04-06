@@ -103,17 +103,20 @@ interface ChatMessage {
 interface CommonsRequest {
   messages: ChatMessage[];
   system?: string;
+  max_tokens?: number;
 }
 
 async function callGemini(
   messages: ChatMessage[],
   systemPrompt: string,
+  maxTokens: number,
 ): Promise<{ content: string; model: string }> {
   const { GoogleGenerativeAI } = await import('@google/generative-ai');
   const genAI = new GoogleGenerativeAI(COMMONS_API_KEY);
   const model = genAI.getGenerativeModel({
     model: COMMONS_MODEL,
     systemInstruction: systemPrompt || undefined,
+    generationConfig: { maxOutputTokens: maxTokens },
   });
 
   // Convert messages to Gemini format
@@ -133,13 +136,14 @@ async function callGemini(
 async function callAnthropic(
   messages: ChatMessage[],
   systemPrompt: string,
+  maxTokens: number,
 ): Promise<{ content: string; model: string }> {
   const Anthropic = (await import('@anthropic-ai/sdk')).default;
   const client = new Anthropic({ apiKey: COMMONS_API_KEY });
 
   const response = await client.messages.create({
     model: COMMONS_MODEL,
-    max_tokens: COMMONS_MAX_TOKENS,
+    max_tokens: maxTokens,
     system: systemPrompt || undefined,
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
   });
@@ -198,7 +202,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400, headers: cors });
   }
 
-  const { messages, system = '' } = body;
+  const { messages, system = '', max_tokens } = body;
+  const maxTokens = typeof max_tokens === 'number' && max_tokens >= 1 && max_tokens <= COMMONS_MAX_TOKENS
+    ? max_tokens
+    : COMMONS_MAX_TOKENS;
 
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     return NextResponse.json(
@@ -241,9 +248,9 @@ export async function POST(request: NextRequest) {
     let result: { content: string; model: string };
 
     if (COMMONS_PROVIDER === 'anthropic') {
-      result = await callAnthropic(messages, system);
+      result = await callAnthropic(messages, system, maxTokens);
     } else {
-      result = await callGemini(messages, system);
+      result = await callGemini(messages, system, maxTokens);
     }
 
     return NextResponse.json(
