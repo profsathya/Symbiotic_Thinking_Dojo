@@ -1,12 +1,18 @@
 /**
  * Commons Chat API Route
  *
- * A shared, key-free chat endpoint that uses a server-side API key.
- * This allows anyone to use the Symbiotic Thinking Dojo without
- * providing their own API key — a "commons" resource.
+ * A chat endpoint used by "The Commons" partner platform. It uses a
+ * server-side provider key (Gemini/Anthropic) so that The Commons can
+ * offer chat without distributing its own keys to its users.
  *
- * Rate limiting is applied per IP address to prevent abuse.
- * The server-side API key is never exposed to the client.
+ * Access control:
+ * 1. Bearer token auth — clients must send `Authorization: Bearer <token>`
+ *    matching COMMONS_AUTH_TOKEN. Unauthorized requests get 401 without
+ *    consuming rate-limit slots.
+ * 2. Per-IP rate limiting — 10 req/min by default (in-memory).
+ * 3. Fail-closed — if COMMONS_AUTH_TOKEN is not set, ALL requests get 503.
+ *
+ * The provider key (COMMONS_API_KEY) is never exposed to clients.
  */
  
 import { NextRequest, NextResponse } from 'next/server';
@@ -21,12 +27,64 @@ const ALLOWED_ORIGINS = [
 function getCorsHeaders(request?: NextRequest): Record<string, string> {
   const origin = request?.headers.get('origin') || '';
   const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
- 
+
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   };
+}
+
+// --- Auth ---
+
+const COMMONS_AUTH_TOKEN = process.env.COMMONS_AUTH_TOKEN || '';
+
+/**
+ * Constant-time string comparison to prevent timing attacks.
+ */
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+/**
+ * Verify the Authorization header contains a valid bearer token.
+ * Returns null if authorized, or a NextResponse with an error otherwise.
+ */
+function checkAuth(
+  request: NextRequest,
+  cors: Record<string, string>,
+): NextResponse | null {
+  // Fail-closed: if no token is configured on the server, reject all requests.
+  if (!COMMONS_AUTH_TOKEN) {
+    return NextResponse.json(
+      { error: 'Commons Chat API is not configured (missing auth token)' },
+      { status: 503, headers: cors },
+    );
+  }
+
+  const authHeader = request.headers.get('authorization') || '';
+  const match = authHeader.match(/^Bearer\s+(.+)$/);
+  if (!match) {
+    return NextResponse.json(
+      { error: 'Unauthorized: missing or malformed Authorization header' },
+      { status: 401, headers: cors },
+    );
+  }
+
+  const providedToken = match[1].trim();
+  if (!safeEqual(providedToken, COMMONS_AUTH_TOKEN)) {
+    return NextResponse.json(
+      { error: 'Unauthorized: invalid token' },
+      { status: 401, headers: cors },
+    );
+  }
+
+  return null;
 }
  
 // --- Configuration ---
@@ -195,7 +253,12 @@ export async function OPTIONS(request: NextRequest) {
  
 export async function POST(request: NextRequest) {
   const cors = getCorsHeaders(request);
- 
+
+  // Require a valid Bearer token BEFORE anything else, so unauthorized
+  // requests cannot consume the rate limit budget of legitimate IPs.
+  const authError = checkAuth(request, cors);
+  if (authError) return authError;
+
   // Check that the Commons API is configured
   if (!COMMONS_API_KEY) {
     return NextResponse.json(
@@ -203,7 +266,7 @@ export async function POST(request: NextRequest) {
       { status: 503, headers: cors },
     );
   }
- 
+
   // Rate limit by IP
   const ip = getClientIp(request);
   const { allowed, retryAfterMs } = checkRateLimit(ip);
