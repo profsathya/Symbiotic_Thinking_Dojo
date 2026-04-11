@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AIProvider, PROVIDERS, isCtiEnabled } from '@/lib/providers/types';
+import { AIProvider, PROVIDERS, isCtiEnabled, isCommonsEnabled } from '@/lib/providers/types';
 import { testApiKey } from '@/lib/providers';
 import { fetchCtiBudget, BudgetInfo } from '@/lib/providers';
 
@@ -38,10 +38,19 @@ export function ApiKeyModal({
   const providerConfig = PROVIDERS[currentProvider];
   const isCti = currentProvider === 'cti';
   const ctiEnabled = isCtiEnabled();
+  const commonsEnabled = isCommonsEnabled();
 
-  // Build visible provider list (only show CTI if enabled)
+  // Build visible provider list
+  // - CTI is hidden unless explicitly enabled via NEXT_PUBLIC_CTI_BACKEND_URL
+  // - Commons is hidden unless explicitly enabled via NEXT_PUBLIC_COMMONS_ENABLED
+  //   (the /api/chat/commons endpoint remains available for server-to-server
+  //   calls from The Commons platform regardless of this UI toggle)
   const visibleProviders = (Object.keys(PROVIDERS) as AIProvider[]).filter(
-    (p) => p !== 'cti' || ctiEnabled
+    (p) => {
+      if (p === 'cti') return ctiEnabled;
+      if (p === 'commons') return commonsEnabled;
+      return true;
+    }
   );
 
   // Reset state when modal opens or provider changes

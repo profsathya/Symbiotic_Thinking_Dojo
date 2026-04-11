@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { AIProvider } from '@/lib/providers/types';
+import { AIProvider, isCommonsEnabled, isCtiEnabled } from '@/lib/providers/types';
 
 const STORAGE_KEY_PREFIX = 'dojo_api_key_';
 const PROVIDER_STORAGE_KEY = 'dojo_active_provider';
@@ -48,9 +48,19 @@ export function useApiKey(): UseApiKeyReturn {
       }
 
       // Load provider preference
+      // Reset to 'gemini' if the stored provider is disabled via env var
+      // (prevents users from remaining on Commons/CTI after they've been hidden)
       const storedProvider = localStorage.getItem(PROVIDER_STORAGE_KEY) as AIProvider | null;
       if (storedProvider && ALL_PROVIDERS.includes(storedProvider)) {
-        setProviderState(storedProvider);
+        const isDisabled =
+          (storedProvider === 'commons' && !isCommonsEnabled()) ||
+          (storedProvider === 'cti' && !isCtiEnabled());
+        if (isDisabled) {
+          localStorage.setItem(PROVIDER_STORAGE_KEY, 'gemini');
+          setProviderState('gemini');
+        } else {
+          setProviderState(storedProvider);
+        }
       }
 
       // Load keys for all providers
