@@ -7,11 +7,13 @@ import { CST395_S3_PROBLEM_STAKE_TOPIC } from './cst395-s3-problem-stake';
 import { IKIGAI_TOPIC } from './ikigai';
 import { CAREER_KNOW_YOURSELF_TOPIC } from './career-know-yourself';
 import { CAREER_KNOW_MARKET_TOPIC } from './career-know-market';
+import { MAP_CURIOSITY_TOPIC } from './map-curiosity';
 
 // All available topics
 export const ALL_TOPICS: TopicConfig[] = [
   SYMBIOTIC_THINKING_TOPIC,
   IKIGAI_TOPIC,
+  MAP_CURIOSITY_TOPIC,
   CST395_TOPIC,
   CST349_TOPIC,
   INTRODUCTORY_PROGRAMMING_TOPIC,
@@ -40,6 +42,7 @@ export const TOPIC_SLUGS: Record<string, string> = {
   'know-market': 'career-know-market',
   'symbiotic-thinking': 'symbiotic-thinking',
   'ikigai': 'ikigai-discovery',
+  'map-curiosity': 'map-curiosity',
   'cst395': 'course-cst395-overview',
   'cst349': 'course-cst349-overview',
   'cst395-s2': 'cst395-s2-learn-solve',
@@ -98,3 +101,4 @@ export { CST395_S2_LEARN_SOLVE_TOPIC } from './cst395-s2-learn-solve';
 export { CST395_S3_PROBLEM_STAKE_TOPIC } from './cst395-s3-problem-stake';
 export { CAREER_KNOW_YOURSELF_TOPIC } from './career-know-yourself';
 export { CAREER_KNOW_MARKET_TOPIC } from './career-know-market';
+export { MAP_CURIOSITY_TOPIC } from './map-curiosity';
