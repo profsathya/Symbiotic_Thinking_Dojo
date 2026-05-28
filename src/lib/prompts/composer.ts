@@ -631,6 +631,33 @@ This isn't about browsing job boards. It's about testing a hypothesis: *does the
 \`\`\``;
   }
 
+  // Map Your Curiosity: open with the Phase 0 free-time selection cards
+  if (topic.topicId === 'map-curiosity') {
+    return `**Sensei:** Welcome. 💡
+
+This is a short journey — about 25–35 minutes — to help you notice something you're already curious about, name it as a real question, and connect it to whatever you're working on right now.
+
+Let's start with you. When you have free time, what do you find yourself doing?
+
+\`\`\`dojo-visual
+{
+  "type": "selection-cards",
+  "prompt": "Pick whichever feels most you — or pick \\"Something else\\" and tell me.",
+  "options": [
+    {"id": "make", "icon": "🎨", "title": "Make things", "description": "Art, music, writing, crafts, cooking"},
+    {"id": "build", "icon": "🔧", "title": "Build or fix things", "description": "Lego, models, repair stuff, DIY projects"},
+    {"id": "play", "icon": "🎮", "title": "Play games", "description": "Video games, board games, sports"},
+    {"id": "watch", "icon": "🎬", "title": "Watch things", "description": "Videos, shows, documentaries, livestreams"},
+    {"id": "read", "icon": "📖", "title": "Read", "description": "Books, comics, articles, fanfic"},
+    {"id": "observe", "icon": "🌿", "title": "Notice the world", "description": "People-watch, nature, animals, the sky"},
+    {"id": "talk", "icon": "💬", "title": "Talk with people", "description": "Friends, online communities, debates"},
+    {"id": "tinker", "icon": "💻", "title": "Tinker with tech", "description": "Computers, phones, apps, gadgets"},
+    {"id": "other", "icon": "✨", "title": "Something else", "description": "Tell me what it is"}
+  ]
+}
+\`\`\``;
+  }
+
   // Generic welcome for other topics
   return `**Sensei:** Welcome to the Practice Dojo! 🥋
 
@@ -638,5 +665,5 @@ You've chosen to explore **${topic.title}** via the **${pathwayName}** path.
 
 ${topic.description}
 
-Let's begin your journey.`;
+**Let's start with you.** What drew you to this topic, or what's on your mind as we begin?`;
 }
