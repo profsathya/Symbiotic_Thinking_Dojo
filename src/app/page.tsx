@@ -22,6 +22,7 @@ import { BudgetIndicator } from '@/components/BudgetIndicator';
 import { ImportedSession } from '@/lib/export';
 import { getTopicById, getTopicBySlug } from '@/lib/practice-dojo/topics';
 import { PracticeDojoContext, Pathway } from '@/lib/practice-dojo/types';
+import { isCtiEnabled } from '@/lib/providers/types';
 
 export default function Home() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
@@ -32,9 +33,10 @@ export default function Home() {
   const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [pendingTopicSlug, setPendingTopicSlug] = useState<string | null>(null);
+  const [keyFromUrlNotice, setKeyFromUrlNotice] = useState(false);
 
   // API Key management (stored in browser localStorage)
-  const { apiKey, isKeySet, setApiKey, clearApiKey, provider, setProvider, hasKeyForProvider } = useApiKey();
+  const { apiKey, isKeySet, setApiKey, clearApiKey, provider, setProvider, hasKeyForProvider, setKeyForProvider } = useApiKey();
 
   // Practice Dojo state management (stored in browser localStorage)
   const practiceDojoState = usePracticeDojoState();
@@ -255,30 +257,54 @@ export default function Home() {
     }
   }, [practiceDojoState, restoreMessages]);
 
-  // Auto-start a Practice Dojo topic from URL query parameter (?topic=slug)
-  // Flow: URL loads → check API key → if no key, show modal → after key entry, auto-start topic
+  // Auto-fill CTI API key from URL (?key=...) and/or auto-start a Practice
+  // Dojo topic (?topic=slug). Both params are stripped from the visible URL
+  // immediately after read. Combined into one effect so a link that supplies
+  // both can skip the API-key modal — the URL-supplied key counts as "set"
+  // for this render, even though React state hasn't flushed yet.
   useEffect(() => {
     if (!mounted || topicUrlProcessedRef.current) return;
 
     const params = new URLSearchParams(window.location.search);
     const topicSlug = params.get('topic');
-    if (!topicSlug) return;
+    const urlKey = params.get('key');
+    if (!topicSlug && !urlKey) return;
 
     // Mark as processed so we don't re-trigger on re-renders
     topicUrlProcessedRef.current = true;
 
-    // Clear the query param from the URL without reload
+    // Strip both params from the visible URL without a reload, so they don't
+    // linger in browser history, screenshots, or shared screen-captures.
     const url = new URL(window.location.href);
     url.searchParams.delete('topic');
+    url.searchParams.delete('key');
     window.history.replaceState({}, '', url.pathname);
+
+    // Handle URL-supplied CTI key. We accept it only when CTI is enabled in
+    // this deployment; otherwise we silently ignore (no useful provider to
+    // attach it to). Cheap sanity-check on length to avoid persisting noise.
+    let keyApplied = false;
+    if (urlKey && isCtiEnabled()) {
+      const trimmed = urlKey.trim();
+      if (trimmed.length >= 8 && trimmed.length <= 256) {
+        setKeyForProvider('cti', trimmed);
+        setProvider('cti');
+        setKeyFromUrlNotice(true);
+        keyApplied = true;
+      }
+    }
+
+    if (!topicSlug) return;
 
     // Validate the slug maps to a real, enabled topic
     const topic = getTopicBySlug(topicSlug);
     if (!topic || !topic.enabled) return;
 
-    // If no API key set, store the slug and open the API key modal.
-    // The pending slug will be picked up after the key is set.
-    if (!isKeySet) {
+    // Treat a URL-supplied key as "set" for this render — React state from
+    // setKeyForProvider hasn't flushed yet, so isKeySet still reads stale.
+    const effectiveKeySet = isKeySet || keyApplied;
+
+    if (!effectiveKeySet) {
       setPendingTopicSlug(topicSlug);
       setIsApiKeyModalOpen(true);
       return;
@@ -290,7 +316,7 @@ export default function Home() {
     } else {
       setIsPracticeDojoModalOpen(true);
     }
-  }, [mounted, isKeySet, handleSelectTopic]);
+  }, [mounted, isKeySet, handleSelectTopic, setKeyForProvider, setProvider]);
 
   // After API key is set, auto-start the pending topic from URL
   useEffect(() => {
@@ -398,6 +424,19 @@ export default function Home() {
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
+        {keyFromUrlNotice && (
+          <div className="bg-amber-900/30 border-b border-amber-800/50 px-4 py-2 text-sm text-amber-200 flex items-center justify-between gap-4">
+            <span>
+              A CTI API key was loaded from your link and saved to this browser. You can change or remove it from API Key settings.
+            </span>
+            <button
+              onClick={() => setKeyFromUrlNotice(false)}
+              className="text-amber-300 hover:text-amber-100 text-xs px-2 py-1 rounded border border-amber-700/50 hover:bg-amber-800/30"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
         {/* Practice Dojo Progress Indicator - only show when session is active */}
         {isInPracticeDojo && currentTopic && (
           <ProgressIndicator

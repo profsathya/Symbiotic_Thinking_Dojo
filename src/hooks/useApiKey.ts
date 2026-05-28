@@ -25,6 +25,9 @@ interface UseApiKeyReturn {
   // Get key for a specific provider (for checking if configured)
   getKeyForProvider: (provider: AIProvider) => string | null;
   hasKeyForProvider: (provider: AIProvider) => boolean;
+
+  // Set a key for a specific provider (used by URL-param auto-fill flow)
+  setKeyForProvider: (provider: AIProvider, key: string) => void;
 }
 
 export function useApiKey(): UseApiKeyReturn {
@@ -120,6 +123,20 @@ export function useApiKey(): UseApiKeyReturn {
     return key !== null && key.length > 0;
   }, [keys]);
 
+  // Set a key for a specific provider (independent of which provider is active).
+  // Used by the URL-param auto-fill flow so a shared link can drop a key into
+  // the CTI slot without first switching the active provider.
+  const setKeyForProvider = useCallback((p: AIProvider, key: string) => {
+    const trimmed = key.trim();
+    if (!trimmed) return;
+    try {
+      localStorage.setItem(`${STORAGE_KEY_PREFIX}${p}`, trimmed);
+      setKeys(current => ({ ...current, [p]: trimmed }));
+    } catch (e) {
+      console.warn('Failed to save API key to localStorage:', e);
+    }
+  }, []);
+
   // Current provider's API key
   const apiKey = keys[provider];
 
@@ -132,5 +149,6 @@ export function useApiKey(): UseApiKeyReturn {
     clearApiKey,
     getKeyForProvider,
     hasKeyForProvider,
+    setKeyForProvider,
   };
 }
