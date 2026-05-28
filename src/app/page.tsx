@@ -310,12 +310,11 @@ export default function Home() {
       return;
     }
 
-    // API key is set — start the topic directly
-    if (topic.pathways.length === 1) {
-      handleSelectTopic(topic.topicId, topic.pathways[0].id as Pathway);
-    } else {
-      setIsPracticeDojoModalOpen(true);
-    }
+    // API key is set — start the topic directly with the topic's first
+    // pathway (conventionally "guided"). URLs are meant for landing students
+    // straight into the activity; if they want a different pathway, they can
+    // switch via the normal Practice Dojo menu.
+    handleSelectTopic(topic.topicId, topic.pathways[0].id as Pathway);
   }, [mounted, isKeySet, handleSelectTopic, setKeyForProvider, setProvider]);
 
   // After API key is set, auto-start the pending topic from URL
@@ -326,11 +325,7 @@ export default function Home() {
     setPendingTopicSlug(null);
     if (!topic || !topic.enabled) return;
 
-    if (topic.pathways.length === 1) {
-      handleSelectTopic(topic.topicId, topic.pathways[0].id as Pathway);
-    } else {
-      setIsPracticeDojoModalOpen(true);
-    }
+    handleSelectTopic(topic.topicId, topic.pathways[0].id as Pathway);
   }, [pendingTopicSlug, isKeySet, handleSelectTopic]);
 
   // Handle starting fresh in Practice Dojo
