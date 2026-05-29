@@ -252,6 +252,162 @@ We encourage you to audit the code:
 
 ---
 
+## CTI Key Management
+
+The **CTI backend** (in `backend/`) is a FastAPI service that proxies Anthropic's Claude API for institutional and classroom use. Each student gets a **CTI key** with a fixed token budget that a coordinator creates, distributes, monitors, and tops up — all from a single CLI tool.
+
+This section is for the **coordinator** running a deployment. End users (students) only need to receive a key and paste it into the Dojo's API Key settings — or click a `?key=` link.
+
+### What CTI Keys Are
+
+A CTI key is a UUID stored in the backend database. Each key carries:
+
+- **Identity** — a student email and optional name
+- **A token budget** — input + output tokens combined against a single `total_budget_tokens` cap (default: 5,000,000)
+- **Activity status** — `active` / `deactivated`, plus an optional expiration date
+- **Usage counters** — running totals of input and output tokens, plus `last_used_at`
+
+When a student's browser calls the backend, it sends the UUID in the `X-CTI-Key` header. The backend validates the key, enforces the budget, proxies to Anthropic, and records the token cost.
+
+**Why CTI keys exist:** an institution can pre-allocate Anthropic spend across a cohort, monitor per-student usage, and revoke or top up individual students — without giving anyone direct access to the institutional Anthropic API key.
+
+### Key Lifecycle
+
+```
+create  ──▶  distribute  ──▶  student uses  ──▶  monitor  ──▶  top up / deactivate
+   │              │                  │                │              │
+  CLI       email or ?key=     X-CTI-Key header     CLI list       CLI add-budget
+                                                      / usage         / deactivate
+```
+
+All five steps are driven by the same CLI: `backend/manage_keys.py`.
+
+### Creating Keys
+
+Three entry points, all of which call into `manage_keys.py`:
+
+**1. Local / SQLite** — direct CLI for development or test deployments
+
+```bash
+cd backend
+python3 manage_keys.py create \
+  --email student@example.edu \
+  --name "Student Name" \
+  --budget 5000000 \
+  --expires 2026-12-31 \
+  --notes "Cohort 12 — Spring 2026"
+```
+
+**2. Production (single key)** — `backend/create_prod_key.sh`
+
+Wraps `manage_keys.py create` for the Cloud SQL Postgres deployment. The script starts a [Cloud SQL Auth Proxy](https://cloud.google.com/sql/docs/postgres/sql-proxy), pulls `DATABASE_URL` from Secret Manager, runs `manage_keys.py create` against the proxied connection, and tears the proxy down on exit.
+
+```bash
+cd backend
+./create_prod_key.sh \
+  --email student@example.edu \
+  --name "Student Name" \
+  --budget 5000000 \
+  --expires 2026-12-31
+```
+
+Prereqs: `gcloud` authenticated, `cloud-sql-proxy` installed (`brew install cloud-sql-proxy` on macOS), and the local port 5432 free. The instance name (`symbiotic-thinking-dojo:us-central1:dojo-db`) is hardcoded in the script — edit it for your own GCP project.
+
+**3. Production (bulk)** — `backend/create_prod_keys.sh`
+
+Same proxy machinery, but for creating many keys at once from a CSV. Wraps `manage_keys.py bulk-create`.
+
+```bash
+cd backend
+./create_prod_keys.sh students.csv keys_output.csv
+```
+
+The input CSV must have a header row with at least an `email` column; `name` is optional. The output CSV contains one row per created key with `email,name,key,budget,expires` — give this file to the coordinator distributing keys to students.
+
+### Managing Keys
+
+Once keys exist, `manage_keys.py` exposes the following commands. All run against whichever database the environment points to (`DATABASE_TYPE=postgres` + `DATABASE_URL` for production via the prod wrapper, or local SQLite by default).
+
+| Command | What it does | Required args |
+|---------|--------------|---------------|
+| `create` | Create a single key | `--email` |
+| `bulk-create` | Create keys from a CSV file | `--csv-file` |
+| `list` | List keys with usage summary (used/total, active, last used) | — |
+| `usage` | Detailed usage for one student (input/output tokens, remaining, created, expires) | `--email` |
+| `deactivate` | Mark a key inactive (existing sessions get a 403 on next request) | `--key` |
+| `reactivate` | Restore a previously deactivated key | `--key` |
+| `add-budget` | Add tokens to a key's total budget (does NOT reset used counters) | `--key`, `--tokens` |
+| `export-usage` | Dump every key's usage data to CSV (good for end-of-cohort reporting) | `--csv-file` |
+
+Optional flags for `list`: `--active-only`. For `create` and `bulk-create`: `--budget`, `--expires`, `--notes` (single only), `--output` (bulk only, CSV path).
+
+Run `python3 manage_keys.py --help` or `python3 manage_keys.py <command> --help` for the live argument list.
+
+### How Students Use Their Key
+
+Once a key is distributed, a student has three ways to load it into the Dojo:
+
+1. **Manual paste** — Open API Key settings in the sidebar, select **CTI Program**, paste the UUID, save. The key persists in the browser's `localStorage` only.
+2. **`?key=` URL parameter** — A coordinator shares a link like `https://your-dojo-url/?key=<uuid>` (optionally combined with `?topic=<slug>` to land directly in a Practice Dojo activity). The Dojo writes the key into the CTI provider slot, switches the active provider to CTI, strips the URL parameter, and shows a dismissible banner so the student knows a key was saved.
+3. **Already saved** — Returning students keep their key in `localStorage` until they clear it.
+
+While the CTI provider is active, the chat header shows a **BudgetIndicator** that polls `GET /api/budget` and displays the student's remaining tokens out of their total. The component is in `src/components/BudgetIndicator.tsx`.
+
+Every request from the browser to the backend carries the key in the `X-CTI-Key` header — never as a URL parameter, query string, or cookie. The backend's `validate_key` dependency rejects requests that are missing, invalid, deactivated, expired, or over budget with the appropriate 401/403 response.
+
+### Where Each Capability Lives
+
+| Capability | File | Notes |
+|------------|------|-------|
+| CLI for create/list/deactivate/usage/top-up/export | `backend/manage_keys.py` | The single source of truth for key operations |
+| Prod single-key wrapper | `backend/create_prod_key.sh` | Cloud SQL proxy + `manage_keys.py create` |
+| Prod bulk-key wrapper | `backend/create_prod_keys.sh` | Cloud SQL proxy + `manage_keys.py bulk-create` |
+| Database schema, queries, and `update_usage` | `backend/database.py` | Switches between SQLite and Postgres on `DATABASE_TYPE` |
+| Pydantic request/response models | `backend/models.py` | `ChatRequest`, `ChatResponse`, `BudgetResponse`, `ErrorResponse` |
+| `X-CTI-Key` validation (auth, budget, expiry) | `backend/auth.py` | `validate_key` FastAPI dependency |
+| `GET /api/budget` endpoint | `backend/router_budget.py` | Powers the `BudgetIndicator` UI |
+| Chat proxy + token usage recording | `backend/router_chat.py` | Calls Anthropic, then `database.update_usage` |
+| Per-key rate limiting | `backend/rate_limiter.py` | In-memory sliding window — see operational notes |
+| Browser-side CTI provider | `src/lib/providers/cti-client.ts` | Sends `X-CTI-Key` on every request |
+| `?key=` URL handling | `src/app/page.tsx` | Auto-loads the key into the CTI provider slot |
+| Budget UI | `src/components/BudgetIndicator.tsx` | Polls `GET /api/budget` |
+
+### Operational Notes
+
+**Where keys are stored**
+- **Production:** Cloud SQL for PostgreSQL — instance `dojo-db` in `us-central1`. The `DATABASE_URL` is held in Secret Manager (`database-url`) and injected into the Cloud Run service at deploy time.
+- **Local development:** SQLite at `./cti_keys.db`. Set `DATABASE_TYPE=sqlite` (the default) and run `manage_keys.py` directly — no proxy, no GCP auth needed.
+
+**Budget enforcement order**
+
+Every chat request goes through this sequence before Anthropic is called:
+
+1. `validate_key` — key exists, `active=true`, not expired, `used_tokens_input + used_tokens_output < total_budget_tokens`
+2. `check_rate_limit` — fewer than `RATE_LIMIT_REQUESTS` calls in the last `RATE_LIMIT_WINDOW_SECONDS` (defaults: 10 requests per 60 seconds)
+3. Call Anthropic, stream the response
+4. `database.update_usage` — record the actual input + output token counts returned by the Claude API
+
+Step 1 uses the **counters before this turn** — a single request that exceeds the remaining budget mid-response is not refunded, but no further requests will succeed until the budget is topped up.
+
+**Rate limiting is in-memory**
+
+`backend/rate_limiter.py` keeps a per-key sliding window in process memory. When the Cloud Run container scales out or recycles, the window resets. This is acceptable for the abuse-prevention use case it serves (smoothing burst traffic), but it is **not** a hard cross-instance quota. The budget cap is the hard limit — rate limiting is a softer guardrail on top.
+
+**Topping up vs. resetting**
+
+`add-budget` increases `total_budget_tokens` and effectively widens the cap; it does not zero out used counters. To "reset" a student, deactivate the old key with `deactivate` and create a new one — that gives a clean usage history and a fresh budget.
+
+**Distribution tips**
+
+The simplest workflow for a cohort:
+
+1. Prepare `students.csv` with one row per student (`email,name`).
+2. Run `./create_prod_keys.sh students.csv cohort-keys.csv`.
+3. Mail-merge `cohort-keys.csv` into per-student emails containing a `?key=<uuid>` link.
+4. Periodically run `python3 manage_keys.py list` (via the prod proxy) to watch usage; `export-usage` for record-keeping at the end of the cohort.
+
+---
+
 ## Getting Started
 
 ### Prerequisites
