@@ -326,7 +326,28 @@ The input CSV must have a header row with at least an `email` column; `name` is 
 
 ### Managing Keys
 
-Once keys exist, `manage_keys.py` exposes the following commands. All run against whichever database the environment points to (`DATABASE_TYPE=postgres` + `DATABASE_URL` for production via the prod wrapper, or local SQLite by default).
+Once keys exist, `manage_keys.py` exposes the following commands. All run against whichever database the environment points to (`DATABASE_TYPE=postgres` + `DATABASE_URL` for production, or local SQLite by default).
+
+**To run any subcommand against the production database**, use the generic wrapper:
+
+```bash
+cd backend
+./manage_prod_keys.sh list
+./manage_prod_keys.sh usage --email student@example.edu
+./manage_prod_keys.sh add-budget --key <uuid> --tokens 1000000
+./manage_prod_keys.sh deactivate --key <uuid>
+```
+
+The wrapper starts the Cloud SQL Auth Proxy, pulls `DATABASE_URL` from Secret Manager, forwards your subcommand and args to `manage_keys.py`, and tears down the proxy on exit. Same machinery as `create_prod_key.sh` and `create_prod_keys.sh`, but for any subcommand.
+
+**To run against your local SQLite database**, call `manage_keys.py` directly without any env vars:
+
+```bash
+cd backend
+python3 manage_keys.py list
+```
+
+Note that the local SQLite file is separate from production — keys created in production are NOT visible here, and vice versa.
 
 | Command | What it does | Required args |
 |---------|--------------|---------------|
@@ -362,6 +383,7 @@ Every request from the browser to the backend carries the key in the `X-CTI-Key`
 | CLI for create/list/deactivate/usage/top-up/export | `backend/manage_keys.py` | The single source of truth for key operations |
 | Prod single-key wrapper | `backend/create_prod_key.sh` | Cloud SQL proxy + `manage_keys.py create` |
 | Prod bulk-key wrapper | `backend/create_prod_keys.sh` | Cloud SQL proxy + `manage_keys.py bulk-create` |
+| Prod generic wrapper | `backend/manage_prod_keys.sh` | Cloud SQL proxy + forwards any `manage_keys.py` subcommand |
 | Database schema, queries, and `update_usage` | `backend/database.py` | Switches between SQLite and Postgres on `DATABASE_TYPE` |
 | Pydantic request/response models | `backend/models.py` | `ChatRequest`, `ChatResponse`, `BudgetResponse`, `ErrorResponse` |
 | `X-CTI-Key` validation (auth, budget, expiry) | `backend/auth.py` | `validate_key` FastAPI dependency |
