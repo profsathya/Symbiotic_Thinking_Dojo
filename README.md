@@ -334,6 +334,7 @@ Once keys exist, `manage_keys.py` exposes the following commands. All run agains
 cd backend
 ./manage_prod_keys.sh list
 ./manage_prod_keys.sh usage --email student@example.edu
+./manage_prod_keys.sh usage --key <uuid>
 ./manage_prod_keys.sh add-budget --key <uuid> --tokens 1000000
 ./manage_prod_keys.sh deactivate --key <uuid>
 ```
@@ -353,8 +354,8 @@ Note that the local SQLite file is separate from production — keys created in 
 |---------|--------------|---------------|
 | `create` | Create a single key | `--email` |
 | `bulk-create` | Create keys from a CSV file | `--csv-file` |
-| `list` | List keys with usage summary (used/total, active, last used) | — |
-| `usage` | Detailed usage for one student (input/output tokens, remaining, created, expires) | `--email` |
+| `list` | List keys with usage summary (key id, used/total, active, last used) | — |
+| `usage` | Detailed usage for one student or key (input/output tokens, remaining, created, expires) | `--email` *or* `--key` |
 | `deactivate` | Mark a key inactive (existing sessions get a 403 on next request) | `--key` |
 | `reactivate` | Restore a previously deactivated key | `--key` |
 | `add-budget` | Add tokens to a key's total budget (does NOT reset used counters) | `--key`, `--tokens` |
