@@ -91,13 +91,14 @@ def list_keys(active_only: bool):
         click.echo("No keys found.")
         return
 
-    click.echo(f"{'Email':<30} {'Name':<20} {'Used/Total':<20} {'Active':<8} {'Last Used':<20}")
-    click.echo("-" * 100)
+    click.echo(f"{'Key':<38} {'Email':<30} {'Name':<20} {'Used/Total':<20} {'Active':<8} {'Last Used':<20}")
+    click.echo("-" * 140)
     for k in keys:
         used = k["used_tokens_input"] + k["used_tokens_output"]
         total = k["total_budget_tokens"]
         pct = (used / total * 100) if total > 0 else 0
         click.echo(
+            f"{k['id']:<38} "
             f"{k['student_email']:<30} "
             f"{(k['student_name'] or ''):<20} "
             f"{used:>8,}/{total:>8,} ({pct:4.1f}%) "
@@ -107,14 +108,29 @@ def list_keys(active_only: bool):
 
 
 @cli.command()
-@click.option("--email", required=True, help="Student email to look up")
-def usage(email: str):
-    """Show detailed usage for a specific student."""
-    keys = database.list_keys()
-    matches = [k for k in keys if k["student_email"] == email]
-    if not matches:
-        click.echo(f"No keys found for {email}")
-        return
+@click.option("--email", default=None, help="Student email to look up (gets all keys for that student)")
+@click.option("--key", "key_id", default=None, help="Specific key ID to look up")
+def usage(email: Optional[str], key_id: Optional[str]):
+    """Show detailed usage for a specific student or key. Provide --email or --key."""
+    if not email and not key_id:
+        click.echo("Error: must provide either --email or --key")
+        sys.exit(1)
+    if email and key_id:
+        click.echo("Error: provide --email or --key, not both")
+        sys.exit(1)
+
+    if key_id:
+        key_data = database.get_key(key_id)
+        if not key_data:
+            click.echo(f"Key not found: {key_id}")
+            return
+        matches = [key_data]
+    else:
+        keys = database.list_keys()
+        matches = [k for k in keys if k["student_email"] == email]
+        if not matches:
+            click.echo(f"No keys found for {email}")
+            return
 
     for k in matches:
         used = k["used_tokens_input"] + k["used_tokens_output"]
