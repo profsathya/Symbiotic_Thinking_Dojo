@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 
 import database
 from auth import validate_key
-from config import ANTHROPIC_API_KEY, HAIKU_MODEL, SONNET_MODEL
+from config import ANTHROPIC_API_KEY, HAIKU_MODEL, SONNET_MODEL, get_provider_api_key
 from models import ChatRequest, ChatResponse
 from rate_limiter import check_rate_limit
 
@@ -17,10 +17,12 @@ router = APIRouter()
 _client: Optional[anthropic.Anthropic] = None
 
 
-def _get_client() -> anthropic.Anthropic:
+def _get_client(key_id: Optional[str] = None) -> anthropic.Anthropic:
     global _client
     if _client is None:
-        _client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        # Try to get API key from student assignment, database pool, or environment variable
+        api_key = get_provider_api_key('anthropic', key_id)
+        _client = anthropic.Anthropic(api_key=api_key)
     return _client
 
 
@@ -45,7 +47,7 @@ async def chat(request: ChatRequest, key_data: dict[str, Any] = Depends(validate
     )
 
     try:
-        client = _get_client()
+        client = _get_client(key_id)
         kwargs: dict[str, Any] = {
             "model": model,
             "max_tokens": request.max_tokens,

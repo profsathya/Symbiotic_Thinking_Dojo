@@ -25,3 +25,52 @@ CORS_ORIGINS: list[str] = [
 # Rate limiting
 RATE_LIMIT_REQUESTS: int = int(os.environ.get("RATE_LIMIT_REQUESTS", "10"))
 RATE_LIMIT_WINDOW_SECONDS: int = int(os.environ.get("RATE_LIMIT_WINDOW_SECONDS", "60"))
+
+# Admin API
+ADMIN_API_KEY: str = os.environ.get("ADMIN_API_KEY", "")
+
+# Provider API Keys (fallback to environment variables)
+OPENAI_API_KEY: str = os.environ.get("OPENAI_API_KEY", "")
+GOOGLE_API_KEY: str = os.environ.get("GOOGLE_API_KEY", "")
+GITHUB_TOKEN: str = os.environ.get("GITHUB_TOKEN", "")
+
+# Initialize database for admin settings
+def get_admin_api_key() -> str:
+    """Get admin API key from database or environment variable."""
+    try:
+        import database
+        db_key = database.get_admin_setting("admin_api_key")
+        if db_key:
+            return db_key
+    except:
+        pass
+    return ADMIN_API_KEY
+
+
+def get_provider_api_key(provider: str, key_id: Optional[str] = None) -> str:
+    """Get provider API key from student assignment, global pool, or environment variable."""
+    try:
+        import database
+        # First check if student has a specific key assigned
+        if key_id:
+            student_keys = database.get_student_provider_keys(key_id)
+            if student_keys.get(provider):
+                return student_keys[provider]
+        
+        # Then check global provider key pool
+        provider_key = database.get_active_provider_key(provider)
+        if provider_key:
+            return provider_key['key_value']
+    except:
+        pass
+    
+    # Fallback to environment variables
+    if provider == 'openai':
+        return OPENAI_API_KEY
+    elif provider == 'google':
+        return GOOGLE_API_KEY
+    elif provider == 'github':
+        return GITHUB_TOKEN
+    elif provider == 'anthropic':
+        return ANTHROPIC_API_KEY
+    return ""
