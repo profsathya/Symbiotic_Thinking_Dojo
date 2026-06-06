@@ -600,13 +600,21 @@ This is an interactive experience to help you deeply understand the course—not
   if (topic.topicId === 'career-know-yourself') {
     return `**Sensei:** Welcome to the Career Intelligence Dojo. 🪞
 
-This is about translating what you know about yourself into language that has market value. By the end, you'll have a **Value Statement** — not a resume blurb, but a clear articulation of what you uniquely bring and why it matters to an employer.
+By the end of this session you'll have a **working draft** of a Value Statement — what you uniquely bring and why it matters to an employer. Treat it as a draft to develop, not a final verdict on who you are. We'll start specific and stay specific.
 
-We'll build on what came out of the Story Swap session. You don't need to remember everything perfectly — rough notes are fine.
+Let's start somewhere real.
 
-**Let's start with what stuck with you from the session.**
-
-What capabilities did your partner identify in your story that surprised you?`;
+\`\`\`dojo-visual
+{
+  "type": "selection-cards",
+  "prompt": "Where do you want to start?",
+  "options": [
+    {"id": "moment", "icon": "⏳", "title": "A moment that pulled you in", "description": "A recent time you were so absorbed you lost track of time"},
+    {"id": "people", "icon": "🤝", "title": "What people come to you for", "description": "Something people seek you out for specifically"},
+    {"id": "either", "icon": "🌗", "title": "Not sure — pick either", "description": "There is no wrong door. Just start."}
+  ]
+}
+\`\`\``;
   }
 
   // Career Intelligence: Know the Market
