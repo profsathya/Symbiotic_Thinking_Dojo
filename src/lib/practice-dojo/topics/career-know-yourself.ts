@@ -8,7 +8,12 @@ import { TopicConfig } from '../types';
  * what they bring, then draft a Value Statement and reality-test it
  * against a niche.
  *
- * Design: Pick a door → Mirror → Widen → Intersect → Translate → Draft → Test → Hand off
+ * Design: Pick a door (welcome) → Episode + Mirror → Widen → Intersect → Translate → Draft → Test → Hand off
+ *
+ * Phase indexing: the engine starts the session on phases[1] because the
+ * pathway/door selection happens before the first model turn. Phase 0 is
+ * the door-pick surfaced by the welcome message; phases[1] is the first
+ * phase the model actually runs (episode collection + external mirror).
  *
  * Insights are always framed as hypotheses to DEVELOP, never fixed
  * truths to DISCOVER. No "find your passion" or "the real you" language.
@@ -66,8 +71,10 @@ At each major move, you may include ONE short research-why aside as a dojo-visua
   phases: [
     // ============================================================
     // PHASE 0: PICK A DOOR
-    // Evidence-first opening. Two parallel entry points; both lead
-    // to a specific moment, then the AI plays external mirror.
+    // Welcome message owns the door selection cards; engine skips
+    // straight to phases[1] after the student clicks one. This entry
+    // exists for phase-count metadata only — it is not the entry the
+    // first model turn runs.
     // ============================================================
     {
       phaseId: 0,
@@ -75,10 +82,9 @@ At each major move, you may include ONE short research-why aside as a dojo-visua
       purpose: 'Start from a real, specific moment — not from adjectives',
       hasCheckpoint: false,
       contentGuidance: `
-PURPOSE: Get the student into concrete territory before any self-label can leak in. Two evidence-first entry points; the student picks the one that's easier to answer.
+PURPOSE: This phase is presented by the WELCOME message, not by a model turn. The welcome shows the door-picker selection cards (moment / people / either). The session begins on Phase 1 ("Hear the Episode & Mirror") as soon as the student picks a card, so this contentGuidance should never need to run.
 
-MOVE 1 (FIRST TURN OF THIS PHASE — DO THIS EXACTLY):
-Open with one short sentence of warmth ("Let's start somewhere real."), then emit the door-picker as a selection-cards visual AND the research aside. No other prose alongside. Do not paraphrase the question in text — let the cards carry it.
+FALLBACK ONLY (in the unlikely case this phase is ever invoked): emit the same door-picker as the welcome and the research aside, then hand off to Phase 1.
 
 \`\`\`dojo-visual
 {"type": "selection-cards", "prompt": "Where do you want to start?", "options": [{"id": "moment", "icon": "⏳", "title": "A moment that pulled you in", "description": "A recent time you were so absorbed you lost track of time"}, {"id": "people", "icon": "🤝", "title": "What people come to you for", "description": "Something people seek you out for specifically"}, {"id": "either", "icon": "🌗", "title": "Not sure — pick either", "description": "There is no wrong door. Just start."}]}
@@ -87,15 +93,38 @@ Open with one short sentence of warmth ("Let's start somewhere real."), then emi
 \`\`\`dojo-visual
 {"type": "info-box", "style": "aside", "title": "Why we start here", "content": "We start from a real moment, not adjectives — people read themselves most accurately from specific episodes (Eurich; Reflected Best Self)."}
 \`\`\`
+`,
+    },
 
-If they pick "either", silently default to the "moment" door.
+    // ============================================================
+    // PHASE 1: HEAR THE EPISODE & MIRROR
+    // Session starts here. The student has just picked a door in the
+    // welcome; this phase collects the concrete episode and performs
+    // the external-mirror move BEFORE any widening.
+    // ============================================================
+    {
+      phaseId: 1,
+      title: 'Hear the Episode & Mirror',
+      purpose: 'Collect the concrete episode behind the chosen door and play the external mirror',
+      hasCheckpoint: false,
+      contentGuidance: `
+PURPOSE: The student has just picked a door in the welcome (moment / people / either). The user message that opens this phase IS that pick. Do NOT re-emit the door cards. Do NOT jump to a best-possible-self / widening prompt yet. Two moves, in order: collect the concrete episode, then mirror an unclaimed strength.
 
-MOVE 2 (AFTER THEY PICK): Ask ONE concrete what-question to surface the specific episode.
+DOOR ROUTING:
+- "moment" → use the MOMENT what-question below
+- "people" → use the PEOPLE what-question below
+- "either" → silently default to MOMENT
+
+MOVE 1 (FIRST TURN OF THIS PHASE — DO THIS EXACTLY):
+Acknowledge the pick in ONE short clause (e.g. "Good — let's go there."), then ask exactly ONE concrete what-question and stop.
 - If MOMENT door: "Walk me through the most recent one you can remember. What were you actually doing — what was on the screen, on the table, in your hands?"
 - If PEOPLE door: "Tell me about the last specific time it happened. Who came to you, and what exactly did they ask for?"
+
+Do NOT ask a why-question. Do NOT ask multiple questions. Do NOT add the best-possible-self prompt yet — that belongs to Phase 2.
+
 Wait for their response. Store in userChoices as 'opening-episode'.
 
-MOVE 3 (EXTERNAL MIRROR — AFTER THEY DESCRIBE THE EPISODE):
+MOVE 2 (EXTERNAL MIRROR — AFTER THEY DESCRIBE THE EPISODE):
 Read their story carefully. Name ONE specific strength their own story reveals that they did NOT explicitly claim. Be concrete — point to a verb, a decision, a constraint they navigated. Then ask whether they had already seen it.
 
 Format your mirror move like this:
@@ -109,23 +138,26 @@ Format your mirror move like this:
 
 Store the mirrored strength in userChoices as 'mirror-strength'.
 
+HANDLING A THIN OR EVASIVE EPISODE:
+If the student's response is one line or hedges ("I don't really remember", "nothing in particular"), do NOT push past it. Ask one narrowing follow-up: "Even a small one counts — what's the last time you noticed yourself losing track of time, even for ten minutes?" Stay on the episode until you have enough specifics to mirror something real.
+
 DO NOT rush. Each move is its own message. Wait for the student's response before continuing.
 `,
     },
 
     // ============================================================
-    // PHASE 1: WIDEN TO DIRECTION
+    // PHASE 2: WIDEN TO DIRECTION
     // Best-possible-self prompt, reframed to avoid passive consumption.
     // ============================================================
     {
-      phaseId: 1,
+      phaseId: 2,
       title: 'Widen to Direction',
       purpose: 'Use a best-possible-self prompt to surface direction without defaulting to consumption',
       hasCheckpoint: false,
       contentGuidance: `
 PURPOSE: From one episode, widen out to direction — what they'd point at if there were no obligations. The prompt is reframed so the answer can't be "scroll TikTok" — it has to involve making, building, getting good at, or figuring out.
 
-MOVE 1: Bridge briefly from Phase 0 ("That episode tells us something specific. Let's widen the lens.") then ask the prompt directly:
+MOVE 1: Bridge briefly from the episode + mirror you just did ("That episode tells us something specific. Let's widen the lens.") then ask the prompt directly:
 
 "Picture a week with nothing required of you — no assignments, no expectations. What would you want to MAKE, BUILD, get GOOD AT, or FIGURE OUT?"
 
@@ -145,16 +177,16 @@ Once you find the underlying pull (e.g. "I love figuring out how the systems in 
 {"type": "info-box", "style": "aside", "title": "Why this move", "content": "Imagining your best-possible-self surfaces direction and values; make/build/figure-out keeps it from defaulting to scrolling (King; Designing Your Life)."}
 \`\`\`
 
-MOVE 3: Close the phase with a one-line summary of what you now have on the table — the unclaimed strength from Phase 0 plus the direction signal from Phase 1 — framed as a working hypothesis, not a conclusion.
+MOVE 3: Close the phase with a one-line summary of what you now have on the table — the unclaimed strength from the mirror plus the direction signal from this phase — framed as a working hypothesis, not a conclusion.
 `,
     },
 
     // ============================================================
-    // PHASE 2: SPOT THE INTERSECTION
+    // PHASE 3: SPOT THE INTERSECTION
     // From strength + direction, look for the unusual combination.
     // ============================================================
     {
-      phaseId: 2,
+      phaseId: 3,
       title: 'Spot the Intersection',
       purpose: 'Develop a hypothesis about where capabilities overlap in distinctive ways',
       hasCheckpoint: true,
@@ -162,7 +194,7 @@ MOVE 3: Close the phase with a one-line summary of what you now have on the tabl
 PURPOSE: Help the student develop a hypothesis that their value sits not in any single capability but in an UNUSUAL COMBINATION of capabilities.
 
 MOVE 1: Surface candidate capabilities from what they've shared so far.
-Reference the mirror-strength from Phase 0 and the direction signal from Phase 1. Ask: "What else? What are two or three other things people would say you've actually done — not labels, things you DID?"
+Reference the mirror-strength from Phase 1 and the direction signal from Phase 2. Ask: "What else? What are two or three other things people would say you've actually done — not labels, things you DID?"
 Wait for them to list. Push back on any generic self-labels ("good communicator", "hard worker", "team player") with: "That's a label. What did you DO that made someone use that label about you?"
 
 MOVE 2: If they have three or more concrete capabilities, present candidate intersections as selection cards using THEIR actual words from this session:
@@ -198,11 +230,11 @@ Frame the result as: "We can hold this as your working intersection. Let's see h
     },
 
     // ============================================================
-    // PHASE 3: THE EMPLOYER'S EYES
+    // PHASE 4: THE EMPLOYER'S EYES
     // Translate the intersection hypothesis into employer-valued language.
     // ============================================================
     {
-      phaseId: 3,
+      phaseId: 4,
       title: "The Employer's Eyes",
       purpose: 'Translate the intersection hypothesis into language that signals value to an employer',
       hasCheckpoint: true,
@@ -248,11 +280,11 @@ IF STUCK: "Imagine the hiring manager writing the job posting. What pain point a
     },
 
     // ============================================================
-    // PHASE 4: DRAFT YOUR VALUE STATEMENT
+    // PHASE 5: DRAFT YOUR VALUE STATEMENT
     // 3-4 sentence draft, treated as a draft.
     // ============================================================
     {
-      phaseId: 4,
+      phaseId: 5,
       title: 'Draft Your Value Statement',
       purpose: 'Construct a 3-4 sentence Value Statement as a working draft',
       hasCheckpoint: true,
@@ -261,7 +293,7 @@ PURPOSE: Guide them through constructing a Value Statement that is specific, evi
 
 MOVE 1: Present the structure.
 - Sentence 1: What's your intersection?
-- Sentence 2: What evidence do you have (from real experience — including the episode from Phase 0)?
+- Sentence 2: What evidence do you have (from real experience — including the episode from Phase 1)?
 - Sentence 3: What does this let you do that matters to an employer?
 - Sentence 4 (optional): What specific context or niche is this most valuable in?
 
@@ -284,7 +316,7 @@ CHECKPOINT: "Share your draft Value Statement."
 
 EVALUATE ON THREE CRITERIA:
 1. Specificity — Is it specific to THIS person, or could it describe thousands of graduates?
-2. Evidence — Is it grounded in real experience (especially the episode from Phase 0), or just assertions?
+2. Evidence — Is it grounded in real experience (especially the episode from Phase 1), or just assertions?
 3. Employer orientation — Does it say what they solve, not just what they are?
 
 WHAT SUCCESS LOOKS LIKE:
@@ -303,11 +335,11 @@ DO NOT rewrite their statement for them. Point to specific sentences and explain
     },
 
     // ============================================================
-    // PHASE 5: REALITY TEST AGAINST A NICHE
+    // PHASE 6: REALITY TEST AGAINST A NICHE
     // Hypothetical job posting check.
     // ============================================================
     {
-      phaseId: 5,
+      phaseId: 6,
       title: 'Reality Test Against a Niche',
       purpose: 'Stress-test the Value Statement draft against a candidate niche',
       hasCheckpoint: false,
@@ -333,12 +365,12 @@ Store niche suggestions in userChoices as 'niche-suggestions' and the strongest 
     },
 
     // ============================================================
-    // PHASE 6: HAND OFF — SUMMARY + CALIBRATION SELF-CHECK
+    // PHASE 7: HAND OFF — SUMMARY + CALIBRATION SELF-CHECK
     // Paste-ready summary block, plus a self-check showing where the
     // draft is specific vs still generic. On-ramp, not finish line.
     // ============================================================
     {
-      phaseId: 6,
+      phaseId: 7,
       title: 'Hand Off',
       purpose: 'Capture a paste-ready summary and a calibration self-check; frame the next step',
       hasCheckpoint: false,
@@ -348,13 +380,13 @@ PURPOSE: Close with two outputs the student can actually use — a copyable summ
 MOVE 1: Present the paste-ready summary. Use a summary info-box with the EXACT FORMAT BELOW (one block, plain text, ready to copy into a Google Doc / Notion / wherever they keep their Know Your Niche doc). Fill in their actual answers from userChoices — do not leave placeholders.
 
 \`\`\`dojo-visual
-{"type": "info-box", "style": "summary", "title": "Paste into your Know Your Niche doc", "content": "INTERSECTION (working hypothesis):\\n[Their intersection from Phase 2]\\n\\nDRAFT VALUE STATEMENT:\\n[Their latest Phase 4 draft]\\n\\nNICHES WORTH INVESTIGATING:\\n- [Niche 1 from Phase 5]\\n- [Niche 2]\\n- [Niche 3]\\n\\nSTRONGEST EVIDENCE I HAVE:\\n[Most concrete episode or result they cited — usually the Phase 0 episode]\\n\\nKNOWN GAP TO PROBE:\\n[The gap surfaced in Phase 5]\\n\\nDate drafted: [today]"}
+{"type": "info-box", "style": "summary", "title": "Paste into your Know Your Niche doc", "content": "INTERSECTION (working hypothesis):\\n[Their intersection from Phase 3]\\n\\nDRAFT VALUE STATEMENT:\\n[Their latest Phase 5 draft]\\n\\nNICHES WORTH INVESTIGATING:\\n- [Niche 1 from Phase 6]\\n- [Niche 2]\\n- [Niche 3]\\n\\nSTRONGEST EVIDENCE I HAVE:\\n[Most concrete episode or result they cited — usually the Phase 1 episode]\\n\\nKNOWN GAP TO PROBE:\\n[The gap surfaced in Phase 6]\\n\\nDate drafted: [today]"}
 \`\`\`
 
 MOVE 2: Present the calibration self-check. Frame it explicitly as "here's where you are and what's still rough — not a pass/fail." Use a comparison-table showing each part of the draft against the visible standard:
 
 \`\`\`dojo-visual
-{"type": "comparison-table", "title": "Calibration self-check — where it's sharp, where it's still rough", "leftHeader": "Standard", "rightHeader": "Your draft right now", "rows": [{"label": "Specific to you", "left": "Could only describe a small number of people", "right": "[Honest assessment of their draft — name which sentences are specific and which could describe many graduates]"}, {"label": "Evidence-backed", "left": "Each claim is anchored in a real episode or result", "right": "[Which claims have evidence; which are still assertions]"}, {"label": "Employer-oriented", "left": "Frames value as problem solved, not as personal traits", "right": "[Where it speaks to employer; where it still speaks about the student]"}, {"label": "Niche-tested", "left": "Survives contact with a real posting in a real niche", "right": "[Where the Phase 5 gap exposed thinness]"}]}
+{"type": "comparison-table", "title": "Calibration self-check — where it's sharp, where it's still rough", "leftHeader": "Standard", "rightHeader": "Your draft right now", "rows": [{"label": "Specific to you", "left": "Could only describe a small number of people", "right": "[Honest assessment of their draft — name which sentences are specific and which could describe many graduates]"}, {"label": "Evidence-backed", "left": "Each claim is anchored in a real episode or result", "right": "[Which claims have evidence; which are still assertions]"}, {"label": "Employer-oriented", "left": "Frames value as problem solved, not as personal traits", "right": "[Where it speaks to employer; where it still speaks about the student]"}, {"label": "Niche-tested", "left": "Survives contact with a real posting in a real niche", "right": "[Where the Phase 6 gap exposed thinness]"}]}
 \`\`\`
 
 MOVE 3: Frame the hand-off. ONE message. No motivational fluff.
