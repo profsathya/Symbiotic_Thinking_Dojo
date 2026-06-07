@@ -602,7 +602,7 @@ This is an interactive experience to help you deeply understand the course—not
 
 By the end of this session you'll have a **working draft** of a Value Statement — what you uniquely bring and why it matters to an employer. Treat it as a draft to develop, not a final verdict on who you are. We'll start specific and stay specific.
 
-Let's start somewhere real.
+Let's start with something from your own experience that points to a real interest or ability — labels like "creative" or "good communicator" are too vague to build on, so pick whichever of these is easier to answer.
 
 \`\`\`dojo-visual
 {
