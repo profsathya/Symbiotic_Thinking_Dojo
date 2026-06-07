@@ -614,6 +614,15 @@ Let's start with something from your own experience that points to a real intere
     {"id": "either", "icon": "🌗", "title": "Not sure — pick either", "description": "There is no wrong door. Just start."}
   ]
 }
+\`\`\`
+
+\`\`\`dojo-visual
+{
+  "type": "info-box",
+  "style": "aside",
+  "title": "Why we start here",
+  "content": "We start from a real moment, not adjectives — people read themselves most accurately from specific episodes (Eurich; Reflected Best Self)."
+}
 \`\`\``;
   }
 
