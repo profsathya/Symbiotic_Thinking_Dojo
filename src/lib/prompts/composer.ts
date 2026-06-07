@@ -632,7 +632,7 @@ Let's start with something from your own experience that points to a real intere
 
 Goal: **get good at understanding the market so you can be strategic with your job search.** This dojo teaches a *method* on a small sample — you'll take the same method to your full niche doc.
 
-Drop **3–5 real job postings** that interest you here. Roles you'd actually want to apply to, or roles close enough to be useful. For each, paste a **title + a few lines**, or just the link. Mix what you're targeting with what you're curious about.
+Drop **3–5 real job postings** that interest you here. Roles you'd actually want to apply to, or roles close enough to be useful. For each, **paste the title plus a few key lines of the posting text** (responsibilities, required skills, qualifications — the language the posting actually uses). A link is fine to include for your own reference, but it's not enough on its own — **this dojo works only from the text you paste**. Mix what you're targeting with what you're curious about.
 
 \`\`\`dojo-visual
 {

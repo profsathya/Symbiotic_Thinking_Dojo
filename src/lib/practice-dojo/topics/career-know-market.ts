@@ -79,7 +79,7 @@ At each major move, you may include ONE short research-why aside as a dojo-visua
       contentGuidance: `
 PURPOSE: The welcome message owns this phase — it already asks the student to paste 3–5 real postings and explains why we start from evidence. The session begins on Phase 1 ("Extract the Signal") as soon as the student responds with postings, so this contentGuidance should not normally run.
 
-FALLBACK ONLY (in the unlikely case this phase is invoked): re-emit the ask. "Drop 3–5 real postings that interest you here — title + a few lines for each, or just the link. We'll work from the actual language the market uses."
+FALLBACK ONLY (in the unlikely case this phase is invoked): re-emit the ask. "Drop 3–5 real postings here — for each one, paste the **title plus a few key lines of the actual posting text** (responsibilities, required skills, qualifications). A link is fine for reference, but it's not enough on its own; this dojo works only from the text you paste."
 
 \`\`\`dojo-visual
 {"type": "info-box", "style": "aside", "title": "Why we start here", "content": "Real postings are the market saying — in its own words — what it wants. We start from evidence, not from what we assume the market wants."}
@@ -103,7 +103,13 @@ PURPOSE: The student has just dropped 3–5 postings (the user message that open
 ONE-MOVE-PER-TURN DISCIPLINE: each turn, work on ONE category and one category only. Do not jump ahead to clustering or interpretation — that's Phase 2.
 
 MOVE 1 (FIRST TURN OF THIS PHASE — DO THIS EXACTLY):
-Acknowledge the postings in one short clause ("Good — let's pull the signal out of these."), then state the method in one sentence ("We'll harvest recurring concrete terms one category at a time, the same move you'll do on ~20–30 postings in your niche doc."), then start with CATEGORY 1: TITLES.
+
+FIRST, check that the student actually pasted posting TEXT. If their message contains only links (with no title + body text for each posting), do NOT proceed. Reply with ONE short message asking them to paste the actual text:
+  "I can only work from the text you paste — I can't open links or browse the web. For each posting, paste the **title plus a few key lines** (responsibilities, required skills, qualifications — the language the posting actually uses). Once those are in, we'll get going."
+Then STOP and wait. Do not invent posting content. Do not extract anything until real posting text is present.
+
+If they pasted actual posting text (even if a link is also included), proceed:
+Acknowledge in one short clause ("Good — let's pull the signal out of these."), then state the method in one sentence ("We'll harvest recurring concrete terms one category at a time, the same move you'll do on ~20–30 postings in your niche doc."), then start with CATEGORY 1: TITLES.
 
 Ask the question for TITLES only: "What exact role titles appear across these postings? Paste the verbatim titles — even small variations matter (e.g. 'ML Engineer' vs 'Machine Learning Engineer' vs 'Applied ML Engineer')." Wait for response. Store in userChoices as 'terms-titles'.
 
