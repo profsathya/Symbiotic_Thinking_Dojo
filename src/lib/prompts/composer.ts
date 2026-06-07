@@ -628,22 +628,18 @@ Let's start with something from your own experience that points to a real intere
 
   // Career Intelligence: Know the Market
   if (topic.topicId === 'career-know-market') {
-    return `**Sensei:** Welcome to the Career Intelligence Dojo. 🗺️
+    return `**Sensei:** Welcome to the Know the Market Dojo. 🗺️
 
-This is required work before the next synchronous session. By the end, you'll have a **Market Map** — a research-backed picture of where your capabilities have real value, what employers in that space actually ask for, and how to position yourself in their language.
+Goal: **get good at understanding the market so you can be strategic with your job search.** This dojo teaches a *method* on a small sample — you'll take the same method to your full niche doc.
 
-This isn't about browsing job boards. It's about testing a hypothesis: *does the market actually value what I bring?*
-
-**First, let's establish where you're starting.**
+Drop **3–5 real job postings** that interest you here. Roles you'd actually want to apply to, or roles close enough to be useful. For each, **paste the title plus a few key lines of the posting text** (responsibilities, required skills, qualifications — the language the posting actually uses). A link is fine to include for your own reference, but it's not enough on its own — **this dojo works only from the text you paste**. Mix what you're targeting with what you're curious about.
 
 \`\`\`dojo-visual
 {
-  "type": "selection-cards",
-  "prompt": "Where are you coming from?",
-  "options": [
-    {"id": "know-yourself", "icon": "🪞", "title": "I completed the Know Yourself Dojo", "description": "I have a Value Statement and intersection ready"},
-    {"id": "story-swap", "icon": "🤝", "title": "I'm starting from the Story Swap session", "description": "I did the live session but skipped Know Yourself"}
-  ]
+  "type": "info-box",
+  "style": "aside",
+  "title": "Why we start here",
+  "content": "Real postings are the market saying — in its own words — what it wants. We start from evidence, not from what we assume the market wants."
 }
 \`\`\``;
   }

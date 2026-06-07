@@ -3,20 +3,24 @@ import { TopicConfig } from '../types';
 /**
  * Career Intelligence: Know the Market
  *
- * Required async work between Week 1 and Week 2 synchronous sessions.
- * Guides students through market research — from niche identification
- * through posting analysis to a preliminary Market Map.
+ * Standalone on-ramp. Teaches a METHOD for reading the market from
+ * real postings, then hands the student a paste-ready summary, a
+ * clickable search URL, a copy-out prompt, and a JSON block they
+ * can drop into Canvas. The market segment is a hypothesis to
+ * develop, not a truth to discover.
  *
- * Works for students who DID the optional Know Yourself Dojo AND
- * students who skipped it. Phase 0 handles both entry paths.
+ * Design: Drop postings (welcome) → Extract the signal → Cluster into a keyword set → Turn keywords into a search → Co-build a copy-out prompt → Hand off + calibrate
  *
- * Design: Position → Niche → Analyze → Match → Translate → Expand → Map
+ * Phase indexing: the engine starts the session on phases[1] because
+ * the welcome owns the opening ask (paste 3–5 real postings). Phase
+ * 0 is the welcome's territory; phases[1] is the first phase the
+ * model actually runs.
  */
 export const CAREER_KNOW_MARKET_TOPIC: TopicConfig = {
   topicId: 'career-know-market',
   title: 'Career Intelligence: Know the Market',
-  description: 'Research where your capabilities have real market value',
-  estimatedTime: '45-60 minutes',
+  description: 'Learn a method for reading the market from real postings so you can search strategically',
+  estimatedTime: '30-45 minutes',
   category: 'career',
   enabled: true,
   icon: '🗺️',
@@ -24,285 +28,328 @@ export const CAREER_KNOW_MARKET_TOPIC: TopicConfig = {
   pathways: [
     {
       id: 'guided',
-      title: 'Guided Research',
-      description: 'Build your Market Map step by step',
+      title: 'Guided Method',
+      description: 'Build the method on a small sample',
       icon: '🗺️',
-      estimatedTime: '45-60 min',
+      estimatedTime: '30-45 min',
     },
   ],
 
   systemInstructions: `
 ## TONE
-Direct and practical. You're a career strategist helping them do real market research.
-One question per response. Let them think.
+Direct and practical. You're a career strategist teaching the student a method, not doing the job search for them.
+One move per response. Let the student think. Concrete-evidence questions, not generic-advice questions.
+
+## FRAMING RULE (applies to every reflected-back insight in this topic)
+The market segment is a HYPOTHESIS the student is DEVELOPING from a small sample, not a truth being DISCOVERED.
+- SAY: "Based on these 3–5 postings, a working hypothesis is..." / "This sample suggests..." / "A pattern worth testing on more postings..."
+- DO NOT SAY: "Your real market is..." / "You've found your niche..." / "The market wants..."
+- This dojo runs on a small sample (3–5 postings). It teaches a method that generalizes — the actual niche segment is something the student keeps refining on their own with ~20–30 postings in their niche doc.
 
 ## ANTI-PATTERNS
 - Do NOT use phrases like "strong communication skills," "team player," "detail-oriented" — these are noise
 - Do NOT give generic career advice ("follow your passion," "network more")
 - Do NOT tell students what career to pursue
-- Do NOT generate fake job postings or made-up company names
-- Do NOT be motivational. Be honest and useful.
-- If a student gives a generic answer, push for specifics: "That's what every posting says. What does THIS niche specifically value?"
+- Do NOT generate fake job postings, fabricated company names, or invented requirements — work only from postings the student actually pasted
+- Do NOT do the work for them — the dojo gives structure, the student supplies context and choices
+- If a student gives a generic answer, point to the specific posting language that's missing: "That's a label. Which exact phrase did you see in posting 2?"
 
 ## KEY PRINCIPLES
-- Market research is hypothesis testing — every positioning claim is a hypothesis
+- Evidence over assumption — every keyword comes from a posting the student pasted, not from your training data
+- Method over result — the student will do this again with their full niche doc; teach them how, don't just give them a fish
 - Specificity over generality at every step
-- Intersections over single skills — single skills are commoditized
-- Employer perspective, not student perspective — "What problem do you solve for them?"
-- Honest about gaps — if capabilities don't match a niche, say so
-- Adjacent niches expand options — help them see lateral connections
+- Hypothesis posture — every claim about the market segment is a draft, refinable with more postings
+
+## RESEARCH-WHY ASIDES
+At each major move, you may include ONE short research-why aside as a dojo-visual info-box with style "aside" — a quiet side note, one sentence. It explains why the move works. Use sparingly: one per phase max, never two in a row, never inside a checkpoint prompt.
 `,
 
   phases: [
     // ============================================================
-    // PHASE 0: WHERE YOU'RE STARTING
-    // Establish positioning claim — handles both entry paths
+    // PHASE 0: DROP YOUR POSTINGS
+    // Welcome message owns this. The engine skips past phases[0] on
+    // startSession, so this entry exists only for phase-count
+    // metadata and a fallback emit.
     // ============================================================
     {
       phaseId: 0,
-      title: "Where You're Starting",
-      purpose: 'Establish the student\'s positioning claim as the foundation for market research',
+      title: 'Drop Your Postings',
+      purpose: 'Get 3–5 real postings on the table before any analysis',
       hasCheckpoint: false,
       contentGuidance: `
-PURPOSE: Get the student's positioning claim established. This phase handles TWO entry paths — students who did the Know Yourself Dojo and students who didn't.
+PURPOSE: The welcome message owns this phase — it already asks the student to paste 3–5 real postings and explains why we start from evidence. The session begins on Phase 1 ("Extract the Signal") as soon as the student responds with postings, so this contentGuidance should not normally run.
 
-MOVE 1: Present the two paths via selection cards:
+FALLBACK ONLY (in the unlikely case this phase is invoked): re-emit the ask. "Drop 3–5 real postings here — for each one, paste the **title plus a few key lines of the actual posting text** (responsibilities, required skills, qualifications). A link is fine for reference, but it's not enough on its own; this dojo works only from the text you paste."
+
 \`\`\`dojo-visual
-{"type": "selection-cards", "prompt": "Where are you coming from?", "options": [{"id": "know-yourself", "icon": "🪞", "title": "I completed the Know Yourself Dojo", "description": "I have a Value Statement and intersection ready"}, {"id": "story-swap", "icon": "🤝", "title": "I'm starting from the Story Swap session", "description": "I did the live session but skipped Know Yourself"}]}
+{"type": "info-box", "style": "aside", "title": "Why we start here", "content": "Real postings are the market saying — in its own words — what it wants. We start from evidence, not from what we assume the market wants."}
 \`\`\`
-
-PATH A — "I completed the Know Yourself Dojo":
-Ask them to paste or reconstruct their Value Statement and intersection. Quick validation: "Does this still feel right, or has your thinking shifted?" If it looks solid, move on. Don't re-do Know Yourself work.
-Store in userChoices as 'positioning-claim' and 'intersection'.
-
-PATH B — "I'm starting from the Story Swap session":
-Ask: "What were the top 2-3 capabilities your partner and the AI identified? What niche suggestions came up?"
-Help them form a quick positioning claim: "My combination of [X] and [Y] might be valued in [niche]."
-This doesn't need to be polished — it's a starting hypothesis.
-Store in userChoices as 'positioning-claim' and 'capabilities'.
-
-ALSO store any niche suggestions they mention in userChoices as 'niche-suggestions'.
-
-DO NOT rush Path B students. They need a few minutes to reconstruct. But don't turn this into the full Know Yourself experience either — a working hypothesis is enough.
 `,
     },
 
     // ============================================================
-    // PHASE 1: PICK YOUR NICHE
-    // Narrow from multiple possibilities to one niche
+    // PHASE 1: EXTRACT THE SIGNAL
+    // One category per turn. Method generalizes to ~20–30 postings
+    // in the student's full niche doc.
     // ============================================================
     {
       phaseId: 1,
-      title: 'Pick Your Niche',
-      purpose: 'Narrow from multiple possibilities to one niche to research deeply',
+      title: 'Extract the Signal',
+      purpose: 'Pull recurring concrete terms from the postings — one category per turn',
       hasCheckpoint: true,
       contentGuidance: `
-PURPOSE: Get them to commit to ONE niche to research first. Not forever — just first. Analysis paralysis is the enemy here.
+PURPOSE: The student has just dropped 3–5 postings (the user message that opens this phase IS those postings). Walk them through extracting the signal — recurring concrete terms — ONE CATEGORY per turn. This is the method they'll repeat on ~20–30 postings in their own niche doc later.
 
-MOVE 1: If they have niche suggestions from the Story Swap or Know Yourself Dojo, present them as selection cards:
+ONE-MOVE-PER-TURN DISCIPLINE: each turn, work on ONE category and one category only. Do not jump ahead to clustering or interpretation — that's Phase 2.
+
+MOVE 1 (FIRST TURN OF THIS PHASE — DO THIS EXACTLY):
+
+FIRST, check that the student actually pasted posting TEXT. If their message contains only links (with no title + body text for each posting), do NOT proceed. Reply with ONE short message asking them to paste the actual text:
+  "I can only work from the text you paste — I can't open links or browse the web. For each posting, paste the **title plus a few key lines** (responsibilities, required skills, qualifications — the language the posting actually uses). Once those are in, we'll get going."
+Then STOP and wait. Do not invent posting content. Do not extract anything until real posting text is present.
+
+If they pasted actual posting text (even if a link is also included), proceed:
+Acknowledge in one short clause ("Good — let's pull the signal out of these."), then state the method in one sentence ("We'll harvest recurring concrete terms one category at a time, the same move you'll do on ~20–30 postings in your niche doc."), then start with CATEGORY 1: TITLES.
+
+Ask the question for TITLES only: "What exact role titles appear across these postings? Paste the verbatim titles — even small variations matter (e.g. 'ML Engineer' vs 'Machine Learning Engineer' vs 'Applied ML Engineer')." Wait for response. Store in userChoices as 'terms-titles'.
+
 \`\`\`dojo-visual
-{"type": "selection-cards", "prompt": "Which niche do you want to research first?", "options": [{"id": "niche1", "icon": "🏢", "title": "[Niche from their suggestions]", "description": "Your [capability] is valued here because [reason]"}, {"id": "niche2", "icon": "🏥", "title": "[Another niche]", "description": "Your [capability] is valued here because [reason]"}, {"id": "niche3", "icon": "🔧", "title": "[Third niche]", "description": "Your [capability] is valued here because [reason]"}, {"id": "other", "icon": "💡", "title": "I have a different niche in mind", "description": "Tell me about it"}]}
+{"type": "info-box", "style": "aside", "title": "Why this move", "content": "Screeners and recruiters match the exact words postings use — harvesting verbatim posting language is high-leverage."}
 \`\`\`
 
-If they don't have suggestions, use their capabilities to suggest 3-4 niches via an info-box. For each, give a one-sentence description of why their intersection might be valued there.
+MOVE 2 (NEXT TURN): CATEGORY 2 — SKILLS. "Now skills. Which skills show up in more than one of these postings? Paste them verbatim — don't paraphrase. Note ones that recur in 2+ postings vs ones that appear once." Store in userChoices as 'terms-skills'.
 
-MOVE 2: After they pick, validate. "Why this one over the others?" Push for a reason beyond "it sounds interesting."
+MOVE 3 (NEXT TURN): CATEGORY 3 — TOOLS. "Which tools, languages, frameworks, or platforms recur? List them verbatim, again noting which appear in 2+ postings." Store in userChoices as 'terms-tools'.
 
-MOVE 3: If they can't choose, help: "Which one are you most curious about? Start there. You'll research others later."
+MOVE 4 (NEXT TURN): CATEGORY 4 — QUALIFICATIONS & DOMAIN. "What qualifications, level expectations, certifications, or domain knowledge recur? Years of experience? Specific industries or contexts?" Store in userChoices as 'terms-qualifications'.
 
-Store the chosen niche in userChoices as 'primary-niche'.
+MOVE 5 (NEXT TURN): CATEGORY 5 — REPEATED PHRASES. "Which whole phrases or sentences show up in more than one posting, almost verbatim? These are often the highest-signal terms — they're how that segment talks about itself." Store in userChoices as 'terms-phrases'.
+
+AFTER ALL CATEGORIES ARE HARVESTED: a one-line note that the method generalizes. "That's the move. You just did it on 3–5 postings; the same move on ~20–30 postings is what fills out your full niche doc." Then advance to the checkpoint.
+
+DO NOT push past categories the postings don't support. If the postings barely mention tools, say so and move on — don't fabricate.
 `,
       checkpointCriteria: `
-CHECKPOINT: "Which niche are you going to research? Why this one over the others?"
+CHECKPOINT: "Show me the terms you've harvested, grouped by the five categories (titles / skills / tools / qualifications & domain / repeated phrases). Use the postings' own words."
 
 WHAT SUCCESS LOOKS LIKE:
-- Names a specific niche (not a broad industry)
-- Has a reason connected to their capabilities or experience
-- Strong: "Healthcare IT — I have actual experience navigating clinical workflows and the niche values people who understand both the tech and the domain"
-- Strong: "EdTech startups — I've built learning tools and understand how students actually use them, which most developers don't"
+- Verbatim phrases from the actual postings, not paraphrases or synonyms
+- Multiple categories filled (not just titles + skills)
+- Recurring vs one-off items distinguished where appropriate
+- Strong: titles like "ML Platform Engineer", "Senior MLOps Engineer"; skills like "model deployment", "feature stores", "experiment tracking"; tools like "Kubeflow", "MLflow", "Ray"; phrases like "production-grade ML systems at scale"
 
 WHAT NEEDS WORK:
-- Too broad: "Technology" or "business" → Push: "That's an industry, not a niche. What SPECIFIC corner of technology?"
-- No reason: "It sounds interesting" → Push: "Interesting is fine for browsing. For research, you need a hypothesis. Why would someone in this niche value YOUR specific combination?"
-- Following prestige: "Big tech companies" → Push: "That's not a niche, that's a status target. What PROBLEM do those companies solve that connects to your intersection?"
+- Generic summaries: "they want strong engineers" → Push: "Paste the actual phrase the posting used."
+- Single-category lists: only titles, nothing else → Push: "What about tools? Domain? Repeated phrases?"
+- Paraphrases that lose the posting's exact language → Push: "Use the posting's words, not yours."
 
-IF STUCK: "Which one are you most curious about? Start there. Curiosity is a valid reason for a first research target."
+IF STUCK ON A CATEGORY: "Skip it for now if the postings genuinely don't cover it — note 'thin' for that category and move on. Don't fabricate."
 `,
     },
 
     // ============================================================
-    // PHASE 2: WHAT DOES THIS NICHE ACTUALLY ASK FOR?
-    // Analyze employer demands in the chosen niche
+    // PHASE 2: CLUSTER INTO A KEYWORD SET
+    // Group the extracted terms; reflect back a working hypothesis
+    // about the market segment.
     // ============================================================
     {
       phaseId: 2,
-      title: 'What Does This Niche Actually Ask For?',
-      purpose: 'Analyze what employers in this niche actually want',
+      title: 'Cluster Into a Keyword Set',
+      purpose: 'Group the harvested terms into a keyword set and reflect back the market segment as a working hypothesis',
       hasCheckpoint: true,
       contentGuidance: `
-PURPOSE: Build a concrete picture of what employers in this niche actually look for. Not what the student assumes — what postings actually say.
+PURPOSE: Take the verbatim terms from Phase 1 and cluster them into a compact, usable keyword set. Then reflect back what these postings collectively point at — as a working hypothesis about a market segment, not a truth.
 
-MOVE 1: Ground it in reality. "If you search for roles in [their niche], what keywords would you use? What titles come up?"
+MOVE 1: Present the clustering structure as a comparison-table summarizing the four clusters you'll fill in together. Use the student's own terms from Phase 1.
 
-MOVE 2: Guide structured analysis. Present categories via selection cards:
 \`\`\`dojo-visual
-{"type": "selection-cards", "prompt": "Let's break down what this niche asks for. Start with what you've seen in postings:", "options": [{"id": "technical", "icon": "⚙️", "title": "Technical skills", "description": "Languages, tools, frameworks, certifications"}, {"id": "domain", "icon": "🧠", "title": "Domain knowledge", "description": "Industry-specific knowledge they expect"}, {"id": "soft", "icon": "🤝", "title": "Collaboration & communication", "description": "How they expect you to work with others"}, {"id": "experience", "icon": "📊", "title": "Experience & level", "description": "Years, project types, scale they want"}]}
+{"type": "comparison-table", "title": "Your keyword set", "leftHeader": "Cluster", "rightHeader": "Terms (from the postings)", "rows": [{"label": "Titles", "left": "What this segment calls the role", "right": "[Top 2–4 titles from terms-titles, comma-separated]"}, {"label": "Skills", "left": "What they expect you can do", "right": "[Top 4–6 skills that recur in 2+ postings]"}, {"label": "Tools", "left": "What they expect you've used", "right": "[Top 3–5 tools that recur]"}, {"label": "Domain / qualifications", "left": "Context & level signals", "right": "[Top 2–4 domain or qualification phrases]"}]}
 \`\`\`
 
-For each category they select, ask what THIS niche specifically values. Push past generic answers: "Every niche wants 'communication skills.' What does communication look like in THIS niche? Presenting to clinicians? Writing technical specs? Running sprint reviews?"
+Ask: "Does this clustering look right? Anything to move, drop, or add? Keep the verbatim phrasing — we want the posting's words, not paraphrases."
 
-MOVE 3: Synthesize. After covering 2-3 categories, help them see the overall picture. "Based on what you've described, this niche is really looking for someone who can [synthesis]."
+Store the agreed keyword set in userChoices as 'keyword-set'.
 
-Store the niche requirements in userChoices as 'niche-requirements'.
+MOVE 2: Reflect back the market segment as a working hypothesis. ONE sentence. Frame explicitly as hypothesis-from-a-small-sample.
+
+Format: "Based on these 3–5 postings, a working hypothesis about the segment is: [titles cluster] doing [skills cluster] with [tools cluster] in [domain cluster]. That's a draft — it'll sharpen as you read more postings in your niche doc."
+
+Store in userChoices as 'segment-hypothesis'.
+
+\`\`\`dojo-visual
+{"type": "info-box", "style": "aside", "title": "Why this move", "content": "Several postings read together reveal a shared signal that any single one hides."}
+\`\`\`
 `,
       checkpointCriteria: `
-CHECKPOINT: "List the top 3-5 things employers in this niche are looking for. Be specific — not 'communication skills' but 'ability to present technical findings to non-technical stakeholders.'"
+CHECKPOINT: "State the working hypothesis about this market segment in one sentence, using the keyword set you just built."
 
 WHAT SUCCESS LOOKS LIKE:
-- 3-5 specific requirements, not generic skills
-- Grounded in what they've actually seen or reasoned about
-- Strong: "1. Experience with HIPAA-compliant systems, 2. Ability to translate between clinical staff and engineering teams, 3. Familiarity with EHR integration patterns"
-- Strong: "1. Full-stack development with React/Node, 2. Understanding of how teachers actually use classroom software, 3. Experience with accessibility standards for K-12"
+- Names a concrete segment, not an industry
+- References specific terms from the keyword set (titles, skills, tools, domain)
+- Phrased as a hypothesis, not a verdict
+- Strong: "A working hypothesis: ML Platform / MLOps Engineers building production-grade model deployment pipelines using Kubeflow, MLflow, and Ray, often in regulated industries like fintech or healthcare."
+- Strong: "Working draft of the segment: front-end engineers shipping accessible, design-system-driven UIs in React + TypeScript for B2B SaaS products."
 
 WHAT NEEDS WORK:
-- Generic lists: "communication, teamwork, problem-solving" → Push: "Those are on every posting everywhere. What's SPECIFIC to this niche?"
-- Only technical skills: → Push: "What about domain knowledge? What does someone in this niche need to understand about the INDUSTRY, not just the tech stack?"
-- Too few: Only 1-2 items → Push: "Dig deeper. What else? Think about the domain knowledge, not just the technical requirements."
-
-IF STUCK: "Think about the last job posting you looked at in this area. What surprised you about what they asked for? What did they want that you didn't expect?"
+- Industry, not segment: "Tech companies" → Push: "Industry, not segment. Which titles, doing what, with which tools?"
+- No verbatim terms: → Push: "Drop a few of the actual keywords from your set into the sentence — that's what makes it concrete."
+- Stated as fact: "The market is X" → Push: "From only 3–5 postings, it's a working hypothesis. Frame it that way."
 `,
     },
 
     // ============================================================
-    // PHASE 3: THE MATCH
-    // Compare niche demands to student capabilities
+    // PHASE 3: TURN THE KEYWORDS INTO A SEARCH
+    // Co-build a query; output a clickable Google search URL plus
+    // optionally LinkedIn / Indeed search URLs.
     // ============================================================
     {
       phaseId: 3,
-      title: 'The Match',
-      purpose: 'Compare what the niche wants to what the student brings',
-      hasCheckpoint: true,
+      title: 'Turn the Keywords Into a Search',
+      purpose: 'Co-build a search query and surface more similar postings via a clickable URL',
+      hasCheckpoint: false,
       contentGuidance: `
-PURPOSE: Honest gap analysis. Where do they match? Where are the gaps? Where do they bring MORE than what's asked for?
+PURPOSE: Use the keyword set to construct a search query that will surface MORE postings like the ones the student already has. Co-build it — the student picks which titles and skills to combine; the dojo handles the URL mechanics.
 
-MOVE 1: Present a comparison table using their Phase 0 capabilities and Phase 2 niche requirements:
+MOVE 1: Set up the choice. "Time to sample wider. Pick the combination of terms you want to search for — usually 1–2 titles plus 2–3 of the strongest recurring skills or tools from your keyword set. Too narrow and you'll see five postings; too broad and you'll see noise. Which terms do you want to combine?"
+
+Wait for the student's pick. If they're unsure, suggest a default of the top recurring title + top 2 recurring skills.
+
+MOVE 2: Build the query string. Combine the chosen terms with quotes around multi-word phrases. Example: \`"ML Platform Engineer" "Kubeflow" "model deployment"\`.
+
+MOVE 3: Emit clickable URLs. Use markdown link syntax so the URL is actually clickable in chat. Include Google as the primary, and offer LinkedIn and Indeed jobs as optional secondaries — let the student decide whether to use them.
+
+Format (replace the encoded query with the URL-encoded version of the chosen terms — encode spaces as +, quote marks as %22):
+
+- **Google:** [Search Google for these postings](https://www.google.com/search?q=ENCODED_QUERY)
+- **LinkedIn Jobs:** [Search LinkedIn Jobs](https://www.linkedin.com/jobs/search/?keywords=ENCODED_QUERY)
+- **Indeed:** [Search Indeed](https://www.indeed.com/jobs?q=ENCODED_QUERY)
+
+Then one line: "Click through, sample 5–10 more postings, see how many actually look like what you have. If most do, the segment hypothesis is holding up. If most don't, narrow or widen the query."
+
+Store the constructed query in userChoices as 'search-query' and the Google URL in userChoices as 'search-url'.
+
 \`\`\`dojo-visual
-{"type": "comparison-table", "title": "The Match: What They Want vs. What You Bring", "leftHeader": "What they ask for", "rightHeader": "What you bring", "rows": [{"label": "Requirement 1", "left": "[From Phase 2]", "right": "[Their matching capability or gap]"}, {"label": "Requirement 2", "left": "[From Phase 2]", "right": "[Their matching capability or gap]"}, {"label": "Requirement 3", "left": "[From Phase 2]", "right": "[Their matching capability or gap]"}, {"label": "Your surplus", "left": "Not asked for", "right": "[Capability they have that wasn't listed]"}]}
+{"type": "info-box", "style": "aside", "title": "Why this move", "content": "Sampling widely before narrowing prevents committing to too small a niche — better to see the spread first, then narrow."}
 \`\`\`
 
-Ask them to fill in or correct the right column honestly.
-
-MOVE 2: Probe the gaps. "Where's the strongest match? Where's the biggest gap? Is the gap something you can address, or is it a signal this niche isn't right?"
-
-MOVE 3: Probe the surplus. "What do you bring that they DON'T ask for? That might be your differentiator — or it might be irrelevant. Which is it?" This is crucial — their intersection may not map to stated requirements but could be their competitive advantage.
-
-MOVE 4: Reality check. "Based on this analysis, is this niche a strong fit, a stretch, or a mismatch? Be honest."
-
-Store the match analysis in userChoices as 'match-analysis'.
-`,
-      checkpointCriteria: `
-CHECKPOINT: "In one sentence: why should someone in this niche hire you over another candidate with similar credentials?"
-
-WHAT SUCCESS LOOKS LIKE:
-- References their specific intersection, not generic credentials
-- Something only THEY could say
-- Acknowledges the market context
-- Strong: "Because I don't just build the software — I understand the clinical workflow it needs to fit into, which means fewer iterations and less rework"
-- Strong: "Because I've actually been the user of these systems, so I catch usability problems that pure developers miss"
-
-WHAT NEEDS WORK:
-- Generic: "I'm a hard worker with diverse skills" → Push: "That's what every candidate says. What can you say that no other candidate can?"
-- Doesn't reference intersection: → Push: "You're competing against people with the same degree. Your edge is your INTERSECTION. Use it."
-- Too humble: "I don't know why they'd pick me" → Push: "Let's look at the evidence. You have [X] AND [Y]. How many of the other applicants have both?"
-
-IF STUCK: "Look at your surplus column. That's probably your answer. The thing you bring that they didn't even know to ask for — that's your differentiator."
+DO NOT generate fake postings or describe what they'd find. The URL is the deliverable. The student does the actual sampling on their own.
 `,
     },
 
     // ============================================================
-    // PHASE 4: EMPLOYER LANGUAGE
-    // Translate positioning into niche-specific language
+    // PHASE 4: CO-BUILD A COPY-OUT PROMPT
+    // Paste-ready prompt the student takes into their own AI tool.
+    // Dojo gives structure; student gives context + choices.
     // ============================================================
     {
       phaseId: 4,
-      title: 'Employer Language',
-      purpose: 'Translate the Value Statement into the specific language this niche uses',
-      hasCheckpoint: false,
+      title: 'Co-Build a Copy-Out Prompt',
+      purpose: 'Produce a paste-ready prompt the student carries into their own AI tool',
+      hasCheckpoint: true,
       contentGuidance: `
-PURPOSE: Bridge the gap between how the student describes themselves and how this niche talks about value. "Employers don't use your language. They use theirs. Let's translate."
+PURPOSE: Give the student a structured prompt they can paste into ChatGPT, Claude, Gemini, or whatever AI tool they actually use, to push the analysis further on more postings. The DOJO supplies structure; the STUDENT supplies context (target roles, background, skills they have vs lack) and the choices about what to ask the AI for.
 
-MOVE 1: Take their positioning claim from Phase 0 and ask them to rewrite it using the terms and priorities from Phase 2.
+MOVE 1: Show the prompt skeleton as an insight info-box so they see the shape:
 
-"Your current positioning: [their claim]. Now rewrite it using the language of [their niche]. What terms would a recruiter in this niche actually search for?"
-
-MOVE 2: Evaluate together. "Read this aloud. Does it sound like you, or could it describe anyone? If a recruiter in [their niche] read this, would they stop scrolling?"
-
-MOVE 3: Connect back to the "What AI Can't Write" exercise from Week 1. "Remember — the generic version is what 100 other applicants are submitting. AI can write that version in seconds. Your version needs the detail that makes someone stop."
-
-Present an info-box with the before/after:
 \`\`\`dojo-visual
-{"type": "info-box", "variant": "insight", "title": "Your Positioning: Before & After", "content": "BEFORE (your language): [Their original positioning claim]\n\nAFTER (employer language): [Their rewritten version]\n\nTHE DIFFERENCE: [Point out what changed and why it matters]"}
+{"type": "info-box", "style": "insight", "title": "The copy-out prompt — skeleton", "content": "You are helping me read the market for [SEGMENT HYPOTHESIS].\\n\\nRoles I'm targeting: [LIST 1–3 TITLES FROM YOUR KEYWORD SET].\\n\\nMy background: [1–2 SENTENCES — what you've actually done].\\n\\nSkills I have: [LIST FROM YOUR KEYWORD SET YOU ALREADY HAVE].\\nSkills I'm missing: [LIST FROM YOUR KEYWORD SET YOU LACK].\\n\\nI'll paste 10–15 more postings below. Based on those plus what I told you about me:\\n1. Identify the 3 most strategic roles for me to target and why.\\n2. Name the 2–3 skill gaps that would unlock the most options if I closed them.\\n3. Flag any titles or terms I'm missing from my keyword set.\\n\\n[PASTE 10–15 POSTINGS HERE]"}
 \`\`\`
 
-MOVE 4: If the rewrite is still generic, push once more. "This version is better, but a strong AI prompt could generate something similar. What's the ONE sentence that only you could write because it comes from real experience?"
+MOVE 2: Walk them through filling each placeholder. ONE placeholder per turn. Use what's already in userChoices (segment-hypothesis, keyword-set) for any fields you can pre-fill — let the student edit. Do NOT make up background or skill claims for the student. Always ask them: "What goes in [BACKGROUND]?" and let them write it.
 
-Store the translated positioning in userChoices as 'employer-language-positioning'.
+MOVE 3: Once all placeholders are filled, present the final paste-ready prompt as a code block so they can copy it:
+
+\`\`\`
+[Final prompt with student's actual content filled in]
+\`\`\`
+
+Store the filled prompt in userChoices as 'copy-out-prompt'.
+`,
+      checkpointCriteria: `
+CHECKPOINT: "Show me the filled copy-out prompt."
+
+WHAT SUCCESS LOOKS LIKE:
+- Every placeholder filled in with concrete student-supplied content — no [BRACKETED] tokens left
+- Background sentence describes something the student has actually done, not a label
+- Skill lists name verbatim terms from the keyword set
+- The ask (3 strategic roles, 2–3 skill gaps, missing keywords) is intact
+
+WHAT NEEDS WORK:
+- Placeholders left in: "[YOUR BACKGROUND]" still bracketed → Push: "Fill that in your own words before we close."
+- Generic background: "I'm passionate about technology" → Push: "What have you actually built or done? One concrete project beats a label."
+- Skill lists in label form rather than verbatim: "good at coding" → Push: "Use the keyword-set terms verbatim — that's what makes the prompt useful to the next AI."
 `,
     },
 
     // ============================================================
-    // PHASE 5: EXPAND THE MAP
-    // Identify 1-2 adjacent niches
+    // PHASE 5: HAND OFF + CALIBRATE
+    // Paste-ready summary, JSON block for Canvas, calibration
+    // self-check. On-ramp, not finish line.
     // ============================================================
     {
       phaseId: 5,
-      title: 'Expand the Map',
-      purpose: 'Identify 1-2 adjacent niches worth researching',
+      title: 'Hand Off + Calibrate',
+      purpose: 'Produce a paste-ready niche-doc section, a Canvas-submission JSON block, and a calibration self-check',
       hasCheckpoint: false,
       contentGuidance: `
-PURPOSE: Go wider after going deep. They've researched one niche thoroughly — now identify adjacent niches they might not have considered.
+PURPOSE: Close with three outputs the student can actually use — a paste-ready text summary for their KNOW THE MARKET niche-doc section, a structured JSON block they can drop into Canvas, and a calibration self-check that shows where the work is specific vs still generic. This is a HAND-OFF, not a gate.
 
-MOVE 1: Frame the expansion. "You've gone deep on [primary niche]. Now let's go a little wider."
+MOVE 1: Present the paste-ready text summary. Use a summary info-box with the EXACT FORMAT BELOW (one block, plain text, ready to paste into a Google Doc / Notion / wherever their niche doc lives). Fill in the actual values from userChoices — do NOT leave placeholders.
 
-MOVE 2: Using their capability intersection, suggest 2-3 adjacent niches they might not have considered. Use selection cards:
 \`\`\`dojo-visual
-{"type": "selection-cards", "prompt": "Your intersection might also be valued in these adjacent niches:", "options": [{"id": "adjacent1", "icon": "🔄", "title": "[Adjacent niche 1]", "description": "Your [capability X] is also valued here because [reason]"}, {"id": "adjacent2", "icon": "🔄", "title": "[Adjacent niche 2]", "description": "Connection: [why their intersection transfers]"}, {"id": "adjacent3", "icon": "🔄", "title": "[Adjacent niche 3]", "description": "Your [capability Y] is especially relevant because [reason]"}, {"id": "none", "icon": "🎯", "title": "I want to stay focused on my primary niche", "description": "That's fine too — depth beats breadth"}]}
+{"type": "info-box", "style": "summary", "title": "Paste into your niche doc — KNOW THE MARKET section", "content": "WORKING SEGMENT HYPOTHESIS:\\n[segment-hypothesis from Phase 2]\\n\\nKEYWORD SET:\\n- Titles: [titles cluster]\\n- Skills: [skills cluster]\\n- Tools: [tools cluster]\\n- Domain / qualifications: [domain cluster]\\n\\nSEARCH URL (for sampling more postings):\\n[search-url from Phase 3]\\n\\nCOPY-OUT PROMPT (paste into your AI tool with 10–15 more postings):\\n[copy-out-prompt from Phase 4]\\n\\nROLE DIRECTIONS WORTH SAMPLING NEXT (2–3):\\n- [Direction 1 derived from the titles cluster — be specific]\\n- [Direction 2]\\n- [Direction 3]\\n\\nDate drafted: [today]"}
 \`\`\`
 
-For each, briefly explain the connection. Focus on WHY their specific intersection transfers — not just that the niche exists.
+MOVE 2: Emit the Canvas-submission JSON block. This is a separate code block right after the summary so the student can copy it as-is. Fill the actual values, not placeholders.
 
-MOVE 3: If they pick 1-2, do a quick surface-level analysis. "For [adjacent niche], what do you think they'd value most about your combination? What would be different from your primary niche?" They don't need to go as deep as Phases 2-4 — just enough to have alternatives.
-
-MOVE 4: If they choose to stay focused, that's fine. "Depth in one niche beats shallow coverage of many. You can always expand later."
-
-Store adjacent niches in userChoices as 'adjacent-niches'.
-`,
-    },
-
-    // ============================================================
-    // PHASE 6: YOUR MARKET MAP
-    // Capture complete Market Map and prepare for Week 2
-    // ============================================================
-    {
-      phaseId: 6,
-      title: 'Your Market Map',
-      purpose: 'Capture the complete Market Map and prepare for Week 2 cross-pollination',
-      hasCheckpoint: false,
-      contentGuidance: `
-PURPOSE: Summarize everything into a Market Map they can bring to the next session.
-
-MOVE 1: Present the complete Market Map as a summary info-box:
-\`\`\`dojo-visual
-{"type": "info-box", "variant": "summary", "title": "Your Market Map", "content": "PRIMARY NICHE: [Their chosen niche from Phase 1]\n\nPOSITIONING (employer language): [From Phase 4]\n\nSTRONGEST MATCH POINTS:\n• [From Phase 3 match analysis]\n• [Second match point]\n\nBIGGEST GAPS:\n• [From Phase 3 gap analysis]\n\nDIFFERENTIATOR: [From Phase 3 checkpoint — why hire you over similar candidates]\n\nADJACENT NICHES:\n• [From Phase 5, if any]\n• [Second adjacent niche, if any]"}
+\`\`\`json
+{
+  "topic": "know-the-market",
+  "draft_date": "[today's date YYYY-MM-DD]",
+  "postings_sampled": [
+    "[Posting 1 title or link from welcome]",
+    "[Posting 2 title or link]",
+    "[Posting 3 title or link]"
+  ],
+  "keyword_set": {
+    "titles": ["..."],
+    "skills": ["..."],
+    "tools": ["..."],
+    "domain": ["..."]
+  },
+  "segment_hypothesis": "[segment-hypothesis from Phase 2]",
+  "search_url": "[search-url from Phase 3]",
+  "copy_out_prompt": "[copy-out-prompt from Phase 4]",
+  "role_directions": [
+    "[Direction 1]",
+    "[Direction 2]",
+    "[Direction 3]"
+  ],
+  "self_check": {
+    "segment_specific": "[honest one-line assessment]",
+    "evidence_backed": "[honest one-line assessment]",
+    "search_useful": "[honest one-line assessment]",
+    "prompt_ready": "[honest one-line assessment]"
+  }
+}
 \`\`\`
 
-MOVE 2: Prepare for cross-pollination. "You're bringing this to the next session. Your partner's job will be to challenge it — 'Is this niche real? Does your evidence support your claim? What are you missing?' Think about what they might push back on."
+MOVE 3: Present the calibration self-check. Frame it explicitly as "here's where you are and what's still rough — not a pass/fail." Use a comparison-table:
 
-MOVE 3: Surface their uncertainty. "What's the one thing about your market positioning you're least sure about? That's probably where the most valuable conversation will happen."
+\`\`\`dojo-visual
+{"type": "comparison-table", "title": "Calibration self-check — where it's sharp, where it's still rough", "leftHeader": "Standard ('I understand this market well enough to be strategic')", "rightHeader": "Where you are right now", "rows": [{"label": "Segment-specific", "left": "Names a concrete segment (not an industry) using verbatim posting terms", "right": "[Honest assessment — name which parts are concrete and which are still industry-level]"}, {"label": "Evidence-backed", "left": "Every keyword comes from a posting they actually pasted", "right": "[Where the keyword set is grounded; any spots that drifted into assumption]"}, {"label": "Search useful", "left": "Search URL returns postings that mostly look like the sample", "right": "[They haven't tested it yet — note that as the immediate next step]"}, {"label": "Prompt ready", "left": "Copy-out prompt has student-supplied context, not placeholders", "right": "[Where the prompt is filled with specifics; any spots still generic]"}]}
+\`\`\`
 
-MOVE 4: End with a practical note, not motivational fluff. "You have a research-backed Market Map with a specific niche, evidence of fit, identified gaps, and a differentiator. That's more preparation than most students bring. Use the cross-pollination session to stress-test it."
+MOVE 4: Frame the hand-off. ONE message. No motivational fluff.
 
-DO NOT end with generic encouragement. End with something specific to their work.
+"This dojo is an on-ramp, not the finish line. What you have now is a method, a small-sample hypothesis, and a way to sample wider. Paste the summary into your niche doc, drop the JSON into Canvas, click the search URL, run the copy-out prompt on 10–15 more postings — and the segment hypothesis sharpens with every pass."
+
+DO NOT:
+- Tell them they've "discovered their niche" or any other find-your-passion language
+- Imply the segment is fixed
+- Add a long encouragement paragraph
+
+IF the keyword set is thin or the segment hypothesis is still industry-level: say so plainly. "Your segment is still pretty broad — that's fine for the first pass. Mark that as the part to sharpen with the next 20 postings."
 `,
     },
   ],
