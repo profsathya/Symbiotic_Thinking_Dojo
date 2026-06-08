@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 
 # Anthropic API
@@ -17,10 +18,12 @@ DATABASE_URL: str = os.environ.get("DATABASE_URL", "")  # For postgres
 CORS_ORIGINS: list[str] = [
     origin.strip()
     for origin in os.environ.get(
-        "CORS_ORIGINS", "https://symbioticthinking.ai,https://dojo.symbioticthinking.ai,http://localhost:3000,http://127.0.0.1:3000"
+        "CORS_ORIGINS", "https://symbioticthinking.ai,https://dojo.symbioticthinking.ai,http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:3002,http://127.0.0.1:3002,http://localhost:3003,http://127.0.0.1:3003,http://localhost:3004,http://127.0.0.1:3004"
     ).split(",")
     if origin.strip()
 ]
+
+CORS_METHODS: list[str] = ["GET", "POST", "DELETE", "OPTIONS"]
 
 # Rate limiting
 RATE_LIMIT_REQUESTS: int = int(os.environ.get("RATE_LIMIT_REQUESTS", "10"))
@@ -54,16 +57,20 @@ def get_provider_api_key(provider: str, key_id: Optional[str] = None) -> str:
         # First check if student has a specific key assigned
         if key_id:
             student_keys = database.get_student_provider_keys(key_id)
-            if student_keys.get(provider):
-                return student_keys[provider]
-        
+            provider_key_id = student_keys.get(provider)
+            if provider_key_id:
+                # Look up the actual key value from the provider_keys table
+                provider_key = database.get_provider_key_by_id(provider_key_id)
+                if provider_key:
+                    return provider_key['key_value']
+
         # Then check global provider key pool
         provider_key = database.get_active_provider_key(provider)
         if provider_key:
             return provider_key['key_value']
     except:
         pass
-    
+
     # Fallback to environment variables
     if provider == 'openai':
         return OPENAI_API_KEY

@@ -332,12 +332,27 @@ def set_key_active(key_id: str, active: bool) -> None:
         db.execute(f"UPDATE cti_keys SET active = {_PH} WHERE id = {_PH}", (active, key_id))
 
 
+def delete_key(key_id: str) -> None:
+    """Delete a CTI key."""
+    with get_db() as db:
+        db.execute(f"DELETE FROM cti_keys WHERE id = {_PH}", (key_id,))
+
+
 def add_budget(key_id: str, tokens: int) -> None:
     """Increase the total budget for a key."""
     with get_db() as db:
         db.execute(
             f"UPDATE cti_keys SET total_budget_tokens = total_budget_tokens + {_PH} WHERE id = {_PH}",
             (tokens, key_id),
+        )
+
+
+def set_budget(key_id: str, total_budget: int) -> None:
+    """Set the total budget for a key to a specific value."""
+    with get_db() as db:
+        db.execute(
+            f"UPDATE cti_keys SET total_budget_tokens = {_PH} WHERE id = {_PH}",
+            (total_budget, key_id),
         )
 
 
@@ -459,6 +474,12 @@ def get_provider_keys_by_provider(provider: str) -> List[Dict[str, Any]]:
     """Get all provider keys for a specific provider."""
     with get_db() as db:
         return db.query_all(f"SELECT * FROM provider_keys WHERE provider = {_PH} AND active = TRUE ORDER BY created_at DESC", (provider,))
+
+
+def get_provider_key_by_id(key_id: str) -> Optional[Dict[str, Any]]:
+    """Get a provider key by its ID."""
+    with get_db() as db:
+        return db.query_one(f"SELECT * FROM provider_keys WHERE id = {_PH}", (key_id,))
 
 
 def get_active_provider_key(provider: str) -> Optional[Dict[str, Any]]:

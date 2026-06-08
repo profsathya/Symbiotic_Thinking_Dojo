@@ -1,149 +1,130 @@
 # CTI Admin Dashboard
 
-A web-based admin dashboard for managing CTI keys, replacing the CLI-based `manage_keys.py` for day-to-day operations.
+A **separate** web-based admin dashboard for managing provider API keys. This is a standalone Next.js application that connects to the CTI backend API.
+
+## Why Separate?
+
+The admin dashboard is deployed separately from the public Dojo application for security:
+- Dojo app → Public internet, student-facing
+- Admin dashboard → Private/internal, for coordinators only
+- Both share the same backend API but have separate frontend deployments
 
 ## Features
 
-- **Key Management**: Create, deactivate, reactivate, and top up CTI keys
-- **Usage Monitoring**: View real-time token usage with visual progress bars
-- **Statistics**: Overview of total keys, active keys, budget allocation, and usage
-- **Search & Filter**: Search by email, name, or key ID; filter by active status
-- **Export**: Download usage data as CSV for reporting
-- **Bulk Operations**: Create multiple keys at once (via API)
+- **Provider Key Management**: Add, activate, deactivate, and delete API keys for OpenAI, Anthropic, Google, GitHub
+- **Key Organization**: Group keys by provider with labels and notes
+- **Status Tracking**: View key status (active/inactive) and last used dates
+- **No Authentication**: Simplified deployment for internal use (add your own auth layer if needed)
 
 ## Setup
 
 ### 1. Environment Variables
 
-Add these to your `.env.local` file (or backend environment for production):
+Create a `.env.local` file in the admin-dashboard directory:
 
 ```bash
-# Backend (for production, set in Cloud Run / Secret Manager)
-ADMIN_API_KEY=your-secret-admin-key-here
-
-# Frontend (for Next.js)
 NEXT_PUBLIC_API_URL=http://localhost:8000  # or your production backend URL
 ```
 
-Generate a secure admin key:
+### 2. Install Dependencies
+
 ```bash
-openssl rand -hex 32
+cd admin-dashboard
+npm install
 ```
 
-### 2. Start the Backend
+### 3. Start the Backend
 
 ```bash
 cd backend
-# Using the virtual environment you created
 venv/bin/python3 -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 3. Start the Frontend
+### 4. Start the Admin Dashboard
 
 ```bash
-# From project root
+cd admin-dashboard
 npm run dev
 ```
 
-### 4. Access the Dashboard
+### 5. Access the Dashboard
 
-Navigate to: `http://localhost:3000/admin`
-
-Enter your `ADMIN_API_KEY` to log in.
+Navigate to: `http://localhost:3000`
 
 ## API Endpoints
 
-All admin endpoints require the `X-Admin-Key` header.
+The admin dashboard connects to the CTI backend API. Provider key endpoints:
 
-### List Keys
+### List Provider Keys
 ```
-GET /api/admin/keys?active_only=false
-```
-
-### Get Single Key
-```
-GET /api/admin/keys/{key_id}
+GET /api/admin/provider-keys
 ```
 
-### Create Key
+### Create Provider Key
 ```
-POST /api/admin/keys
+POST /api/admin/provider-keys
 Body: {
-  "email": "student@example.edu",
-  "name": "Student Name",
-  "budget": 5000000,
-  "expires": "2026-12-31",
-  "notes": "Cohort 12"
+  "provider": "openai|anthropic|google|github",
+  "key_value": "sk-...",
+  "label": "Optional label",
+  "notes": "Optional notes"
 }
 ```
 
-### Bulk Create Keys
+### Activate/Deactivate Provider Key
 ```
-POST /api/admin/keys/bulk
-Body: {
-  "students": [
-    {"email": "student1@example.edu", "name": "Student 1"},
-    {"email": "student2@example.edu", "name": "Student 2"}
-  ],
-  "budget": 5000000,
-  "expires": "2026-12-31"
-}
+POST /api/admin/provider-keys/{key_id}/activate
+POST /api/admin/provider-keys/{key_id}/deactivate
 ```
 
-### Deactivate Key
+### Delete Provider Key
 ```
-POST /api/admin/keys/{key_id}/deactivate
-```
-
-### Reactivate Key
-```
-POST /api/admin/keys/{key_id}/reactivate
-```
-
-### Add Budget
-```
-POST /api/admin/keys/{key_id}/add-budget
-Body: {"tokens": 1000000}
-```
-
-### Get Statistics
-```
-GET /api/admin/stats
-```
-
-### Export Usage
-```
-GET /api/admin/usage
+DELETE /api/admin/provider-keys/{key_id}
 ```
 
 ## CLI vs Dashboard
 
-The CLI (`manage_keys.py`) remains available and is still the recommended approach for:
+The CLI (`manage_keys.py`) is used for:
+- CTI key management (student keys, budgets, usage)
 - Bulk key creation from CSV files
-- Production deployments via the shell scripts (`create_prod_key.sh`, `create_prod_keys.sh`)
-- Automated workflows and scripting
+- Production deployments via shell scripts
 
-The dashboard is best for:
-- Day-to-day monitoring and management
-- Quick key creation and top-ups
-- Visual usage tracking
-- Ad-hoc operations
+The admin dashboard is used for:
+- Provider API key management (OpenAI, Anthropic, Google, GitHub)
+- Visual organization of provider keys
+- Quick activation/deactivation of keys
 
 ## Security
 
-- The admin API is protected by the `ADMIN_API_KEY` environment variable
-- All admin endpoints require the `X-Admin-Key` header
-- In production, store `ADMIN_API_KEY` in Secret Manager (GCP) or equivalent
-- The dashboard should be deployed behind authentication (e.g., Cloud Identity-Aware Proxy)
+The admin dashboard has **no built-in authentication**. For production:
+
+1. **Network-level protection**: Deploy behind a VPN or internal network
+2. **Add authentication**: Integrate Auth0, Firebase Auth, or similar
+3. **Reverse proxy**: Use Cloud Identity-Aware Proxy (IAP) or similar
+4. **CORS**: Ensure backend only accepts requests from your admin dashboard domain
 
 ## Production Deployment
 
 ### Backend
-- Set `ADMIN_API_KEY` in your Cloud Run environment variables or Secret Manager
-- Ensure the admin router is included in `main.py`
-- Update CORS origins to include your production frontend domain
+- Deploy the CTI backend (FastAPI) to Cloud Run or similar
+- Ensure provider key endpoints are available
+- Configure CORS to allow requests from admin dashboard domain
 
-### Frontend
-- Set `NEXT_PUBLIC_API_URL` to your production backend URL
-- Deploy the Next.js app to your hosting platform (Vercel, Cloud Run, etc.)
-- Consider adding additional authentication (e.g., Auth0, Firebase Auth) to protect the `/admin` route
+### Admin Dashboard
+```bash
+cd admin-dashboard
+npm run build
+npm start
+```
+
+Deploy to:
+- Vercel, Netlify, or similar (add auth layer)
+- Cloud Run (use IAP for authentication)
+- Internal hosting behind VPN
+
+### Example Deployment with Cloud Run + IAP
+
+1. Build and deploy admin dashboard to Cloud Run
+2. Enable Cloud Identity-Aware Proxy on the service
+3. Configure IAP to only allow your Google Workspace users
+4. Set `NEXT_PUBLIC_API_URL` to your backend URL
