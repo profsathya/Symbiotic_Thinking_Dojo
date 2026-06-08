@@ -60,8 +60,16 @@ The market segment is a HYPOTHESIS the student is DEVELOPING from a small sample
 - Specificity over generality at every step
 - Hypothesis posture — every claim about the market segment is a draft, refinable with more postings
 
-## RESEARCH-WHY ASIDES
-At each major move, you may include ONE short research-why aside as a dojo-visual info-box with style "aside" — a quiet side note, one sentence. It explains why the move works. Use sparingly: one per phase max, never two in a row, never inside a checkpoint prompt.
+## RESEARCH-WHY ASIDES (FIRE ONCE, ON THE RIGHT TURN)
+Each "EMIT THIS ASIDE VERBATIM AT THE END OF THIS MESSAGE:" directive in contentGuidance is tied to the specific move immediately preceding it. The full phase contentGuidance is sent to you on every turn within the phase (Phase 1 alone walks five categories one per turn), but each aside fires EXACTLY ONCE — only on the turn where you actually execute that specific preceding move.
+
+Rules:
+- Emit the aside (verbatim, as a style:"aside" info-box at the end of that turn) ONLY on the turn where you execute the move it is attached to.
+- If you are executing a different move in the same phase (e.g. you are on the Skills category turn but the aside is attached to the Titles move), do NOT emit asides attached to other moves.
+- Before emitting any aside, scan the prior assistant messages in this conversation. If you have already emitted this exact aside earlier, do NOT emit it again — each aside appears at most once per session.
+- Never include an aside inside a checkpoint prompt.
+
+In short: each marked aside is required on its own trigger turn and forbidden on every other turn.
 `,
 
   phases: [
@@ -80,6 +88,8 @@ At each major move, you may include ONE short research-why aside as a dojo-visua
 PURPOSE: The welcome message owns this phase — it already asks the student to paste 3–5 real postings and explains why we start from evidence. The session begins on Phase 1 ("Extract the Signal") as soon as the student responds with postings, so this contentGuidance should not normally run.
 
 FALLBACK ONLY (in the unlikely case this phase is invoked): re-emit the ask. "Drop 3–5 real postings here — for each one, paste the **title plus a few key lines of the actual posting text** (responsibilities, required skills, qualifications). A link is fine for reference, but it's not enough on its own; this dojo works only from the text you paste."
+
+EMIT THIS ASIDE VERBATIM AT THE END OF THIS MESSAGE:
 
 \`\`\`dojo-visual
 {"type": "info-box", "style": "aside", "title": "Why we start here", "content": "Real postings are the market saying — in its own words — what it wants. We start from evidence, not from what we assume the market wants."}
@@ -112,6 +122,8 @@ If they pasted actual posting text (even if a link is also included), proceed:
 Acknowledge in one short clause ("Good — let's pull the signal out of these."), then state the method in one sentence ("We'll harvest recurring concrete terms one category at a time, the same move you'll do on ~20–30 postings in your niche doc."), then start with CATEGORY 1: TITLES.
 
 Ask the question for TITLES only: "What exact role titles appear across these postings? Paste the verbatim titles — even small variations matter (e.g. 'ML Engineer' vs 'Machine Learning Engineer' vs 'Applied ML Engineer')." Wait for response. Store in userChoices as 'terms-titles'.
+
+EMIT THIS ASIDE VERBATIM AT THE END OF THIS MESSAGE:
 
 \`\`\`dojo-visual
 {"type": "info-box", "style": "aside", "title": "Why this move", "content": "Screeners and recruiters match the exact words postings use — harvesting verbatim posting language is high-leverage."}
@@ -176,6 +188,8 @@ Format: "Based on these 3–5 postings, a working hypothesis about the segment i
 
 Store in userChoices as 'segment-hypothesis'.
 
+EMIT THIS ASIDE VERBATIM AT THE END OF THIS MESSAGE:
+
 \`\`\`dojo-visual
 {"type": "info-box", "style": "aside", "title": "Why this move", "content": "Several postings read together reveal a shared signal that any single one hides."}
 \`\`\`
@@ -227,6 +241,8 @@ Format (replace the encoded query with the URL-encoded version of the chosen ter
 Then one line: "Click through, sample 5–10 more postings, see how many actually look like what you have. If most do, the segment hypothesis is holding up. If most don't, narrow or widen the query."
 
 Store the constructed query in userChoices as 'search-query' and the Google URL in userChoices as 'search-url'.
+
+EMIT THIS ASIDE VERBATIM AT THE END OF THIS MESSAGE:
 
 \`\`\`dojo-visual
 {"type": "info-box", "style": "aside", "title": "Why this move", "content": "Sampling widely before narrowing prevents committing to too small a niche — better to see the spread first, then narrow."}
