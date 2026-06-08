@@ -123,6 +123,23 @@ export default function Home() {
     apiKey,
     provider,
     practiceDojoContext,
+    onPhaseComplete: () => {
+      // The Practice Dojo model emits [NEXT_PHASE] at the end of a turn
+      // when the current phase's STAY-UNTIL condition is met. Advance
+      // unless we're already on the last phase of the active topic.
+      // CRITICAL: only act when a dojo session is actively running.
+      // exitSession() leaves topicId / currentPhase intact for resume,
+      // so a literal `[NEXT_PHASE]` appearing in an ordinary chat
+      // (e.g. the assistant explains the marker) would otherwise
+      // corrupt the saved dojo progress.
+      if (!isActive) return;
+      if (!topicId) return;
+      const topic = topicConfig.getTopicWithCustomizations(topicId);
+      if (!topic) return;
+      if (currentPhaseIndex + 1 < topic.phases.length) {
+        practiceDojoState.advancePhase();
+      }
+    },
   });
 
   // Handle hydration
