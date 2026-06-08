@@ -60,8 +60,16 @@ The market segment is a HYPOTHESIS the student is DEVELOPING from a small sample
 - Specificity over generality at every step
 - Hypothesis posture — every claim about the market segment is a draft, refinable with more postings
 
-## RESEARCH-WHY ASIDES (NON-OPTIONAL)
-Any aside marked in contentGuidance with the directive "EMIT THIS ASIDE VERBATIM AT THE END OF THIS MESSAGE:" is REQUIRED. Emit it verbatim as a style:"aside" info-box dojo-visual block at the end of that turn — do not omit, paraphrase, summarize, or relocate it. Students rely on these research-why notes to understand the method. The only constraint: never include an aside inside a checkpoint prompt.
+## RESEARCH-WHY ASIDES (FIRE ONCE, ON THE RIGHT TURN)
+Each "EMIT THIS ASIDE VERBATIM AT THE END OF THIS MESSAGE:" directive in contentGuidance is tied to the specific move immediately preceding it. The full phase contentGuidance is sent to you on every turn within the phase (Phase 1 alone walks five categories one per turn), but each aside fires EXACTLY ONCE — only on the turn where you actually execute that specific preceding move.
+
+Rules:
+- Emit the aside (verbatim, as a style:"aside" info-box at the end of that turn) ONLY on the turn where you execute the move it is attached to.
+- If you are executing a different move in the same phase (e.g. you are on the Skills category turn but the aside is attached to the Titles move), do NOT emit asides attached to other moves.
+- Before emitting any aside, scan the prior assistant messages in this conversation. If you have already emitted this exact aside earlier, do NOT emit it again — each aside appears at most once per session.
+- Never include an aside inside a checkpoint prompt.
+
+In short: each marked aside is required on its own trigger turn and forbidden on every other turn.
 `,
 
   phases: [
