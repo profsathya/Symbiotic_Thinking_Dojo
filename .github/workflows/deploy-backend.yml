@@ -59,7 +59,7 @@ jobs:
             --region ${{ env.REGION }} \
             --platform managed \
             --allow-unauthenticated \
-            --memory 256Mi \
+            --memory 512Mi \
             --min-instances 0 \
             --max-instances 5 \
             --add-cloudsql-instances ${{ secrets.GCP_PROJECT_ID }}:us-central1:dojo-db \
