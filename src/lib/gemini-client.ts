@@ -10,6 +10,7 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { QuotaExceededError } from './providers/types';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -27,22 +28,10 @@ export interface StreamChatOptions {
   signal?: AbortSignal;
 }
 
-/**
- * Custom error class for quota exceeded errors with retry information
- */
-export class QuotaExceededError extends Error {
-  retryAfterSeconds: number | null;
-  isFreeTier: boolean;
-  isDailyLimit: boolean;
-
-  constructor(message: string, retryAfterSeconds: number | null = null, isFreeTier: boolean = false, isDailyLimit: boolean = false) {
-    super(message);
-    this.name = 'QuotaExceededError';
-    this.retryAfterSeconds = retryAfterSeconds;
-    this.isFreeTier = isFreeTier;
-    this.isDailyLimit = isDailyLimit;
-  }
-}
+// Re-export the shared error class. This module previously defined its own
+// copy, which broke `instanceof QuotaExceededError` checks in useChat (the
+// retry countdown never appeared for Gemini quota errors).
+export { QuotaExceededError };
 
 /**
  * Parse quota error message to extract retry delay and tier information
@@ -57,28 +46,22 @@ function parseQuotaError(errorMessage: string): { retrySeconds: number | null; i
     isFreeTier = true;
   }
 
-  // Check if it's a daily limit (not just per-minute rate limit)
-  // Daily limits typically mention "PerDay" or have low limits like "limit: 20"
+  // Check if it's a daily limit (not just per-minute rate limit).
+  // Only trust explicit per-day markers in the error. We previously also
+  // treated any free-tier error with "limit: N" (N <= 50) as daily, but that
+  // misclassified per-MINUTE limits (e.g. 10 requests/min) as daily exhaustion
+  // — students saw "you've used all your requests for today" when they only
+  // needed to wait a minute.
   if (errorMessage.includes('PerDay') ||
       errorMessage.includes('per_day') ||
       errorMessage.includes('per day')) {
     isDailyLimit = true;
   }
 
-  // Also check for the specific free tier daily limit pattern
-  // The error mentions "limit: 20" which is the daily free tier limit
-  const limitMatch = errorMessage.match(/limit:\s*(\d+)/i);
-  if (limitMatch && isFreeTier) {
-    const limit = parseInt(limitMatch[1], 10);
-    // Free tier daily limit is typically 20 or similar low number
-    if (limit <= 50) {
-      isDailyLimit = true;
-    }
-  }
-
   // Try to extract retry delay from message
-  // Pattern: "Please retry in 16.147817032s" or "retryDelay":"16s"
-  const retryMatch = errorMessage.match(/retry\s*(?:in\s*)?(\d+(?:\.\d+)?)\s*s/i);
+  // Patterns: "Please retry in 16.147817032s" or "retryDelay":"16s"
+  const retryMatch = errorMessage.match(/retry\s*(?:in\s*)?(\d+(?:\.\d+)?)\s*s/i) ||
+                     errorMessage.match(/retryDelay["']?\s*[:=]\s*["']?(\d+(?:\.\d+)?)s/i);
   if (retryMatch) {
     retrySeconds = Math.ceil(parseFloat(retryMatch[1]));
   }
@@ -97,7 +80,7 @@ function formatQuotaErrorMessage(retrySeconds: number | null, isFreeTier: boolea
     message += '**What now?**\n';
     message += '• Your quota resets at **midnight Pacific Time**\n';
     message += '• Upgrade to a paid API key at [Google AI Studio](https://aistudio.google.com/apikey) for higher limits\n';
-    message += '• The free tier allows ~20 requests per day\n';
+    message += '• The free tier has a daily request cap — check [your usage](https://aistudio.google.com/) for details\n';
     return message;
   }
 

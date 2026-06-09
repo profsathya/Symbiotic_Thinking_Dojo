@@ -4,9 +4,10 @@ import os
 # Anthropic API
 ANTHROPIC_API_KEY: str = os.environ.get("ANTHROPIC_API_KEY", "")
 
-# Model identifiers — update these when new model versions are released
-SONNET_MODEL: str = os.environ.get("SONNET_MODEL", "claude-sonnet-4-20250514")
-HAIKU_MODEL: str = os.environ.get("HAIKU_MODEL", "claude-haiku-4-5-20241022")
+# Model identifiers — update these when new model versions are released.
+# Use Anthropic's aliases so deployments don't break when a dated snapshot retires.
+SONNET_MODEL: str = os.environ.get("SONNET_MODEL", "claude-sonnet-4-6")
+HAIKU_MODEL: str = os.environ.get("HAIKU_MODEL", "claude-haiku-4-5")
 
 # Database
 DATABASE_TYPE: str = os.environ.get("DATABASE_TYPE", "sqlite")  # "sqlite" or "postgres"
