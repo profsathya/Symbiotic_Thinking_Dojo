@@ -19,9 +19,15 @@ def check_rate_limit(key_id: str) -> None:
     _request_log[key_id] = [t for t in timestamps if t > window_start]
 
     if len(_request_log[key_id]) >= RATE_LIMIT_REQUESTS:
+        oldest = min(_request_log[key_id])
+        retry_after = max(1, int(oldest + RATE_LIMIT_WINDOW_SECONDS - now) + 1)
         raise HTTPException(
             status_code=429,
-            detail=f"Rate limited: max {RATE_LIMIT_REQUESTS} requests per {RATE_LIMIT_WINDOW_SECONDS}s",
+            detail=(
+                f"Rate limited: max {RATE_LIMIT_REQUESTS} requests per "
+                f"{RATE_LIMIT_WINDOW_SECONDS}s. Try again in {retry_after} seconds."
+            ),
+            headers={"Retry-After": str(retry_after)},
         )
 
     _request_log[key_id].append(now)

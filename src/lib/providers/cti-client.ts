@@ -8,7 +8,7 @@
  * backend server. No conversation content is logged server-side.
  */
 
-import { StreamChatOptions, getCtiBackendUrl } from './types';
+import { StreamChatOptions, getCtiBackendUrl, QuotaExceededError } from './types';
 
 export interface BudgetInfo {
   remaining_tokens: number;
@@ -32,6 +32,26 @@ export async function fetchCtiBudget(apiKey: string): Promise<BudgetInfo> {
   }
 
   return response.json();
+}
+
+/**
+ * Extract a retry delay (seconds) from a 429 response.
+ * Checks the Retry-After header, then the JSON body, then falls back to 30s.
+ */
+function parseRetrySeconds(response: Response, body: Record<string, unknown>): number {
+  const header = response.headers.get('Retry-After');
+  if (header) {
+    const parsed = parseInt(header, 10);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+  if (typeof body.retry_after_seconds === 'number' && body.retry_after_seconds > 0) {
+    return Math.ceil(body.retry_after_seconds);
+  }
+  // Backend rate limiter detail includes "Try again in N seconds."
+  const detail = typeof body.detail === 'string' ? body.detail : '';
+  const match = detail.match(/try again in (\d+)/i);
+  if (match) return parseInt(match[1], 10);
+  return 30;
 }
 
 /**
@@ -89,7 +109,24 @@ export async function streamCtiChat({
         return '';
       }
       if (response.status === 429) {
-        onError(new Error('Rate limited. Please wait a moment and try again.'));
+        // Rate limit (per-key or the program's shared upstream limit) — this is
+        // temporary and does NOT consume or reflect the student's token budget.
+        const retrySeconds = parseRetrySeconds(response, body);
+        const message = `⏳ **The Dojo is busy right now**\n\n` +
+          `Too many requests in a short time — this happens when the whole class is working at once.\n\n` +
+          `**Try again in ${retrySeconds} seconds.** Your token budget is not affected.`;
+        onError(new QuotaExceededError(message, retrySeconds, false, false));
+        return '';
+      }
+
+      if (response.status === 502 || response.status === 503) {
+        // Upstream (Anthropic) problem with the program's shared account or
+        // service — never the student's budget. Don't surface raw upstream
+        // billing language, which reads as "your credits ran out."
+        const message = detail.toLowerCase().includes('credit') || detail.toLowerCase().includes('billing')
+          ? 'The Dojo\'s shared AI account needs attention from the program coordinator. This is not your token budget — please notify your coordinator.'
+          : `The AI service had a temporary problem. Please try again in a moment. (${detail})`;
+        onError(new Error(message));
         return '';
       }
 

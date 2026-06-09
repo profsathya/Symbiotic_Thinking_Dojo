@@ -8,7 +8,7 @@
  * to the configured AI provider. No conversation content is logged.
  */
 
-import { StreamChatOptions } from './types';
+import { StreamChatOptions, QuotaExceededError } from './types';
 
 /**
  * Check if the Commons Chat API is available
@@ -72,8 +72,9 @@ export async function streamCommonsChat({
       if (response.status === 429) {
         const retrySeconds = body.retry_after_seconds || 60;
         onError(
-          new Error(
+          new QuotaExceededError(
             `Rate limited. Please wait ${retrySeconds} seconds and try again.`,
+            retrySeconds,
           ),
         );
         return '';
