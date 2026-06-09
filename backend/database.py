@@ -11,6 +11,18 @@ _local = threading.local()
 # PostgreSQL uses %s for placeholders, SQLite uses ?
 _PH = "%s" if DATABASE_TYPE == "postgres" else "?"
 
+
+def _serialize_datetime(value: Any) -> Any:
+    """Convert datetime objects to ISO format strings."""
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return value
+
+
+def _serialize_row(row: Dict[str, Any]) -> Dict[str, Any]:
+    """Serialize datetime fields in a row to ISO format strings."""
+    return {key: _serialize_datetime(value) for key, value in row.items()}
+
 CREATE_TABLE_SQL_SQLITE = """
 CREATE TABLE IF NOT EXISTS cti_keys (
     id TEXT PRIMARY KEY,
@@ -285,7 +297,10 @@ def init_db() -> None:
 def get_key(key_id: str) -> Optional[Dict[str, Any]]:
     """Look up a CTI key by its ID."""
     with get_db() as db:
-        return db.query_one(f"SELECT * FROM cti_keys WHERE id = {_PH}", (key_id,))
+        row = db.query_one(f"SELECT * FROM cti_keys WHERE id = {_PH}", (key_id,))
+        if row:
+            return _serialize_row(row)
+        return None
 
 
 def update_usage(key_id: str, input_tokens: int, output_tokens: int) -> None:
@@ -396,7 +411,8 @@ def list_keys(active_only: bool = False) -> List[Dict[str, Any]]:
         if active_only:
             query += " WHERE active = TRUE"
         query += " ORDER BY created_at DESC"
-        return db.query_all(query)
+        rows = db.query_all(query)
+        return [_serialize_row(row) for row in rows]
 
 
 def create_admin_key(key_id: str, key_value: str, label: Optional[str] = None, notes: Optional[str] = None) -> None:
