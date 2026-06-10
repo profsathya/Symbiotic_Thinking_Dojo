@@ -64,7 +64,7 @@ jobs:
             --max-instances 5 \
             --add-cloudsql-instances ${{ secrets.GCP_PROJECT_ID }}:us-central1:dojo-db \
             --set-secrets "ANTHROPIC_API_KEY=anthropic-api-key:latest,DATABASE_URL=database-url:latest" \
-            --set-env-vars "CORS_ORIGINS=${{ vars.CORS_ORIGINS || 'https://symbioticthinking.ai,https://dojo.symbioticthinking.ai' }},DATABASE_TYPE=postgres" \
+            --set-env-vars "CORS_ORIGINS=https://symbioticthinking.ai,https://dojo.symbioticthinking.ai,https://symbiotic-thinking.netlify.app,http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,DATABASE_TYPE=postgres,RATE_LIMIT_REQUESTS=1000" \
             --execution-environment gen2 \
             --quiet
 
