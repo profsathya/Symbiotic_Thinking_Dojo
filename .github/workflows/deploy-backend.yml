@@ -79,3 +79,12 @@ jobs:
             --region ${{ env.REGION }} \
             --format 'value(status.url)')
           echo "## Backend deployed to: $URL" >> $GITHUB_STEP_SUMMARY
+
+      - name: Verify environment variables
+        run: |
+          echo "## Environment Variables" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format 'value(spec.template.spec.containers[0].env)' >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
