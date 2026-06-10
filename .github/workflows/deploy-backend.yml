@@ -54,9 +54,11 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |
-          echo "CORS_ORIGINS=https://symbioticthinking.ai,https://dojo.symbioticthinking.ai,https://symbiotic-thinking.netlify.app,http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001" > env_vars.txt
-          echo "DATABASE_TYPE=postgres" >> env_vars.txt
-          echo "RATE_LIMIT_REQUESTS=1000" >> env_vars.txt
+          cat > env_vars.yaml << EOF
+          CORS_ORIGINS: https://symbioticthinking.ai,https://dojo.symbioticthinking.ai,https://symbiotic-thinking.netlify.app,http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001
+          DATABASE_TYPE: postgres
+          RATE_LIMIT_REQUESTS: 1000
+          EOF
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image ${{ env.IMAGE }}:${{ github.sha }} \
             --region ${{ env.REGION }} \
@@ -67,7 +69,7 @@ jobs:
             --max-instances 5 \
             --add-cloudsql-instances ${{ secrets.GCP_PROJECT_ID }}:us-central1:dojo-db \
             --set-secrets "ANTHROPIC_API_KEY=anthropic-api-key:latest,DATABASE_URL=database-url:latest" \
-            --env-vars-file env_vars.txt \
+            --env-vars-file env_vars.yaml \
             --execution-environment gen2 \
             --quiet
 
