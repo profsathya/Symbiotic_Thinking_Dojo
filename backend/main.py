@@ -9,6 +9,7 @@ import database
 from config import CORS_ORIGINS
 from router_budget import router as budget_router
 from router_chat import router as chat_router
+from router_admin import router as admin_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,6 +28,7 @@ app.add_middleware(
 
 app.include_router(chat_router)
 app.include_router(budget_router)
+app.include_router(admin_router)
 
 
 @app.on_event("startup")
