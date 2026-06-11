@@ -1,4 +1,5 @@
 from typing import List, Optional
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Header, status
 from pydantic import BaseModel, Field
@@ -7,12 +8,16 @@ import database
 from config import ADMIN_API_KEY, DATABASE_TYPE, DATABASE_PATH, DATABASE_URL, get_admin_api_key, RATE_LIMIT_REQUESTS, RATE_LIMIT_WINDOW_SECONDS
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 # Authentication
 async def verify_admin(x_admin_key: Optional[str] = Header(None)) -> None:
     """Verify admin API key from X-Admin-Key header."""
+    logger.info(f"Admin auth attempt - provided key: {x_admin_key[:10] if x_admin_key else None}...")
+    
     if not x_admin_key:
+        logger.warning("Admin auth failed: No key provided")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Admin API key required"
@@ -21,13 +26,22 @@ async def verify_admin(x_admin_key: Optional[str] = Header(None)) -> None:
     # Check against database admin keys first
     admin_key = database.validate_admin_key(x_admin_key)
     if admin_key:
+        logger.info(f"Admin auth successful via database: {admin_key['id']}")
         return
+    
+    logger.info("Database check failed, checking legacy ADMIN_API_KEY")
     
     # Fallback to legacy ADMIN_API_KEY from config
     current_key = get_admin_api_key()
+    logger.info(f"ADMIN_API_KEY from config: '{current_key[:10] if current_key else None}...' (length: {len(current_key) if current_key else 0})")
+    logger.info(f"Provided key: '{x_admin_key[:10]}...' (length: {len(x_admin_key)})")
+    logger.info(f"String comparison: {current_key == x_admin_key if current_key else 'No config key'}")
+    
     if current_key and x_admin_key == current_key:
+        logger.info("Admin auth successful via legacy ADMIN_API_KEY")
         return
     
+    logger.warning(f"Admin auth failed: Invalid key")
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid admin API key"
