@@ -102,7 +102,7 @@ jobs:
         run: |
           echo "## ADMIN_API_KEY Secret Check (DEBUG)" >> $GITHUB_STEP_SUMMARY
           echo "Secret value (first 10 chars):" >> $GITHUB_STEP_SUMMARY
-          SECRET_VALUE=$(gcloud secrets versions access admin-api-key --version latest)
+          SECRET_VALUE=$(gcloud secrets versions access latest --secret=admin-api-key)
           echo "${SECRET_VALUE:0:10}..." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Environment variables:" >> $GITHUB_STEP_SUMMARY
