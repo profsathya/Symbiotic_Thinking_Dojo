@@ -23,7 +23,38 @@ CREATE TABLE IF NOT EXISTS cti_keys (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     expires_at DATETIME,
     last_used_at DATETIME,
-    notes TEXT
+    notes TEXT,
+    openai_key TEXT,
+    anthropic_key TEXT,
+    google_key TEXT,
+    github_key TEXT
+);
+
+CREATE TABLE IF NOT EXISTS admin_keys (
+    id TEXT PRIMARY KEY,
+    key_value TEXT NOT NULL,
+    label TEXT,
+    notes TEXT,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_used_at DATETIME
+);
+
+CREATE TABLE IF NOT EXISTS admin_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS provider_keys (
+    id TEXT PRIMARY KEY,
+    provider TEXT NOT NULL,
+    key_value TEXT NOT NULL,
+    label TEXT,
+    notes TEXT,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_used_at DATETIME
 );
 """
 
@@ -39,7 +70,38 @@ CREATE TABLE IF NOT EXISTS cti_keys (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP,
     last_used_at TIMESTAMP,
-    notes TEXT
+    notes TEXT,
+    openai_key TEXT,
+    anthropic_key TEXT,
+    google_key TEXT,
+    github_key TEXT
+);
+
+CREATE TABLE IF NOT EXISTS admin_keys (
+    id TEXT PRIMARY KEY,
+    key_value TEXT NOT NULL,
+    label TEXT,
+    notes TEXT,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_used_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS admin_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS provider_keys (
+    id TEXT PRIMARY KEY,
+    provider TEXT NOT NULL,
+    key_value TEXT NOT NULL,
+    label TEXT,
+    notes TEXT,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_used_at TIMESTAMP
 );
 """
 
@@ -151,15 +213,19 @@ def create_key(
     total_budget_tokens: int = 5_000_000,
     expires_at: Optional[str] = None,
     notes: Optional[str] = None,
+    openai_key: Optional[str] = None,
+    anthropic_key: Optional[str] = None,
+    google_key: Optional[str] = None,
+    github_key: Optional[str] = None,
 ) -> None:
     """Insert a new CTI key."""
     with get_db() as db:
         db.execute(
             f"""
-            INSERT INTO cti_keys (id, student_email, student_name, total_budget_tokens, expires_at, notes)
-            VALUES ({_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH})
+            INSERT INTO cti_keys (id, student_email, student_name, total_budget_tokens, expires_at, notes, openai_key, anthropic_key, google_key, github_key)
+            VALUES ({_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH})
             """,
-            (key_id, student_email, student_name, total_budget_tokens, expires_at, notes),
+            (key_id, student_email, student_name, total_budget_tokens, expires_at, notes, openai_key, anthropic_key, google_key, github_key),
         )
 
 
@@ -178,6 +244,27 @@ def add_budget(key_id: str, tokens: int) -> None:
         )
 
 
+def delete_key(key_id: str) -> None:
+    """Delete a CTI key."""
+    with get_db() as db:
+        db.execute(f"DELETE FROM cti_keys WHERE id = {_PH}", (key_id,))
+
+
+def set_budget(key_id: str, total_budget: int) -> None:
+    """Set the total budget for a key to a specific value."""
+    with get_db() as db:
+        db.execute(
+            f"UPDATE cti_keys SET total_budget_tokens = {_PH} WHERE id = {_PH}",
+            (total_budget, key_id),
+        )
+
+
+def update_key_label(key_id: str, label: str) -> None:
+    """Update the label for a CTI key."""
+    with get_db() as db:
+        db.execute(f"UPDATE cti_keys SET notes = {_PH} WHERE id = {_PH}", (label, key_id))
+
+
 def list_keys(active_only: bool = False) -> List[Dict[str, Any]]:
     """List all keys, optionally filtered to active-only."""
     with get_db() as db:
@@ -186,3 +273,130 @@ def list_keys(active_only: bool = False) -> List[Dict[str, Any]]:
             query += " WHERE active = TRUE"
         query += " ORDER BY created_at DESC"
         return db.query_all(query)
+
+
+# Admin key management functions
+def validate_admin_key(key: str) -> Optional[Dict[str, Any]]:
+    """Validate an admin key from the database."""
+    with get_db() as db:
+        admin_key = db.query_one(
+            f"SELECT * FROM admin_keys WHERE key_value = {_PH} AND active = TRUE",
+            (key,)
+        )
+        if admin_key:
+            # Update last_used_at
+            db.execute(
+                f"UPDATE admin_keys SET last_used_at = {_PH} WHERE id = {_PH}",
+                (datetime.utcnow().isoformat(), admin_key["id"])
+            )
+        return admin_key
+
+
+def get_admin_setting(key: str) -> Optional[str]:
+    """Get an admin setting from the database."""
+    with get_db() as db:
+        result = db.query_one(
+            f"SELECT value FROM admin_settings WHERE key = {_PH}",
+            (key,)
+        )
+        return result["value"] if result else None
+
+
+def set_admin_setting(key: str, value: str) -> None:
+    """Set an admin setting in the database."""
+    with get_db() as db:
+        db.execute(
+            f"""
+            INSERT INTO admin_settings (key, value) VALUES ({_PH}, {_PH})
+            ON CONFLICT (key) DO UPDATE SET value = {_PH}
+            """,
+            (key, value, value)
+        )
+
+
+def create_admin_key(key_id: str, key_value: str, label: Optional[str] = None, notes: Optional[str] = None) -> None:
+    """Create a new admin key."""
+    with get_db() as db:
+        db.execute(
+            f"""
+            INSERT INTO admin_keys (id, key_value, label, notes, active, created_at)
+            VALUES ({_PH}, {_PH}, {_PH}, {_PH}, TRUE, {_PH})
+            """,
+            (key_id, key_value, label, notes, datetime.utcnow().isoformat())
+        )
+
+
+def get_admin_keys() -> List[Dict[str, Any]]:
+    """List all admin keys."""
+    with get_db() as db:
+        return db.query_all("SELECT * FROM admin_keys ORDER BY created_at DESC")
+
+
+def delete_admin_key(key_id: str) -> None:
+    """Delete an admin key."""
+    with get_db() as db:
+        db.execute(f"DELETE FROM admin_keys WHERE id = {_PH}", (key_id,))
+
+
+def set_admin_key_active(key_id: str, active: bool) -> None:
+    """Activate or deactivate an admin key."""
+    with get_db() as db:
+        db.execute(f"UPDATE admin_keys SET active = {_PH} WHERE id = {_PH}", (active, key_id))
+
+
+def update_admin_key_label(key_id: str, label: str) -> None:
+    """Update the label for an admin key."""
+    with get_db() as db:
+        db.execute(f"UPDATE admin_keys SET label = {_PH} WHERE id = {_PH}", (label, key_id))
+
+
+# Provider key management functions
+def create_provider_key(key_id: str, provider: str, key_value: str, label: Optional[str] = None, notes: Optional[str] = None) -> None:
+    """Create a new provider key."""
+    with get_db() as db:
+        db.execute(
+            f"""
+            INSERT INTO provider_keys (id, provider, key_value, label, notes, active, created_at)
+            VALUES ({_PH}, {_PH}, {_PH}, {_PH}, {_PH}, TRUE, {_PH})
+            """,
+            (key_id, provider, key_value, label, notes, datetime.utcnow().isoformat())
+        )
+
+
+def get_provider_keys() -> List[Dict[str, Any]]:
+    """List all provider keys."""
+    with get_db() as db:
+        return db.query_all("SELECT * FROM provider_keys ORDER BY created_at DESC")
+
+
+def get_provider_keys_by_provider(provider: str) -> List[Dict[str, Any]]:
+    """List all provider keys for a specific provider."""
+    with get_db() as db:
+        return db.query_all(
+            f"SELECT * FROM provider_keys WHERE provider = {_PH} AND active = TRUE ORDER BY created_at DESC",
+            (provider,)
+        )
+
+
+def get_provider_key_by_id(key_id: str) -> Optional[Dict[str, Any]]:
+    """Get a provider key by its ID."""
+    with get_db() as db:
+        return db.query_one(f"SELECT * FROM provider_keys WHERE id = {_PH}", (key_id,))
+
+
+def delete_provider_key(key_id: str) -> None:
+    """Delete a provider key."""
+    with get_db() as db:
+        db.execute(f"DELETE FROM provider_keys WHERE id = {_PH}", (key_id,))
+
+
+def set_provider_key_active(key_id: str, active: bool) -> None:
+    """Activate or deactivate a provider key."""
+    with get_db() as db:
+        db.execute(f"UPDATE provider_keys SET active = {_PH} WHERE id = {_PH}", (active, key_id))
+
+
+def update_provider_key_label(key_id: str, label: str) -> None:
+    """Update the label for a provider key."""
+    with get_db() as db:
+        db.execute(f"UPDATE provider_keys SET label = {_PH} WHERE id = {_PH}", (label, key_id))
