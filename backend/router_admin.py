@@ -27,10 +27,13 @@ async def verify_admin(x_admin_key: Optional[str] = Header(None)) -> None:
     x_admin_key = x_admin_key.strip()
     
     # Check against database admin keys first
-    admin_key = database.validate_admin_key(x_admin_key)
-    if admin_key:
-        logger.info(f"Admin auth successful via database: {admin_key['id']}")
-        return
+    try:
+        admin_key = database.validate_admin_key(x_admin_key)
+        if admin_key:
+            logger.info(f"Admin auth successful via database: {admin_key['id']}")
+            return
+    except Exception as e:
+        logger.error(f"Database error during admin key validation: {e}")
     
     logger.info("Database check failed, checking legacy ADMIN_API_KEY")
     
@@ -116,21 +119,6 @@ async def get_rate_limit_status():
         "rate_limit_requests": RATE_LIMIT_REQUESTS,
         "rate_limit_window_seconds": RATE_LIMIT_WINDOW_SECONDS,
         "description": f"Maximum {RATE_LIMIT_REQUESTS} requests per {RATE_LIMIT_WINDOW_SECONDS} seconds per CTI key"
-    }
-
-
-# Debug endpoint (no authentication) - REMOVE AFTER DEBUGGING
-@router.get("/api/admin/debug-config")
-async def debug_config():
-    """Debug endpoint to check ADMIN_API_KEY configuration."""
-    current_key = get_admin_api_key()
-    return {
-        "ADMIN_API_KEY_set": bool(current_key),
-        "ADMIN_API_KEY_length": len(current_key) if current_key else 0,
-        "ADMIN_API_KEY_first_10": current_key[:10] if current_key else None,
-        "ADMIN_API_KEY_last_10": current_key[-10:] if current_key else None,
-        "DATABASE_TYPE": DATABASE_TYPE,
-        "note": "This is a debug endpoint - remove after troubleshooting"
     }
 
 
