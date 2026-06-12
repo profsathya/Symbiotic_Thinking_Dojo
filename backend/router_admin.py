@@ -1,5 +1,4 @@
 from typing import List, Optional
-import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Header, status
 from pydantic import BaseModel, Field
@@ -8,16 +7,12 @@ import database
 from config import ADMIN_API_KEY, DATABASE_TYPE, DATABASE_PATH, DATABASE_URL, get_admin_api_key, RATE_LIMIT_REQUESTS, RATE_LIMIT_WINDOW_SECONDS
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
 
 
 # Authentication
 async def verify_admin(x_admin_key: Optional[str] = Header(None)) -> None:
     """Verify admin API key from X-Admin-Key header."""
-    logger.info(f"Admin auth attempt - provided key: {x_admin_key[:10] if x_admin_key else None}...")
-    
     if not x_admin_key:
-        logger.warning("Admin auth failed: No key provided")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Admin API key required"
@@ -30,27 +25,18 @@ async def verify_admin(x_admin_key: Optional[str] = Header(None)) -> None:
     try:
         admin_key = database.validate_admin_key(x_admin_key)
         if admin_key:
-            logger.info(f"Admin auth successful via database: {admin_key['id']}")
             return
     except Exception as e:
-        logger.error(f"Database error during admin key validation: {e}")
-    
-    logger.info("Database check failed, checking legacy ADMIN_API_KEY")
+        pass
     
     # Fallback to legacy ADMIN_API_KEY from config
     current_key = get_admin_api_key()
     # Strip whitespace from config key (handles trailing newlines in secrets)
     current_key = current_key.strip() if current_key else ""
     
-    logger.info(f"ADMIN_API_KEY from config: '{current_key[:10] if current_key else None}...' (length: {len(current_key) if current_key else 0})")
-    logger.info(f"Provided key: '{x_admin_key[:10]}...' (length: {len(x_admin_key)})")
-    logger.info(f"String comparison: {current_key == x_admin_key if current_key else 'No config key'}")
-    
     if current_key and x_admin_key == current_key:
-        logger.info("Admin auth successful via legacy ADMIN_API_KEY")
         return
     
-    logger.warning(f"Admin auth failed: Invalid key")
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid admin API key"
@@ -119,21 +105,6 @@ async def get_rate_limit_status():
         "rate_limit_requests": RATE_LIMIT_REQUESTS,
         "rate_limit_window_seconds": RATE_LIMIT_WINDOW_SECONDS,
         "description": f"Maximum {RATE_LIMIT_REQUESTS} requests per {RATE_LIMIT_WINDOW_SECONDS} seconds per CTI key"
-    }
-
-
-# Debug endpoint (no authentication) - REMOVE AFTER DEBUGGING
-@router.get("/api/admin/debug-config")
-async def debug_config():
-    """Debug endpoint to check ADMIN_API_KEY configuration."""
-    current_key = get_admin_api_key()
-    return {
-        "ADMIN_API_KEY_set": bool(current_key),
-        "ADMIN_API_KEY_length": len(current_key) if current_key else 0,
-        "ADMIN_API_KEY_first_10": current_key[:10] if current_key else None,
-        "ADMIN_API_KEY_last_10": current_key[-10:] if current_key else None,
-        "DATABASE_TYPE": DATABASE_TYPE,
-        "note": "This is a debug endpoint - remove after troubleshooting"
     }
 
 
