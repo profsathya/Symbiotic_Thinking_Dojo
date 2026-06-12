@@ -23,6 +23,9 @@ async def verify_admin(x_admin_key: Optional[str] = Header(None)) -> None:
             detail="Admin API key required"
         )
     
+    # Strip whitespace from provided key
+    x_admin_key = x_admin_key.strip()
+    
     # Check against database admin keys first
     admin_key = database.validate_admin_key(x_admin_key)
     if admin_key:
@@ -33,6 +36,9 @@ async def verify_admin(x_admin_key: Optional[str] = Header(None)) -> None:
     
     # Fallback to legacy ADMIN_API_KEY from config
     current_key = get_admin_api_key()
+    # Strip whitespace from config key (handles trailing newlines in secrets)
+    current_key = current_key.strip() if current_key else ""
+    
     logger.info(f"ADMIN_API_KEY from config: '{current_key[:10] if current_key else None}...' (length: {len(current_key) if current_key else 0})")
     logger.info(f"Provided key: '{x_admin_key[:10]}...' (length: {len(x_admin_key)})")
     logger.info(f"String comparison: {current_key == x_admin_key if current_key else 'No config key'}")
