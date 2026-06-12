@@ -52,10 +52,6 @@ jobs:
           docker push ${{ env.IMAGE }}:${{ github.sha }}
           docker push ${{ env.IMAGE }}:latest
 
-      - name: Update database schema
-        run: |
-          gcloud sql instances execute-sql dojo-db --database=postgres --sql="ALTER TABLE cti_keys ADD COLUMN IF NOT EXISTS openai_key TEXT; ALTER TABLE cti_keys ADD COLUMN IF NOT EXISTS anthropic_key TEXT; ALTER TABLE cti_keys ADD COLUMN IF NOT EXISTS google_key TEXT; ALTER TABLE cti_keys ADD COLUMN IF NOT EXISTS github_key TEXT;"
-
       - name: Deploy to Cloud Run
         run: |
           cat > env_vars.yaml << EOF
