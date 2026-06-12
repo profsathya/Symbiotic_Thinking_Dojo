@@ -122,6 +122,21 @@ async def get_rate_limit_status():
     }
 
 
+# Debug endpoint (no authentication) - REMOVE AFTER DEBUGGING
+@router.get("/api/admin/debug-config")
+async def debug_config():
+    """Debug endpoint to check ADMIN_API_KEY configuration."""
+    current_key = get_admin_api_key()
+    return {
+        "ADMIN_API_KEY_set": bool(current_key),
+        "ADMIN_API_KEY_length": len(current_key) if current_key else 0,
+        "ADMIN_API_KEY_first_10": current_key[:10] if current_key else None,
+        "ADMIN_API_KEY_last_10": current_key[-10:] if current_key else None,
+        "DATABASE_TYPE": DATABASE_TYPE,
+        "note": "This is a debug endpoint - remove after troubleshooting"
+    }
+
+
 # Authenticated endpoints
 @router.get("/api/admin/keys", response_model=List[KeyResponse], dependencies=[Depends(verify_admin)])
 async def list_keys(active_only: bool = False):
