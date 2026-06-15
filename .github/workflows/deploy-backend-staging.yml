@@ -1,0 +1,81 @@
+name: Deploy Backend to Cloud Run (Staging)
+
+on:
+  push:
+    branches: [staging]
+    paths:
+      - 'backend/**'
+
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  SERVICE_NAME: dojo-backend-staging
+  REGION: us-central1
+  IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/dojo-backend-staging
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy Backend (Staging)
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker --quiet
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ${{ env.IMAGE }}:${{ github.sha }} \
+            -t ${{ env.IMAGE }}:latest \
+            ./backend
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.IMAGE }}:${{ github.sha }}
+          docker push ${{ env.IMAGE }}:latest
+
+      - name: Deploy to Cloud Run (Staging)
+        run: |
+          cat > env_vars.yaml << EOF
+          CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001
+          DATABASE_TYPE: postgres
+          RATE_LIMIT_REQUESTS: "1000"
+          EOF
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image ${{ env.IMAGE }}:${{ github.sha }} \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --memory 512Mi \
+            --min-instances 0 \
+            --max-instances 2 \
+            --add-cloudsql-instances ${{ secrets.GCP_PROJECT_ID }}:us-central1:dojo-db-staging \
+            --set-secrets "ANTHROPIC_API_KEY=anthropic-api-key-staging:latest,DATABASE_URL=database-url-staging:latest" \
+            --env-vars-file env_vars.yaml \
+            --execution-environment gen2 \
+            --quiet
+
+      - name: Show deployment URL
+        run: |
+          URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format 'value(status.url)')
+          echo "## Staging Backend deployed to: $URL" >> $GITHUB_STEP_SUMMARY
