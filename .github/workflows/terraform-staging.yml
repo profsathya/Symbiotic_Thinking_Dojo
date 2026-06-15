@@ -1,0 +1,70 @@
+name: Terraform Apply - Staging
+
+on:
+  push:
+    branches: [staging]
+    paths:
+      - 'terraform/staging/**'
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: cti-backend-prod
+  REGION: us-central1
+
+jobs:
+  terraform:
+    name: Terraform Apply - Staging
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.0"
+
+      - name: Terraform Init
+        working-directory: ./terraform/staging
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: ./terraform/staging
+        run: terraform plan -out=tfplan
+        env:
+          TF_VAR_anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Terraform Apply
+        working-directory: ./terraform/staging
+        run: terraform apply -auto-approve tfplan
+        env:
+          TF_VAR_anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Get outputs
+        working-directory: ./terraform/staging
+        id: terraform-outputs
+        run: |
+          echo "service_url=$(terraform output -raw service_url)" >> $GITHUB_OUTPUT
+          echo "database_password=$(terraform output -raw database_password)" >> $GITHUB_OUTPUT
+
+      - name: Show deployment info
+        run: |
+          echo "## Staging Environment Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "**Service URL:** ${{ steps.terraform-outputs.outputs.service_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Database password has been set in Cloud SQL" >> $GITHUB_STEP_SUMMARY

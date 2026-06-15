@@ -41,3 +41,14 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 backend/__pycache__/
+
+# Terraform
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfbackup
+**/crash.log
+**/crash.*.log
+**/override.tf
+**/override.tf.json
+**/terraform.tfvars
