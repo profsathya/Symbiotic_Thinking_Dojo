@@ -68,7 +68,7 @@ jobs:
             --min-instances 0 \
             --max-instances 5 \
             --add-cloudsql-instances ${{ secrets.GCP_PROJECT_ID }}:us-central1:dojo-db \
-            --set-secrets "ANTHROPIC_API_KEY=anthropic-api-key:latest,DATABASE_URL=database-url:latest,ADMIN_API_KEY=admin-api-key:latest" \
+            --set-secrets "ANTHROPIC_API_KEY=anthropic-api-key:latest,DATABASE_URL=database-url:latest" \
             --env-vars-file env_vars.yaml \
             --execution-environment gen2 \
             --quiet
