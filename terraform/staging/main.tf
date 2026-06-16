@@ -4,22 +4,12 @@ terraform {
       source  = "hashicorp/google"
       version = "~> 5.0"
     }
-    random = {
-      source  = "hashicorp/random"
-      version = "~> 3.0"
-    }
   }
 }
 
 provider "google" {
   project = var.project_id
   region  = var.region
-}
-
-# Generate random password for database
-resource "random_password" "db_password" {
-  length  = 24
-  special = true
 }
 
 # Cloud SQL instance
@@ -58,5 +48,5 @@ resource "google_sql_database" "staging" {
 resource "google_sql_user" "postgres" {
   name     = "postgres"
   instance = google_sql_database_instance.staging.name
-  password = random_password.db_password.result
+  password = var.db_password
 }
