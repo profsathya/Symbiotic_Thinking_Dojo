@@ -1,14 +1,12 @@
 from typing import List, Optional
-import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Header, status
 from pydantic import BaseModel, Field
 
 import database
-from config import ADMIN_API_KEY, DATABASE_TYPE, DATABASE_PATH, DATABASE_URL, get_admin_api_key, RATE_LIMIT_REQUESTS, RATE_LIMIT_WINDOW_SECONDS
+from config import ADMIN_API_KEY, DATABASE_TYPE, DATABASE_PATH, DATABASE_URL, get_admin_api_key
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
 
 
 # Authentication
@@ -20,22 +18,13 @@ async def verify_admin(x_admin_key: Optional[str] = Header(None)) -> None:
             detail="Admin API key required"
         )
     
-    # Strip whitespace from provided key
-    x_admin_key = x_admin_key.strip()
-    
     # Check against database admin keys first
-    try:
-        admin_key = database.validate_admin_key(x_admin_key)
-        if admin_key:
-            return
-    except Exception as e:
-        pass
+    admin_key = database.validate_admin_key(x_admin_key)
+    if admin_key:
+        return
     
     # Fallback to legacy ADMIN_API_KEY from config
     current_key = get_admin_api_key()
-    # Strip whitespace from config key (handles trailing newlines in secrets)
-    current_key = current_key.strip() if current_key else ""
-    
     if current_key and x_admin_key == current_key:
         return
     
@@ -99,18 +88,7 @@ class KeyStatsResponse(BaseModel):
     total_remaining: int
 
 
-# Public endpoint (no authentication)
-@router.get("/api/admin/rate-limit-status")
-async def get_rate_limit_status():
-    """Get current rate limiting configuration."""
-    return {
-        "rate_limit_requests": RATE_LIMIT_REQUESTS,
-        "rate_limit_window_seconds": RATE_LIMIT_WINDOW_SECONDS,
-        "description": f"Maximum {RATE_LIMIT_REQUESTS} requests per {RATE_LIMIT_WINDOW_SECONDS} seconds per CTI key"
-    }
-
-
-# Authenticated endpoints
+# Endpoints
 @router.get("/api/admin/keys", response_model=List[KeyResponse], dependencies=[Depends(verify_admin)])
 async def list_keys(active_only: bool = False):
     """List all CTI keys."""
@@ -133,28 +111,21 @@ async def create_key(request: KeyCreateRequest):
     import uuid
     key_id = str(uuid.uuid4())
 
-    logger.info(f"Creating CTI key for {request.email}")
-    
-    try:
-        database.create_key(
-            key_id=key_id,
-            student_email=request.email,
-            student_name=request.name,
-            total_budget_tokens=request.budget,
-            expires_at=request.expires,
-            notes=request.notes,
-            openai_key=request.openai_key,
-            anthropic_key=request.anthropic_key,
-            google_key=request.google_key,
-            github_key=request.github_key,
-        )
+    database.create_key(
+        key_id=key_id,
+        student_email=request.email,
+        student_name=request.name,
+        total_budget_tokens=request.budget,
+        expires_at=request.expires,
+        notes=request.notes,
+        openai_key=request.openai_key,
+        anthropic_key=request.anthropic_key,
+        google_key=request.google_key,
+        github_key=request.github_key,
+    )
 
-        key_data = database.get_key(key_id)
-        logger.info(f"CTI key created successfully: {key_id}")
-        return key_data
-    except Exception as e:
-        logger.error(f"Error creating CTI key: {e}")
-        raise HTTPException(status_code=500, detail=f"Error creating key: {str(e)}")
+    key_data = database.get_key(key_id)
+    return key_data
 
 
 @router.post("/api/admin/keys/bulk", response_model=BulkCreateResponse, dependencies=[Depends(verify_admin)])

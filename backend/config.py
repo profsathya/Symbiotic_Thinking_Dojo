@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 
 # Anthropic API
@@ -26,11 +27,3 @@ CORS_ORIGINS: list[str] = [
 # Rate limiting
 RATE_LIMIT_REQUESTS: int = int(os.environ.get("RATE_LIMIT_REQUESTS", "1000"))
 RATE_LIMIT_WINDOW_SECONDS: int = int(os.environ.get("RATE_LIMIT_WINDOW_SECONDS", "60"))
-
-# Admin API key (legacy, for backward compatibility)
-ADMIN_API_KEY: str = os.environ.get("ADMIN_API_KEY", "")
-
-
-def get_admin_api_key() -> str:
-    """Get the admin API key from environment variable."""
-    return ADMIN_API_KEY
