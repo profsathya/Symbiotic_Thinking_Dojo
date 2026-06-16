@@ -63,8 +63,13 @@ jobs:
 
       - name: Start Cloud SQL proxy
         run: |
-          ./cloud_sql_proxy -instances=cti-backend-prod:us-central1:dojo-db-staging=tcp:5432 &
-          sleep 5
+          mkdir -p /tmp/cloudsql
+          ./cloud_sql_proxy -instances=cti-backend-prod:us-central1:dojo-db-staging=tcp:5432 -dir=/tmp/cloudsql > /tmp/proxy.log 2>&1 &
+          echo "Proxy started with PID: $!"
+          sleep 10
+          cat /tmp/proxy.log
+          echo "Checking if port 5432 is listening..."
+          netstat -tuln | grep 5432 || echo "Port 5432 not listening"
 
       - name: Initialize staging database
         run: |
