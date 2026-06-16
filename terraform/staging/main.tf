@@ -50,3 +50,32 @@ resource "google_sql_user" "postgres" {
   instance = google_sql_database_instance.staging.name
   password = var.db_password
 }
+
+# Service account for GitHub Actions
+resource "google_service_account" "github_actions" {
+  account_id   = "github-actions-staging"
+  display_name = "GitHub Actions Staging Service Account"
+  description  = "Service account for GitHub Actions to deploy staging infrastructure"
+}
+
+# Service account key for GitHub Actions authentication
+resource "google_service_account_key" "github_actions" {
+  service_account_id = google_service_account.github_actions.name
+}
+
+# Grant service account access to Cloud SQL
+resource "google_cloud_sql_instance_iam_member" "cloudsql_access" {
+  name     = google_sql_database_instance.staging.name
+  project  = var.project_id
+  role     = "roles/cloudsql.client"
+  member   = "serviceAccount:${google_service_account.github_actions.email}"
+}
+
+# Grant service account access to Cloud Run
+resource "google_cloud_run_service_iam_member" "cloudrun_access" {
+  location = var.region
+  project  = var.project_id
+  service  = "dojo-backend-staging"
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${google_service_account.github_actions.email}"
+}
