@@ -52,30 +52,14 @@ jobs:
           docker push ${{ env.IMAGE }}:${{ github.sha }}
           docker push ${{ env.IMAGE }}:latest
 
-      - name: Install Python dependencies
-        run: |
-          pip3 install psycopg2-binary
-
-      - name: Download Cloud SQL proxy
-        run: |
-          wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy
-          chmod +x cloud_sql_proxy
-
-      - name: Start Cloud SQL proxy
-        run: |
-          mkdir -p /tmp/cloudsql
-          ./cloud_sql_proxy -instances=cti-backend-prod:us-central1:dojo-db-staging=tcp:5432 -dir=/tmp/cloudsql > /tmp/proxy.log 2>&1 &
-          echo "Proxy started with PID: $!"
-          sleep 10
-          cat /tmp/proxy.log
-          echo "Checking if port 5432 is listening..."
-          netstat -tuln | grep 5432 || echo "Port 5432 not listening"
-
       - name: Initialize staging database
         run: |
-          python3 scripts/init-staging-db.py
-        env:
-          DATABASE_URL: postgresql://postgres:${{ secrets.STAGING_DB_PASSWORD }}@localhost:5432/dojo
+          gcloud sql connect cti-backend-prod:us-central1:dojo-db-staging \
+            --user=postgres \
+            --password=${{ secrets.STAGING_DB_PASSWORD }} \
+            --database=dojo \
+            --quiet \
+            --command="CREATE TABLE IF NOT EXISTS admin_keys (id SERIAL PRIMARY KEY, key_value TEXT NOT NULL UNIQUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);"
 
       - name: Deploy to Cloud Run (Staging)
         run: |
