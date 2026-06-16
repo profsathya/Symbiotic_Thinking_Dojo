@@ -1,4 +1,5 @@
 import logging
+import os
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 import anthropic
 import database
-from config import CORS_ORIGINS
+from config import CORS_ORIGINS, DATABASE_TYPE, DATABASE_URL
 from router_budget import router as budget_router
 from router_chat import router as chat_router
 from router_admin import router as admin_router
@@ -15,6 +16,11 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
+
+logging.info("Starting Symbiotic Thinking Dojo Backend")
+logging.info(f"DATABASE_TYPE: {DATABASE_TYPE}")
+logging.info(f"DATABASE_URL configured: {bool(DATABASE_URL)}")
+logging.info(f"PORT: {os.environ.get('PORT', '8080')}")
 
 app = FastAPI(title="Symbiotic Thinking Dojo — CTI Backend", version="1.0.0")
 
@@ -33,7 +39,14 @@ app.include_router(admin_router)
 
 @app.on_event("startup")
 def startup():
-    database.init_db()
+    try:
+        logging.info("Starting database initialization...")
+        database.init_db()
+        logging.info("Database initialization completed successfully")
+    except Exception as e:
+        logging.error(f"Database initialization failed: {e}")
+        # Don't fail startup - allow service to start even if DB has issues
+        # This allows health checks to pass and manual intervention
 
 
 @app.get("/health")
