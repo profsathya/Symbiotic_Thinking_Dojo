@@ -56,11 +56,21 @@ jobs:
         run: |
           pip3 install psycopg2-binary
 
+      - name: Download Cloud SQL proxy
+        run: |
+          wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy
+          chmod +x cloud_sql_proxy
+
+      - name: Start Cloud SQL proxy
+        run: |
+          ./cloud_sql_proxy -instances=cti-backend-prod:us-central1:dojo-db-staging=tcp:5432 &
+          sleep 5
+
       - name: Initialize staging database
         run: |
           python3 scripts/init-staging-db.py
         env:
-          DATABASE_URL: postgresql://postgres:${{ secrets.STAGING_DB_PASSWORD }}@/dojo?host=/cloudsql/cti-backend-prod:us-central1:dojo-db-staging
+          DATABASE_URL: postgresql://postgres:${{ secrets.STAGING_DB_PASSWORD }}@localhost:5432/dojo
 
       - name: Deploy to Cloud Run (Staging)
         run: |
