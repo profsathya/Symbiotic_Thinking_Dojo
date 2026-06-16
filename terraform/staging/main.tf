@@ -5,6 +5,11 @@ terraform {
       version = "~> 5.0"
     }
   }
+
+  backend "gcs" {
+    bucket = "cti-backend-prod-terraform-state"
+    prefix = "staging"
+  }
 }
 
 provider "google" {
