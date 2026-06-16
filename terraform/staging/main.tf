@@ -63,19 +63,23 @@ resource "google_service_account_key" "github_actions" {
   service_account_id = google_service_account.github_actions.name
 }
 
-# Grant service account access to Cloud SQL
-resource "google_cloud_sql_instance_iam_member" "cloudsql_access" {
-  name     = google_sql_database_instance.staging.name
-  project  = var.project_id
-  role     = "roles/cloudsql.client"
-  member   = "serviceAccount:${google_service_account.github_actions.email}"
+# Grant service account permission to push to GCR/Artifact Registry
+resource "google_project_iam_member" "gcr_push" {
+  project = var.project_id
+  role    = "roles/artifactregistry.writer"
+  member  = "serviceAccount:${google_service_account.github_actions.email}"
 }
 
-# Grant service account access to Cloud Run
-resource "google_cloud_run_service_iam_member" "cloudrun_access" {
-  location = var.region
-  project  = var.project_id
-  service  = "dojo-backend-staging"
-  role     = "roles/run.invoker"
-  member   = "serviceAccount:${google_service_account.github_actions.email}"
+# Grant service account permission to deploy to Cloud Run
+resource "google_project_iam_member" "cloudrun_deployer" {
+  project = var.project_id
+  role    = "roles/run.developer"
+  member  = "serviceAccount:${google_service_account.github_actions.email}"
+}
+
+# Grant service account permission to access Cloud SQL
+resource "google_project_iam_member" "cloudsql_client" {
+  project = var.project_id
+  role    = "roles/cloudsql.client"
+  member  = "serviceAccount:${google_service_account.github_actions.email}"
 }
