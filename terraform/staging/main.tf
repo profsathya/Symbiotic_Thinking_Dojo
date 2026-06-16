@@ -83,3 +83,24 @@ resource "google_project_iam_member" "cloudsql_client" {
   role    = "roles/cloudsql.client"
   member  = "serviceAccount:${google_service_account.github_actions.email}"
 }
+
+# Grant service account permission to create Cloud SQL instances
+resource "google_project_iam_member" "cloudsql_admin" {
+  project = var.project_id
+  role    = "roles/cloudsql.admin"
+  member  = "serviceAccount:${google_service_account.github_actions.email}"
+}
+
+# Grant service account permission to create service accounts
+resource "google_project_iam_member" "service_account_admin" {
+  project = var.project_id
+  role    = "roles/iam.serviceAccountAdmin"
+  member  = "serviceAccount:${google_service_account.github_actions.email}"
+}
+
+# Grant service account permission to manage IAM bindings
+resource "google_project_iam_member" "iam_admin" {
+  project = var.project_id
+  role    = "roles/resourcemanager.projectIamAdmin"
+  member  = "serviceAccount:${google_service_account.github_actions.email}"
+}

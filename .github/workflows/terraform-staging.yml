@@ -6,6 +6,8 @@ on:
     paths:
       - 'terraform/staging/**'
   workflow_dispatch:
+    # Disabled - infrastructure already created locally
+    # To enable, remove this comment and uncomment the workflow steps
 
 env:
   PROJECT_ID: cti-backend-prod
