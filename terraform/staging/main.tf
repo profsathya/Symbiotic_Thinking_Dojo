@@ -96,6 +96,13 @@ resource "google_project_iam_member" "cloudsql_admin" {
   member  = "serviceAccount:${google_service_account.github_actions.email}"
 }
 
+# Grant service account permission to execute SQL on Cloud SQL instances
+resource "google_project_iam_member" "cloudsql_instance_user" {
+  project = var.project_id
+  role    = "roles/cloudsql.instanceUser"
+  member  = "serviceAccount:${google_service_account.github_actions.email}"
+}
+
 # Grant service account permission to create service accounts
 resource "google_project_iam_member" "service_account_admin" {
   project = var.project_id
