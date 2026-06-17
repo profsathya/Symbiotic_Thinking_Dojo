@@ -47,6 +47,87 @@ State is stored in GCS bucket `cti-backend-prod-terraform-state`:
 The bucket itself is a bootstrap dependency and is **not** managed by Terraform
 (chicken-and-egg). Create it once by hand if recreating the project.
 
+## First-time setup (from scratch)
+
+Run these once to stand up the whole environment in a fresh project. Steps are
+ordered by dependency. Replace `PROJECT_ID` / `REGION` if not using the defaults
+(`cti-backend-prod` / `us-central1`).
+
+### 0. Tooling & auth
+```bash
+# Required CLIs: terraform, gcloud, gh (GitHub CLI)
+gcloud auth login
+gcloud auth application-default login   # credentials Terraform uses
+gcloud config set project cti-backend-prod
+gh auth status                          # must be logged in with 'repo' scope
+```
+
+### 1. Create the Terraform state bucket (once, not managed by Terraform)
+```bash
+gcloud storage buckets create gs://cti-backend-prod-terraform-state \
+  --project=cti-backend-prod --location=us-central1 --uniform-bucket-level-access
+gcloud storage buckets update gs://cti-backend-prod-terraform-state --versioning
+```
+
+### 2. Apply the bootstrap tier (SA, IAM roles, APIs)
+```bash
+cd terraform/bootstrap
+terraform init
+terraform apply        # enables APIs + creates github-actions-staging SA + roles
+```
+
+### 3. Create the CI service-account key and set GitHub secrets
+The SA **key** is intentionally not managed by Terraform. Create it and load all
+repo secrets (replace the repo with your fork/origin):
+```bash
+REPO=hisergiorojas/Symbiotic_Thinking_Dojo
+SA=github-actions-staging@cti-backend-prod.iam.gserviceaccount.com
+
+# Service account key (JSON) -> GCP_SA_KEY
+gcloud iam service-accounts keys create /tmp/sa-key.json --iam-account="$SA"
+gh secret set GCP_SA_KEY      --repo "$REPO" < /tmp/sa-key.json
+rm -f /tmp/sa-key.json
+
+# Project id
+printf '%s' "cti-backend-prod" | gh secret set GCP_PROJECT_ID --repo "$REPO"
+
+# Cloud SQL postgres password (choose a strong value; reuse it in step 4)
+printf '%s' "YOUR_DB_PASSWORD" | gh secret set STAGING_DB_PASSWORD --repo "$REPO"
+
+# Anthropic API key (the value Terraform stores in Secret Manager)
+printf '%s' "YOUR_ANTHROPIC_KEY" | gh secret set STAGING_ANTHROPIC_API_KEY --repo "$REPO"
+```
+
+> If the secret already exists in Secret Manager, mirror its exact value:
+> `val=$(gcloud secrets versions access latest --secret=anthropic-api-key-staging); printf '%s' "$val" | gh secret set STAGING_ANTHROPIC_API_KEY --repo "$REPO"`
+
+### 4. Apply the app tier (Cloud SQL, secret, Cloud Run service)
+```bash
+cd ../staging
+terraform init
+export TF_VAR_db_password='YOUR_DB_PASSWORD'          # same as step 3
+export TF_VAR_anthropic_api_key='YOUR_ANTHROPIC_KEY'  # same as step 3
+terraform apply        # Cloud SQL takes ~5-10 min to provision
+```
+
+### 5. Initialize the database (empty after creation)
+```bash
+gcloud sql connect dojo-db-staging --user=postgres
+```
+Create the application tables and an initial admin key (see "Database
+initialization" below).
+
+### 6. Deploy the backend image
+The Cloud Run service exists but Terraform doesn't manage the image. Push a
+backend change to `staging`, or trigger the workflow:
+```bash
+gh workflow run "Deploy Backend to Cloud Run (Staging)" --ref staging
+```
+
+After this, ongoing changes flow through Git: pushes to `staging` touching
+`terraform/staging/**` apply infra, and pushes touching `backend/**` redeploy the
+image.
+
 ## App-tier usage (rebuildable)
 
 ```bash
