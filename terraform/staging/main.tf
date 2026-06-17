@@ -17,6 +17,23 @@ provider "google" {
   region  = var.region
 }
 
+# Required Google Cloud APIs for this stack.
+# disable_on_destroy = false so `terraform destroy` never turns these off
+# (other resources in the project may depend on them).
+resource "google_project_service" "apis" {
+  for_each = toset([
+    "run.googleapis.com",
+    "sqladmin.googleapis.com",
+    "secretmanager.googleapis.com",
+    "artifactregistry.googleapis.com",
+    "iam.googleapis.com",
+  ])
+
+  project            = var.project_id
+  service            = each.value
+  disable_on_destroy = false
+}
+
 # Cloud SQL instance
 resource "google_sql_database_instance" "staging" {
   name             = "dojo-db-staging"
@@ -153,4 +170,15 @@ resource "google_secret_manager_secret_iam_member" "anthropic_api_key_accessor" 
   secret_id = google_secret_manager_secret.anthropic_api_key.id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:561867108932-compute@developer.gserviceaccount.com"
+}
+
+# Make the Cloud Run service publicly invokable (--allow-unauthenticated).
+# The service itself is deployed by the GitHub Actions workflow, not Terraform,
+# so this binding is managed independently by name.
+resource "google_cloud_run_service_iam_member" "public_invoker" {
+  project  = var.project_id
+  location = var.region
+  service  = "dojo-backend-staging"
+  role     = "roles/run.invoker"
+  member   = "allUsers"
 }
