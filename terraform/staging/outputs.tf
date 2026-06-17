@@ -14,7 +14,7 @@ output "service_account_email" {
 }
 
 output "service_account_key" {
-  description     = "GitHub Actions service account key (base64 encoded)"
-  value           = google_service_account_key.github_actions.private_key
-  sensitive       = true
+  description = "GitHub Actions service account key (base64 encoded)"
+  value       = google_service_account_key.github_actions.private_key
+  sensitive   = true
 }

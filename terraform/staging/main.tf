@@ -22,24 +22,24 @@ resource "google_sql_database_instance" "staging" {
   name             = "dojo-db-staging"
   database_version = "POSTGRES_15"
   region           = var.region
-  
+
   settings {
     tier              = "db-f1-micro"
     disk_autoresize   = true
     disk_size         = 10
     disk_type         = "PD_SSD"
     availability_type = "REGIONAL"
-    
+
     backup_configuration {
       enabled = true
     }
-    
+
     ip_configuration {
       ipv4_enabled = true
       ssl_mode     = "ALLOW_UNENCRYPTED_AND_ENCRYPTED"
     }
   }
-  
+
   deletion_protection = false
 }
 
@@ -130,4 +130,27 @@ resource "google_service_account_iam_member" "compute_service_account_user" {
   service_account_id = "projects/cti-backend-prod/serviceAccounts/561867108932-compute@developer.gserviceaccount.com"
   role               = "roles/iam.serviceAccountUser"
   member             = "serviceAccount:${google_service_account.github_actions.email}"
+}
+
+# Anthropic API key secret (consumed by the Cloud Run service)
+resource "google_secret_manager_secret" "anthropic_api_key" {
+  secret_id = "anthropic-api-key-staging"
+  project   = var.project_id
+
+  replication {
+    auto {}
+  }
+}
+
+# Secret value (supplied via the sensitive anthropic_api_key variable)
+resource "google_secret_manager_secret_version" "anthropic_api_key" {
+  secret      = google_secret_manager_secret.anthropic_api_key.id
+  secret_data = var.anthropic_api_key
+}
+
+# Allow the runtime (compute) service account to read the Anthropic secret
+resource "google_secret_manager_secret_iam_member" "anthropic_api_key_accessor" {
+  secret_id = google_secret_manager_secret.anthropic_api_key.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:561867108932-compute@developer.gserviceaccount.com"
 }
