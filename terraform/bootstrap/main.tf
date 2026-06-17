@@ -77,6 +77,7 @@ resource "google_project_iam_member" "github_actions_roles" {
     "roles/run.admin",
     "roles/cloudsql.admin",
     "roles/cloudsql.instanceUser",
+    "roles/secretmanager.admin",
     "roles/iam.serviceAccountAdmin",
     "roles/resourcemanager.projectIamAdmin",
   ])
