@@ -18,7 +18,9 @@ protected (`prevent_destroy` on the service account).
 
 - Enabled Google Cloud APIs (`run`, `sqladmin`, `secretmanager`, `artifactregistry`, `iam`)
 - `github-actions-staging` service account + its project IAM roles
+  (Cloud Run, Cloud SQL, Secret Manager admin, Artifact Registry, IAM admin)
 - `actAs` binding on the compute runtime service account
+- `objectAdmin` on the Terraform state bucket (so CI `terraform init` works)
 
 > The service account **key** is intentionally **not** managed by Terraform
 > (it is stored in the `GCP_SA_KEY` GitHub secret). Rotate it manually if needed.
