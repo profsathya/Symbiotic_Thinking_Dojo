@@ -93,3 +93,12 @@ resource "google_service_account_iam_member" "compute_service_account_user" {
   role               = "roles/iam.serviceAccountUser"
   member             = "serviceAccount:${google_service_account.github_actions.email}"
 }
+
+# Allow the GitHub Actions SA to read/write the Terraform remote state in GCS.
+# Without this, CI `terraform init` fails with a 403 listing the state bucket.
+# Scoped to the state bucket only (not project-wide storage access).
+resource "google_storage_bucket_iam_member" "terraform_state" {
+  bucket = var.state_bucket
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.github_actions.email}"
+}
