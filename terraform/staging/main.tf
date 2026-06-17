@@ -116,3 +116,10 @@ resource "google_project_iam_member" "iam_admin" {
   role    = "roles/resourcemanager.projectIamAdmin"
   member  = "serviceAccount:${google_service_account.github_actions.email}"
 }
+
+# Grant service account permission to act as compute service account
+resource "google_service_account_iam_member" "compute_service_account_user" {
+  service_account_id = "projects/cti-backend-prod/serviceAccounts/561867108932-compute@developer.gserviceaccount.com"
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.github_actions.email}"
+}
