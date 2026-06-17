@@ -8,13 +8,7 @@ output "database_instance_name" {
   value       = google_sql_database_instance.staging.name
 }
 
-output "service_account_email" {
-  description = "GitHub Actions service account email"
-  value       = google_service_account.github_actions.email
-}
-
-output "service_account_key" {
-  description = "GitHub Actions service account key (base64 encoded)"
-  value       = google_service_account_key.github_actions.private_key
-  sensitive   = true
+output "service_url" {
+  description = "Cloud Run service URL"
+  value       = google_cloud_run_v2_service.backend.uri
 }

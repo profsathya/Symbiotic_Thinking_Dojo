@@ -52,26 +52,16 @@ jobs:
           docker push ${{ env.IMAGE }}:${{ github.sha }}
           docker push ${{ env.IMAGE }}:latest
 
-      - name: Deploy to Cloud Run (Staging)
+      # Image-only deploy. The Cloud Run service shell (env vars, secrets,
+      # Cloud SQL connection, scaling, public access) is managed by Terraform
+      # (terraform/staging). `gcloud run deploy --image` creates a new revision
+      # that preserves all other settings, so we only roll the image here.
+      - name: Deploy new image to Cloud Run (Staging)
         run: |
-          cat > env_vars.yaml << EOF
-          CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001
-          DATABASE_TYPE: postgres
-          DATABASE_URL: postgresql://postgres:${{ secrets.STAGING_DB_PASSWORD }}@/dojo?host=/cloudsql/${{ secrets.GCP_PROJECT_ID }}:us-central1:dojo-db-staging
-          RATE_LIMIT_REQUESTS: "1000"
-          EOF
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image ${{ env.IMAGE }}:${{ github.sha }} \
             --region ${{ env.REGION }} \
             --platform managed \
-            --allow-unauthenticated \
-            --memory 512Mi \
-            --min-instances 0 \
-            --max-instances 2 \
-            --add-cloudsql-instances ${{ secrets.GCP_PROJECT_ID }}:us-central1:dojo-db-staging \
-            --set-secrets "ANTHROPIC_API_KEY=anthropic-api-key-staging:latest" \
-            --env-vars-file env_vars.yaml \
-            --execution-environment gen2 \
             --quiet
 
       - name: Show deployment URL

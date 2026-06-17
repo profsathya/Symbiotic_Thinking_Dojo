@@ -17,22 +17,20 @@ provider "google" {
   region  = var.region
 }
 
-# Required Google Cloud APIs for this stack.
-# disable_on_destroy = false so `terraform destroy` never turns these off
-# (other resources in the project may depend on them).
-resource "google_project_service" "apis" {
-  for_each = toset([
-    "run.googleapis.com",
-    "sqladmin.googleapis.com",
-    "secretmanager.googleapis.com",
-    "artifactregistry.googleapis.com",
-    "iam.googleapis.com",
-  ])
-
-  project            = var.project_id
-  service            = each.value
-  disable_on_destroy = false
-}
+# ---------------------------------------------------------------------------
+# APP TIER (rebuildable — safe to `terraform destroy` and re-apply)
+#
+# Contains the stateful/app resources for the staging environment:
+#   - Cloud SQL instance, database, user
+#   - Anthropic API key secret
+#   - Cloud Run service (shell: env/secrets/scaling/public access)
+#
+# The CI/CD bootstrap identity, IAM roles, and API enablement live in
+# terraform/bootstrap and are NOT affected by destroying this config.
+#
+# Image management: the container image is owned by the deploy workflow
+# (gcloud run deploy). Terraform ignores image changes (see lifecycle below).
+# ---------------------------------------------------------------------------
 
 # Cloud SQL instance
 resource "google_sql_database_instance" "staging" {
@@ -41,11 +39,13 @@ resource "google_sql_database_instance" "staging" {
   region           = var.region
 
   settings {
-    tier              = "db-f1-micro"
-    disk_autoresize   = true
-    disk_size         = 10
-    disk_type         = "PD_SSD"
-    availability_type = "REGIONAL"
+    tier            = "db-f1-micro"
+    disk_autoresize = true
+    disk_size       = 10
+    disk_type       = "PD_SSD"
+    # db-f1-micro is shared-core and only supports ZONAL availability.
+    # (REGIONAL/HA requires a dedicated-core tier and was why creation failed.)
+    availability_type = "ZONAL"
 
     backup_configuration {
       enabled = true
@@ -73,82 +73,6 @@ resource "google_sql_user" "postgres" {
   password = var.db_password
 }
 
-# Service account for GitHub Actions
-resource "google_service_account" "github_actions" {
-  account_id   = "github-actions-staging"
-  display_name = "GitHub Actions Staging Service Account"
-  description  = "Service account for GitHub Actions to deploy staging infrastructure"
-}
-
-# Service account key for GitHub Actions authentication
-resource "google_service_account_key" "github_actions" {
-  service_account_id = google_service_account.github_actions.name
-}
-
-# Grant service account permission to push to GCR/Artifact Registry
-resource "google_project_iam_member" "gcr_push" {
-  project = var.project_id
-  role    = "roles/artifactregistry.writer"
-  member  = "serviceAccount:${google_service_account.github_actions.email}"
-}
-
-# Grant service account permission to deploy to Cloud Run
-resource "google_project_iam_member" "cloudrun_deployer" {
-  project = var.project_id
-  role    = "roles/run.developer"
-  member  = "serviceAccount:${google_service_account.github_actions.email}"
-}
-
-# Grant service account permission to set IAM policy on Cloud Run services
-# (required for --allow-unauthenticated to make services publicly invokable)
-resource "google_project_iam_member" "cloudrun_admin" {
-  project = var.project_id
-  role    = "roles/run.admin"
-  member  = "serviceAccount:${google_service_account.github_actions.email}"
-}
-
-# Grant service account permission to access Cloud SQL
-resource "google_project_iam_member" "cloudsql_client" {
-  project = var.project_id
-  role    = "roles/cloudsql.client"
-  member  = "serviceAccount:${google_service_account.github_actions.email}"
-}
-
-# Grant service account permission to create Cloud SQL instances
-resource "google_project_iam_member" "cloudsql_admin" {
-  project = var.project_id
-  role    = "roles/cloudsql.admin"
-  member  = "serviceAccount:${google_service_account.github_actions.email}"
-}
-
-# Grant service account permission to execute SQL on Cloud SQL instances
-resource "google_project_iam_member" "cloudsql_instance_user" {
-  project = var.project_id
-  role    = "roles/cloudsql.instanceUser"
-  member  = "serviceAccount:${google_service_account.github_actions.email}"
-}
-
-# Grant service account permission to create service accounts
-resource "google_project_iam_member" "service_account_admin" {
-  project = var.project_id
-  role    = "roles/iam.serviceAccountAdmin"
-  member  = "serviceAccount:${google_service_account.github_actions.email}"
-}
-
-# Grant service account permission to manage IAM bindings
-resource "google_project_iam_member" "iam_admin" {
-  project = var.project_id
-  role    = "roles/resourcemanager.projectIamAdmin"
-  member  = "serviceAccount:${google_service_account.github_actions.email}"
-}
-
-# Grant service account permission to act as compute service account
-resource "google_service_account_iam_member" "compute_service_account_user" {
-  service_account_id = "projects/cti-backend-prod/serviceAccounts/561867108932-compute@developer.gserviceaccount.com"
-  role               = "roles/iam.serviceAccountUser"
-  member             = "serviceAccount:${google_service_account.github_actions.email}"
-}
-
 # Anthropic API key secret (consumed by the Cloud Run service)
 resource "google_secret_manager_secret" "anthropic_api_key" {
   secret_id = "anthropic-api-key-staging"
@@ -169,16 +93,104 @@ resource "google_secret_manager_secret_version" "anthropic_api_key" {
 resource "google_secret_manager_secret_iam_member" "anthropic_api_key_accessor" {
   secret_id = google_secret_manager_secret.anthropic_api_key.id
   role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:561867108932-compute@developer.gserviceaccount.com"
+  member    = "serviceAccount:${var.compute_service_account}"
+}
+
+# Cloud Run service (shell). The deploy workflow updates the image; Terraform
+# owns env vars, secrets, Cloud SQL link, scaling, and public access.
+resource "google_cloud_run_v2_service" "backend" {
+  name     = "dojo-backend-staging"
+  location = var.region
+  ingress  = "INGRESS_TRAFFIC_ALL"
+
+  template {
+    service_account                  = var.compute_service_account
+    timeout                          = "300s"
+    max_instance_request_concurrency = 80
+    execution_environment            = "EXECUTION_ENVIRONMENT_GEN2"
+
+    scaling {
+      min_instance_count = 0
+      max_instance_count = 2
+    }
+
+    containers {
+      image = var.image
+
+      ports {
+        container_port = 8080
+      }
+
+      resources {
+        limits = {
+          cpu    = "1000m"
+          memory = "512Mi"
+        }
+        cpu_idle          = true
+        startup_cpu_boost = true
+      }
+
+      env {
+        name  = "CORS_ORIGINS"
+        value = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001"
+      }
+
+      env {
+        name  = "DATABASE_TYPE"
+        value = "postgres"
+      }
+
+      env {
+        name  = "DATABASE_URL"
+        value = "postgresql://postgres:${var.db_password}@/dojo?host=/cloudsql/${var.project_id}:${var.region}:${google_sql_database_instance.staging.name}"
+      }
+
+      env {
+        name  = "RATE_LIMIT_REQUESTS"
+        value = "1000"
+      }
+
+      env {
+        name = "ANTHROPIC_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = google_secret_manager_secret.anthropic_api_key.secret_id
+            version = "latest"
+          }
+        }
+      }
+
+      volume_mounts {
+        name       = "cloudsql"
+        mount_path = "/cloudsql"
+      }
+    }
+
+    volumes {
+      name = "cloudsql"
+      cloud_sql_instance {
+        instances = ["${var.project_id}:${var.region}:${google_sql_database_instance.staging.name}"]
+      }
+    }
+  }
+
+  lifecycle {
+    # Image is owned by the deploy workflow (gcloud run deploy).
+    ignore_changes = [
+      template[0].containers[0].image,
+      client,
+      client_version,
+    ]
+  }
+
+  depends_on = [google_secret_manager_secret_version.anthropic_api_key]
 }
 
 # Make the Cloud Run service publicly invokable (--allow-unauthenticated).
-# The service itself is deployed by the GitHub Actions workflow, not Terraform,
-# so this binding is managed independently by name.
-resource "google_cloud_run_service_iam_member" "public_invoker" {
+resource "google_cloud_run_v2_service_iam_member" "public_invoker" {
   project  = var.project_id
   location = var.region
-  service  = "dojo-backend-staging"
+  name     = google_cloud_run_v2_service.backend.name
   role     = "roles/run.invoker"
   member   = "allUsers"
 }

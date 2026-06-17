@@ -1,131 +1,127 @@
 # Terraform Infrastructure as Code
 
-This directory contains Terraform configurations for managing the staging environment infrastructure.
+Infrastructure for the staging environment, split into two independent tiers
+(separate Terraform states in the same GCS backend bucket).
 
-## Staging Environment
+## Layout
 
-The staging environment is defined in `terraform/staging/` and includes:
+```
+terraform/
+  bootstrap/   # state prefix: "bootstrap"  — create once, DO NOT destroy
+  staging/     # state prefix: "staging"    — rebuildable app tier
+```
 
-- **Cloud SQL PostgreSQL instance** (db-f1-micro tier)
-- **Database** with managed user credentials
-- **Infrastructure as Code** for reproducible deployments
+### Bootstrap tier (`terraform/bootstrap/`)
+Foundational resources the rest of the system depends on. Destroying these would
+break CI/CD and require rotating credentials, so they are kept separate and
+protected (`prevent_destroy` on the service account).
 
-**Note:** Cloud Run service is managed separately via GitHub Actions workflow (`.github/workflows/deploy-backend-staging.yml`)
+- Enabled Google Cloud APIs (`run`, `sqladmin`, `secretmanager`, `artifactregistry`, `iam`)
+- `github-actions-staging` service account + its project IAM roles
+- `actAs` binding on the compute runtime service account
+
+> The service account **key** is intentionally **not** managed by Terraform
+> (it is stored in the `GCP_SA_KEY` GitHub secret). Rotate it manually if needed.
+
+### App tier (`terraform/staging/`)
+Everything that is safe to destroy and rebuild:
+
+- Cloud SQL instance (`dojo-db-staging`), database (`dojo`), user (`postgres`)
+- Anthropic API key secret (`anthropic-api-key-staging`) + version + access binding
+- Cloud Run service (`dojo-backend-staging`) — env vars, secret, Cloud SQL link,
+  scaling, and public access. **The container image is owned by the deploy
+  workflow** and ignored by Terraform (`lifecycle.ignore_changes`).
 
 ## Prerequisites
 
-1. **Terraform installed** locally
-2. **Google Cloud credentials** configured (`gcloud auth application-default login`)
-3. **Database password** for existing instance (stored in GitHub secrets)
+1. Terraform installed locally
+2. `gcloud auth application-default login` (run as a project owner/editor)
+3. Sensitive variable values (see `staging/terraform.tfvars.example`)
 
-## Local Usage
+## Backend / state
 
-### Initialize Terraform
+State is stored in GCS bucket `cti-backend-prod-terraform-state`:
+- bootstrap → prefix `bootstrap`
+- staging   → prefix `staging`
+
+The bucket itself is a bootstrap dependency and is **not** managed by Terraform
+(chicken-and-egg). Create it once by hand if recreating the project.
+
+## App-tier usage (rebuildable)
+
 ```bash
 cd terraform/staging
 terraform init
+
+# Provide secrets via env vars (preferred) ...
+export TF_VAR_db_password='...'
+export TF_VAR_anthropic_api_key='...'
+# ... or copy terraform.tfvars.example -> terraform.tfvars and fill it in.
+
+terraform plan
+terraform apply
 ```
 
-### Plan changes
+### Destroy & rebuild the app tier
+
 ```bash
-terraform plan -var="db_password=your-db-password"
+cd terraform/staging
+export TF_VAR_db_password='...'
+export TF_VAR_anthropic_api_key='...'
+
+terraform destroy        # removes Cloud SQL, secret, Cloud Run service
+terraform apply          # recreates them
+
+# Then redeploy the container image (Terraform ignores the image):
+gh workflow run "Deploy Backend to Cloud Run (Staging)" --ref staging
+# or push a change under backend/** on the staging branch.
 ```
 
-### Apply changes
+**Warning:** Destroy deletes the Cloud SQL instance and all its data. After a
+rebuild the database is empty and must be re-initialized (see below).
+
+> The bootstrap tier is never touched by the commands above.
+
+## Bootstrap usage (rare)
+
 ```bash
-terraform apply -var="db_password=your-db-password" -auto-approve
+cd terraform/bootstrap
+terraform init
+terraform plan     # should report "No changes"
 ```
 
-### Destroy infrastructure
-```bash
-terraform destroy -var="db_password=your-db-password" -auto-approve
-```
+Only apply here when changing CI IAM roles or enabled APIs.
 
-**Warning:** Destroy will delete the Cloud SQL instance and all data. Use with caution.
+## Database initialization (after a rebuild)
 
-## GitHub Actions Automation
-
-The staging infrastructure is managed via GitHub Actions when:
-1. Changes are pushed to the `staging` branch
-2. Changes are made to `terraform/staging/**` files
-3. Workflow is manually triggered via `workflow_dispatch`
-
-### Required GitHub Secrets
-
-- `GCP_SA_KEY`: Google Cloud service account key with appropriate permissions
-- `STAGING_DB_PASSWORD`: Database password for existing Cloud SQL instance
-- `ANTHROPIC_API_KEY_STAGING`: Anthropic API key for staging environment
-
-## Infrastructure Components
-
-### Cloud SQL
-- **Instance:** `dojo-db-staging`
-- **Database:** `dojo`
-- **Version:** PostgreSQL 15
-- **Tier:** db-f1-micro
-- **Storage:** 10GB with auto-increase
-- **Region:** us-central1
-- **Connectivity:** Public IP with authorized networks
-
-### Cloud Run (Separate Management)
-- **Service:** `dojo-backend-staging`
-- **Region:** us-central1
-- **Scaling:** 0-2 instances
-- **Memory:** 512Mi
-- **Deployment:** Managed via `.github/workflows/deploy-backend-staging.yml`
-
-## Database Initialization
-
-Database initialization is done manually after Terraform creates the infrastructure:
-
-1. **Connect to database:**
 ```bash
 gcloud sql connect dojo-db-staging --user=postgres
 ```
+Then create the application tables and an initial admin key (admin keys are
+stored in the `admin_keys` table; the backend is database-only for admin auth).
 
-2. **Create tables:**
-```sql
-CREATE TABLE IF NOT EXISTS cti_keys (...);
-CREATE TABLE IF NOT EXISTS admin_keys (...);
-CREATE TABLE IF NOT EXISTS admin_settings (...);
-CREATE TABLE IF NOT EXISTS provider_keys (...);
-```
+## GitHub Actions
 
-3. **Create admin key:**
-```sql
-INSERT INTO admin_keys (id, key_value, label, active, created_at)
-VALUES ('staging-admin-1', 'your-admin-key', 'Staging Admin Key', TRUE, CURRENT_TIMESTAMP);
-```
+- `.github/workflows/terraform-staging.yml` — applies the **app tier** on pushes
+  to `staging` touching `terraform/staging/**`.
+- `.github/workflows/deploy-backend-staging.yml` — builds/pushes the image and
+  does an **image-only** `gcloud run deploy` (all other service config is
+  Terraform-owned).
 
-## Outputs
+### Required GitHub secrets
+- `GCP_SA_KEY` — `github-actions-staging` service account key (JSON)
+- `GCP_PROJECT_ID` — `cti-backend-prod`
+- `STAGING_DB_PASSWORD` — Cloud SQL `postgres` user password
+- `STAGING_ANTHROPIC_API_KEY` — Anthropic API key (for `TF_VAR_anthropic_api_key`)
 
-After deployment, Terraform outputs:
-- `database_connection_name`: Cloud SQL connection string (e.g., `cti-backend-prod:us-central1:dojo-db-staging`)
-- `database_instance_name`: Cloud SQL instance name
+## Outputs (app tier)
 
-## State Management
+- `database_connection_name` — e.g. `cti-backend-prod:us-central1:dojo-db-staging`
+- `database_instance_name` — Cloud SQL instance name
+- `service_url` — Cloud Run service URL
 
-Terraform state is stored locally in `terraform/staging/terraform.tfstate`. For production, consider using:
-- Terraform Cloud
-- Google Cloud Storage backend
-- Remote state locking
+## Console links
 
-**Important:** Terraform state files are excluded from git via `.gitignore` to prevent committing sensitive data.
-
-## Security
-
-- Database password is passed as a sensitive variable
-- Cloud SQL instance uses authorized networks for access control
-- Consider adding IAM restrictions for production
-- Never commit `terraform.tfstate` files to version control
-
-## Current Staging Admin Key
-
-- **Key:** `staging-admin-key-251ba8a6368be1a624fb86638d8c6cf5`
-- **Use this key** for testing staging endpoints via `X-Admin-Key` header
-
-## Google Cloud Console Links
-
-- **Cloud SQL instances:** https://console.cloud.google.com/sql/instances?project=cti-backend-prod
-- **Staging database:** https://console.cloud.google.com/sql/instances/dojo-db-staging/overview?project=cti-backend-prod
-- **Cloud Run services:** https://console.cloud.google.com/run?project=cti-backend-prod
+- Cloud SQL: https://console.cloud.google.com/sql/instances?project=cti-backend-prod
+- Cloud Run: https://console.cloud.google.com/run?project=cti-backend-prod
+- Secret Manager: https://console.cloud.google.com/security/secret-manager?project=cti-backend-prod
