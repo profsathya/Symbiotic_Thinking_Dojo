@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Header, status
 from pydantic import BaseModel, Field
 
 import database
-from config import ADMIN_API_KEY, DATABASE_TYPE, DATABASE_PATH, DATABASE_URL, get_admin_api_key
+from config import DATABASE_TYPE, DATABASE_PATH, DATABASE_URL
 
 router = APIRouter()
 
@@ -18,14 +18,9 @@ async def verify_admin(x_admin_key: Optional[str] = Header(None)) -> None:
             detail="Admin API key required"
         )
     
-    # Check against database admin keys first
+    # Check against database admin keys
     admin_key = database.validate_admin_key(x_admin_key)
     if admin_key:
-        return
-    
-    # Fallback to legacy ADMIN_API_KEY from config
-    current_key = get_admin_api_key()
-    if current_key and x_admin_key == current_key:
         return
     
     raise HTTPException(
@@ -296,7 +291,7 @@ async def get_database_info():
 @router.get("/api/admin/config", dependencies=[Depends(verify_admin)])
 async def get_config_info():
     """Get admin configuration information (without sensitive data)."""
-    admin_key = get_admin_api_key()
+    admin_key = database.get_admin_setting("admin_api_key")
     admin_key_label = database.get_admin_setting("admin_api_key_label")
     return {
         "admin_key_configured": bool(admin_key),
@@ -309,7 +304,7 @@ async def get_config_info():
 async def get_admin_key():
     """Get the admin API key (for display purposes)."""
     return {
-        "admin_key": get_admin_api_key(),
+        "admin_key": database.get_admin_setting("admin_api_key"),
     }
 
 
