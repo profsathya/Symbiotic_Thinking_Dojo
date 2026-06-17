@@ -55,8 +55,6 @@ jobs:
       - name: Initialize staging database
         run: |
           gcloud sql instances execute-sql cti-backend-prod:us-central1:dojo-db-staging \
-            --user=postgres \
-            --password=${{ secrets.STAGING_DB_PASSWORD }} \
             --database=dojo \
             --sql="CREATE TABLE IF NOT EXISTS admin_keys (id SERIAL PRIMARY KEY, key_value TEXT NOT NULL UNIQUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);"
 
