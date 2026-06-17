@@ -82,6 +82,14 @@ resource "google_project_iam_member" "cloudrun_deployer" {
   member  = "serviceAccount:${google_service_account.github_actions.email}"
 }
 
+# Grant service account permission to set IAM policy on Cloud Run services
+# (required for --allow-unauthenticated to make services publicly invokable)
+resource "google_project_iam_member" "cloudrun_admin" {
+  project = var.project_id
+  role    = "roles/run.admin"
+  member  = "serviceAccount:${google_service_account.github_actions.email}"
+}
+
 # Grant service account permission to access Cloud SQL
 resource "google_project_iam_member" "cloudsql_client" {
   project = var.project_id
