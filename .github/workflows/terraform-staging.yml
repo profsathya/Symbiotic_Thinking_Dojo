@@ -6,6 +6,8 @@ on:
     paths:
       - 'terraform/staging/**'
   workflow_dispatch:
+    # Disabled - infrastructure already created locally
+    # To enable, remove this comment and uncomment the workflow steps
 
 env:
   PROJECT_ID: cti-backend-prod
@@ -47,24 +49,25 @@ jobs:
         working-directory: ./terraform/staging
         run: terraform plan -out=tfplan
         env:
-          TF_VAR_anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          TF_VAR_db_password: ${{ secrets.STAGING_DB_PASSWORD }}
+          TF_VAR_anthropic_api_key: ${{ secrets.STAGING_ANTHROPIC_API_KEY }}
 
       - name: Terraform Apply
         working-directory: ./terraform/staging
         run: terraform apply -auto-approve tfplan
         env:
-          TF_VAR_anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          TF_VAR_db_password: ${{ secrets.STAGING_DB_PASSWORD }}
+          TF_VAR_anthropic_api_key: ${{ secrets.STAGING_ANTHROPIC_API_KEY }}
 
       - name: Get outputs
         working-directory: ./terraform/staging
         id: terraform-outputs
         run: |
-          echo "service_url=$(terraform output -raw service_url)" >> $GITHUB_OUTPUT
-          echo "database_password=$(terraform output -raw database_password)" >> $GITHUB_OUTPUT
+          echo "database_connection_name=$(terraform output -raw database_connection_name)" >> $GITHUB_OUTPUT
+          echo "database_instance_name=$(terraform output -raw database_instance_name)" >> $GITHUB_OUTPUT
 
       - name: Show deployment info
         run: |
-          echo "## Staging Environment Deployed" >> $GITHUB_STEP_SUMMARY
-          echo "**Service URL:** ${{ steps.terraform-outputs.outputs.service_url }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Database password has been set in Cloud SQL" >> $GITHUB_STEP_SUMMARY
+          echo "## Staging Infrastructure Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "**Database Connection:** ${{ steps.terraform-outputs.outputs.database_connection_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Database Instance:** ${{ steps.terraform-outputs.outputs.database_instance_name }}" >> $GITHUB_STEP_SUMMARY
