@@ -113,22 +113,41 @@ terraform apply        # Cloud SQL takes ~5-10 min to provision
 ```
 
 ### 5. Initialize the database (empty after creation)
-```bash
-gcloud sql connect dojo-db-staging --user=postgres
-```
-Create the application tables and an initial admin key (see "Database
-initialization" below).
+The application tables are created automatically the first time the backend
+boots (`database.init_db()` runs in the Cloud Run `startup` handler), so after
+Step 6 the schema exists. The one thing you must bootstrap by hand is the
+**initial admin key** — there is no CLI command or API endpoint to create the
+first one (the admin API requires an existing admin key to authenticate).
+
+See "Database initialization" below for the exact commands.
 
 ### 6. Deploy the backend image
 The Cloud Run service exists but Terraform doesn't manage the image. Push a
 backend change to `staging`, or trigger the workflow:
 ```bash
-gh workflow run "Deploy Backend to Cloud Run (Staging)" --ref staging
+gh workflow run "Deploy Backend to Cloud Run (Staging)" --ref staging \
+  --repo hisergiorojas/Symbiotic_Thinking_Dojo
 ```
+
+> **Two-remote gotcha:** this repo typically has both `origin`
+> (`hisergiorojas/Symbiotic_Thinking_Dojo` — your fork, which has the `staging`
+> branch and the GitHub secrets) and `upstream` (`profsathya/...`, which does
+> **not** have a `staging` branch). `gh` may default to `upstream` and fail with
+> `HTTP 422: No ref found for: staging`. Always pass `--repo`, or set the
+> default once with:
+> ```bash
+> gh repo set-default hisergiorojas/Symbiotic_Thinking_Dojo
+> ```
 
 After this, ongoing changes flow through Git: pushes to `staging` touching
 `terraform/staging/**` apply infra, and pushes touching `backend/**` redeploy the
 image.
+
+Verify the deploy is live:
+```bash
+cd terraform/staging
+curl -s "$(terraform output -raw service_url)/health"   # -> {"status":"ok"}
+```
 
 ## App-tier usage (rebuildable)
 
@@ -156,7 +175,8 @@ terraform destroy        # removes Cloud SQL, secret, Cloud Run service
 terraform apply          # recreates them
 
 # Then redeploy the container image (Terraform ignores the image):
-gh workflow run "Deploy Backend to Cloud Run (Staging)" --ref staging
+gh workflow run "Deploy Backend to Cloud Run (Staging)" --ref staging \
+  --repo hisergiorojas/Symbiotic_Thinking_Dojo
 # or push a change under backend/** on the staging branch.
 ```
 
@@ -177,11 +197,153 @@ Only apply here when changing CI IAM roles or enabled APIs.
 
 ## Database initialization (after a rebuild)
 
+The four tables (`cti_keys`, `admin_keys`, `admin_settings`, `provider_keys`)
+are created automatically by the backend on startup, and also by any
+`manage_keys.py` invocation. The **initial admin key must be inserted directly**
+into the `admin_keys` table — there is no CLI/API to create the first one.
+
+### Connecting to the staging database
+
+`gcloud sql connect` requires the bundled Cloud SQL Proxy v2 component. When
+`gcloud` is installed via the Homebrew **cask**, its component manager is
+disabled, so `gcloud components install cloud-sql-proxy` will NOT work. Install
+the standalone proxy instead and run it yourself:
+
 ```bash
-gcloud sql connect dojo-db-staging --user=postgres
+brew install cloud-sql-proxy
+
+# Start the proxy on a local port (any free port; example uses 9470).
+# The DATABASE_URL below must point at this SAME port.
+cloud-sql-proxy cti-backend-prod:us-central1:dojo-db-staging --port 9470
 ```
-Then create the application tables and an initial admin key (admin keys are
-stored in the `admin_keys` table; the backend is database-only for admin auth).
+
+### Create the tables + initial admin key (one shot)
+
+In a second terminal, from `backend/` using its venv (for `psycopg2`):
+
+```bash
+cd backend
+source venv/bin/activate
+
+ADMIN_KEY=$(openssl rand -hex 32)
+
+DATABASE_TYPE=postgres \
+DATABASE_URL="postgresql://postgres:<DB_PASSWORD>@127.0.0.1:9470/dojo" \
+./venv/bin/python3 -c "
+import uuid, os, database
+database.init_db()                       # creates all 4 tables
+key = os.environ['ADMIN_KEY']
+database.create_admin_key(str(uuid.uuid4()), key, label='initial-admin')
+print('SAVE THIS ADMIN KEY:', key)
+" ADMIN_KEY="$ADMIN_KEY"
+```
+
+**Save the printed admin key immediately** — it is only shown once and is not
+recoverable in plaintext. Send it as the `X-Admin-Key` header to authenticate
+to the admin API.
+
+> Tip: confirm the port the proxy is actually listening on with
+> `lsof -i -P | grep cloud-sql-proxy` and make sure `DATABASE_URL` matches it.
+> A `connection refused` error almost always means the port doesn't match.
+
+### Create a CTI key (needed to actually use the app)
+
+Student requests authenticate with a CTI key (`X-CTI-Key` header) that must
+exist in the `cti_keys` table. With the proxy running, mint one from `backend/`:
+
+```bash
+cd backend
+source venv/bin/activate
+
+DATABASE_TYPE=postgres \
+DATABASE_URL="postgresql://postgres:<DB_PASSWORD>@127.0.0.1:9470/dojo" \
+python manage_keys.py create --email student@example.edu --name "Test Student"
+```
+
+This prints the new key UUID. `manage_keys.py` also supports `list`, `usage`,
+`bulk-create`, `add-budget`, `deactivate`, etc. (admin keys are separate — see
+the one-shot snippet above; there is no `manage_keys.py` command for them).
+
+## Staging frontend (point the UI at the staging backend)
+
+The frontend reads `NEXT_PUBLIC_CTI_BACKEND_URL` (baked in at build time) to
+decide which CTI backend the browser talks to. To run a **separate** staging
+frontend that points at the staging backend, deploy it as its own Cloud Run
+service with Cloud Build.
+
+> **Two `cloudbuild.yaml` files exist.** The repo root one builds the
+> **frontend** (has `_SERVICE_NAME` / `_NEXT_PUBLIC_CTI_BACKEND_URL`
+> substitutions). `backend/cloudbuild.yaml` builds the **backend** and has no
+> such substitutions. Running the command below from `backend/` causes
+> `INVALID_ARGUMENT: key "_SERVICE_NAME" ... not matched in the template`.
+> **Always run frontend deploys from the repo root.**
+
+### Prerequisites (one-time per project)
+
+```bash
+# 1. Cloud Build API must be enabled.
+gcloud services enable cloudbuild.googleapis.com --project=cti-backend-prod
+
+# 2. cloudbuild.yaml always mounts a commons-api-key secret. If you don't use
+#    The Commons partner platform, a placeholder satisfies the build:
+printf 'unused-placeholder' | gcloud secrets create commons-api-key --data-file=-
+```
+
+### 1. Deploy the staging frontend (from the repo ROOT)
+
+```bash
+cd /path/to/Symbiotic_Thinking_Dojo   # repo root, NOT backend/
+
+STAGING_BACKEND=$(cd terraform/staging && terraform output -raw service_url)
+
+gcloud builds submit --config=cloudbuild.yaml \
+  --substitutions=_SERVICE_NAME=symbiotic-thinking-dojo-staging,_NEXT_PUBLIC_CTI_BACKEND_URL=$STAGING_BACKEND
+```
+
+### 2. Make the frontend publicly reachable
+
+Cloud Build's `--allow-unauthenticated` flag silently fails if the Cloud Build
+service account lacks `run.services.setIamPolicy`. Symptom: the page returns
+`Error: Forbidden — Your client does not have permission to get URL /`. Grant
+public invoke directly (only needed once per service):
+
+```bash
+gcloud run services add-iam-policy-binding symbiotic-thinking-dojo-staging \
+  --region=us-central1 --member=allUsers --role=roles/run.invoker
+```
+
+### 3. Get the frontend URL
+
+```bash
+gcloud run services describe symbiotic-thinking-dojo-staging \
+  --region=us-central1 --format='value(status.url)'
+```
+
+### 4. Allow the frontend origin in the backend CORS (LAST step)
+
+The CTI flow is **browser → backend**, so the backend must allow the frontend's
+origin. Append the URL from step 3 to `CORS_ORIGINS` in
+`terraform/staging/main.tf` (the `google_cloud_run_v2_service.backend` env
+block), then apply. Pull the existing Anthropic key from Secret Manager so the
+apply doesn't rotate the secret:
+
+```bash
+cd terraform/staging
+export TF_VAR_db_password='<DB_PASSWORD>'
+export TF_VAR_anthropic_api_key="$(gcloud secrets versions access latest --secret=anthropic-api-key-staging --project=cti-backend-prod)"
+terraform apply
+```
+
+### 5. Verify
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' \
+  https://symbiotic-thinking-dojo-staging-utgnvp7qma-uc.a.run.app/   # -> 200
+```
+
+Then open the frontend, select the **CTI** provider, and send a message. To
+authenticate a request you need a CTI key in the staging `cti_keys` table — mint
+one with `manage_keys.py` (via the proxy) or the admin API using your admin key.
 
 ## GitHub Actions
 
@@ -198,6 +360,16 @@ stored in the `admin_keys` table; the backend is database-only for admin auth).
 - `STAGING_ANTHROPIC_API_KEY` — Anthropic API key (for `TF_VAR_anthropic_api_key`)
 
 ## Outputs (app tier)
+
+Run `terraform output` **from the `terraform/staging` directory** — each tier
+has its own state, so running it from the repo root or `backend/` reports
+`Warning: No outputs found`.
+
+```bash
+cd terraform/staging
+terraform output                      # all outputs
+terraform output -raw service_url     # single value, unquoted
+```
 
 - `database_connection_name` — e.g. `cti-backend-prod:us-central1:dojo-db-staging`
 - `database_instance_name` — Cloud SQL instance name

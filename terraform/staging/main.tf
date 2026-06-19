@@ -132,7 +132,7 @@ resource "google_cloud_run_v2_service" "backend" {
 
       env {
         name  = "CORS_ORIGINS"
-        value = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001"
+        value = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,https://symbiotic-thinking-dojo-staging-utgnvp7qma-uc.a.run.app"
       }
 
       env {
