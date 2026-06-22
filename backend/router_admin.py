@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Header, status
 from pydantic import BaseModel, Field
 
 import database
-from config import DATABASE_TYPE, DATABASE_PATH, DATABASE_URL
+from config import ADMIN_API_KEY, DATABASE_TYPE, DATABASE_PATH, DATABASE_URL, get_admin_api_key
 
 router = APIRouter()
 
@@ -18,9 +18,14 @@ async def verify_admin(x_admin_key: Optional[str] = Header(None)) -> None:
             detail="Admin API key required"
         )
     
-    # Check against database admin keys
+    # Check against database admin keys first
     admin_key = database.validate_admin_key(x_admin_key)
     if admin_key:
+        return
+    
+    # Fallback to legacy ADMIN_API_KEY from config
+    current_key = get_admin_api_key()
+    if current_key and x_admin_key == current_key:
         return
     
     raise HTTPException(
@@ -84,14 +89,14 @@ class KeyStatsResponse(BaseModel):
 
 
 # Endpoints
-@router.get("/api/admin/keys", response_model=List[KeyResponse], dependencies=[Depends(verify_admin)])
+@router.get("/api/admin/keys", response_model=List[KeyResponse])
 async def list_keys(active_only: bool = False):
     """List all CTI keys."""
     keys = database.list_keys(active_only=active_only)
     return keys
 
 
-@router.get("/api/admin/keys/{key_id}", response_model=KeyResponse, dependencies=[Depends(verify_admin)])
+@router.get("/api/admin/keys/{key_id}", response_model=KeyResponse)
 async def get_key(key_id: str):
     """Get details of a specific key."""
     key_data = database.get_key(key_id)
@@ -100,7 +105,7 @@ async def get_key(key_id: str):
     return key_data
 
 
-@router.post("/api/admin/keys", response_model=KeyResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(verify_admin)])
+@router.post("/api/admin/keys", response_model=KeyResponse, status_code=status.HTTP_201_CREATED)
 async def create_key(request: KeyCreateRequest):
     """Create a new CTI key."""
     import uuid
@@ -123,7 +128,7 @@ async def create_key(request: KeyCreateRequest):
     return key_data
 
 
-@router.post("/api/admin/keys/bulk", response_model=BulkCreateResponse, dependencies=[Depends(verify_admin)])
+@router.post("/api/admin/keys/bulk", response_model=BulkCreateResponse)
 async def bulk_create_keys(request: BulkCreateRequest):
     """Bulk create CTI keys from a list of students."""
     import uuid
@@ -159,7 +164,7 @@ async def bulk_create_keys(request: BulkCreateRequest):
     return BulkCreateResponse(created=created, failed=failed)
 
 
-@router.post("/api/admin/keys/{key_id}/deactivate", dependencies=[Depends(verify_admin)])
+@router.post("/api/admin/keys/{key_id}/deactivate")
 async def deactivate_key(key_id: str):
     """Deactivate a CTI key."""
     key_data = database.get_key(key_id)
@@ -170,7 +175,7 @@ async def deactivate_key(key_id: str):
     return {"message": "Key deactivated", "email": key_data["student_email"]}
 
 
-@router.post("/api/admin/keys/{key_id}/reactivate", dependencies=[Depends(verify_admin)])
+@router.post("/api/admin/keys/{key_id}/reactivate")
 async def reactivate_key(key_id: str):
     """Reactivate a CTI key."""
     key_data = database.get_key(key_id)
@@ -181,7 +186,7 @@ async def reactivate_key(key_id: str):
     return {"message": "Key reactivated", "email": key_data["student_email"]}
 
 
-@router.delete("/api/admin/keys/{key_id}", dependencies=[Depends(verify_admin)])
+@router.delete("/api/admin/keys/{key_id}")
 async def delete_key(key_id: str):
     """Delete a CTI key."""
     key_data = database.get_key(key_id)
@@ -192,7 +197,7 @@ async def delete_key(key_id: str):
     return {"success": True, "message": "CTI key deleted successfully", "email": key_data["student_email"]}
 
 
-@router.post("/api/admin/keys/{key_id}/add-budget", dependencies=[Depends(verify_admin)])
+@router.post("/api/admin/keys/{key_id}/add-budget")
 async def add_budget(key_id: str, request: AddBudgetRequest):
     """Set the total budget for a key to a specific value."""
     key_data = database.get_key(key_id)
@@ -221,7 +226,7 @@ class UpdateLabelRequest(BaseModel):
     label: str
 
 
-@router.post("/api/admin/keys/{key_id}/label", dependencies=[Depends(verify_admin)])
+@router.post("/api/admin/keys/{key_id}/label")
 async def update_key_label(key_id: str, request: UpdateLabelRequest):
     """Update the label for a CTI key."""
     key_data = database.get_key(key_id)
@@ -232,7 +237,7 @@ async def update_key_label(key_id: str, request: UpdateLabelRequest):
     return {"success": True, "message": "Label updated successfully"}
 
 
-@router.get("/api/admin/stats", response_model=KeyStatsResponse, dependencies=[Depends(verify_admin)])
+@router.get("/api/admin/stats", response_model=KeyStatsResponse)
 async def get_stats():
     """Get overall statistics for all keys."""
     keys = database.list_keys()
@@ -252,7 +257,7 @@ async def get_stats():
     )
 
 
-@router.get("/api/admin/usage", dependencies=[Depends(verify_admin)])
+@router.get("/api/admin/usage")
 async def export_usage():
     """Export all usage data (CSV format)."""
     keys = database.list_keys()
@@ -291,7 +296,7 @@ async def get_database_info():
 @router.get("/api/admin/config", dependencies=[Depends(verify_admin)])
 async def get_config_info():
     """Get admin configuration information (without sensitive data)."""
-    admin_key = database.get_admin_setting("admin_api_key")
+    admin_key = get_admin_api_key()
     admin_key_label = database.get_admin_setting("admin_api_key_label")
     return {
         "admin_key_configured": bool(admin_key),
@@ -304,7 +309,7 @@ async def get_config_info():
 async def get_admin_key():
     """Get the admin API key (for display purposes)."""
     return {
-        "admin_key": database.get_admin_setting("admin_api_key"),
+        "admin_key": get_admin_api_key(),
     }
 
 
@@ -438,7 +443,7 @@ class ProviderKeyCreateRequest(BaseModel):
     notes: Optional[str] = None
 
 
-@router.post("/api/admin/provider-keys", dependencies=[Depends(verify_admin)])
+@router.post("/api/admin/provider-keys")
 async def create_provider_key(request: ProviderKeyCreateRequest):
     """Create a new provider API key."""
     import uuid
@@ -447,7 +452,7 @@ async def create_provider_key(request: ProviderKeyCreateRequest):
     return {"success": True, "id": key_id, "message": "Provider key created successfully"}
 
 
-@router.get("/api/admin/provider-keys", dependencies=[Depends(verify_admin)])
+@router.get("/api/admin/provider-keys")
 async def list_provider_keys():
     """List all provider keys."""
     keys = database.get_provider_keys()
@@ -466,7 +471,7 @@ async def list_provider_keys():
     ]
 
 
-@router.get("/api/admin/provider-keys/{provider}", dependencies=[Depends(verify_admin)])
+@router.get("/api/admin/provider-keys/{provider}")
 async def list_provider_keys_by_provider(provider: str):
     """List all provider keys for a specific provider."""
     keys = database.get_provider_keys_by_provider(provider)
@@ -484,28 +489,28 @@ async def list_provider_keys_by_provider(provider: str):
     ]
 
 
-@router.delete("/api/admin/provider-keys/{key_id}", dependencies=[Depends(verify_admin)])
+@router.delete("/api/admin/provider-keys/{key_id}")
 async def delete_provider_key(key_id: str):
     """Delete a provider key."""
     database.delete_provider_key(key_id)
     return {"success": True, "message": "Provider key deleted successfully"}
 
 
-@router.post("/api/admin/provider-keys/{key_id}/activate", dependencies=[Depends(verify_admin)])
+@router.post("/api/admin/provider-keys/{key_id}/activate")
 async def activate_provider_key(key_id: str):
     """Activate a provider key."""
     database.set_provider_key_active(key_id, True)
     return {"success": True, "message": "Provider key activated successfully"}
 
 
-@router.post("/api/admin/provider-keys/{key_id}/deactivate", dependencies=[Depends(verify_admin)])
+@router.post("/api/admin/provider-keys/{key_id}/deactivate")
 async def deactivate_provider_key(key_id: str):
     """Deactivate a provider key."""
     database.set_provider_key_active(key_id, False)
     return {"success": True, "message": "Provider key deactivated successfully"}
 
 
-@router.post("/api/admin/provider-keys/{key_id}/label", dependencies=[Depends(verify_admin)])
+@router.post("/api/admin/provider-keys/{key_id}/label")
 async def update_provider_key_label_endpoint(key_id: str, request: UpdateAdminKeyLabelRequest):
     """Update the label for a provider key."""
     database.update_provider_key_label(key_id, request.label)

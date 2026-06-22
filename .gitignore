@@ -42,13 +42,16 @@ yarn-error.log*
 next-env.d.ts
 backend/__pycache__/
 
-# Terraform
-**/.terraform/
-**/*.tfstate
-**/*.tfstate.*
-**/*.tfbackup
-**/crash.log
-**/crash.*.log
-**/override.tf
-**/override.tf.json
-**/terraform.tfvars
+# database
+*.db
+backend/*.db
+*.db-shm
+*.db-wal
+
+
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+**/__pycache__/
+*.pyc

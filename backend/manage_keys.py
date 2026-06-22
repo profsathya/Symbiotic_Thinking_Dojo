@@ -42,18 +42,22 @@ def create(email: str, name: Optional[str], budget: int, expires: Optional[str],
 
 
 @cli.command("bulk-create")
-@click.option("--csv-file", "csv_path", required=True, help="CSV file with columns: email, name")
+@click.option("--csv-file", "csv_path", required=True, help="CSV file with columns: email, name, openai_key, anthropic_key, google_key, github_key")
 @click.option("--budget", default=5_000_000, help="Total token budget per student")
 @click.option("--expires", default=None, help="Expiration date (YYYY-MM-DD)")
 @click.option("--output", default=None, help="Output CSV path (default: stdout)")
 def bulk_create(csv_path: str, budget: int, expires: Optional[str], output: Optional[str]):
-    """Bulk create keys from a CSV file (columns: email, name)."""
+    """Bulk create keys from a CSV file (columns: email, name, openai_key, anthropic_key, google_key, github_key)."""
     results = []
     with open(csv_path, newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
             email = row["email"].strip()
             name = row.get("name", "").strip() or None
+            openai_key = row.get("openai_key", "").strip() or None
+            anthropic_key = row.get("anthropic_key", "").strip() or None
+            google_key = row.get("google_key", "").strip() or None
+            github_key = row.get("github_key", "").strip() or None
             key_id = str(uuid.uuid4())
             database.create_key(
                 key_id=key_id,
@@ -61,6 +65,10 @@ def bulk_create(csv_path: str, budget: int, expires: Optional[str], output: Opti
                 student_name=name,
                 total_budget_tokens=budget,
                 expires_at=expires,
+                openai_key=openai_key,
+                anthropic_key=anthropic_key,
+                google_key=google_key,
+                github_key=github_key,
             )
             results.append({
                 "email": email,
@@ -68,11 +76,15 @@ def bulk_create(csv_path: str, budget: int, expires: Optional[str], output: Opti
                 "key": key_id,
                 "budget": budget,
                 "expires": expires or "",
+                "openai_key": openai_key or "",
+                "anthropic_key": anthropic_key or "",
+                "google_key": google_key or "",
+                "github_key": github_key or "",
             })
 
     # Write output
     out = open(output, "w", newline="") if output else sys.stdout
-    writer = csv.DictWriter(out, fieldnames=["email", "name", "key", "budget", "expires"])
+    writer = csv.DictWriter(out, fieldnames=["email", "name", "key", "budget", "expires", "openai_key", "anthropic_key", "google_key", "github_key"])
     writer.writeheader()
     writer.writerows(results)
     if output:
