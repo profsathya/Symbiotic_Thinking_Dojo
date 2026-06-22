@@ -6,8 +6,8 @@ from typing import Optional
 ANTHROPIC_API_KEY: str = os.environ.get("ANTHROPIC_API_KEY", "")
 
 # Model identifiers — update these when new model versions are released
-SONNET_MODEL: str = os.environ.get("SONNET_MODEL", "claude-sonnet-4-20250514")
-HAIKU_MODEL: str = os.environ.get("HAIKU_MODEL", "claude-haiku-4-5-20241022")
+SONNET_MODEL: str = os.environ.get("SONNET_MODEL", "claude-sonnet-4-5-20250929")
+HAIKU_MODEL: str = os.environ.get("HAIKU_MODEL", "claude-haiku-4-5-20251001")
 
 # Database
 DATABASE_TYPE: str = os.environ.get("DATABASE_TYPE", "sqlite")  # "sqlite" or "postgres"
