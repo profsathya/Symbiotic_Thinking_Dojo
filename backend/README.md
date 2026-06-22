@@ -147,3 +147,6 @@ Note: SQLite is NOT recommended for Cloud Run as the filesystem is ephemeral.
 | `CORS_ORIGINS` | `https://symbioticthinking.ai,http://localhost:3000` | Allowed CORS origins |
 | `RATE_LIMIT_REQUESTS` | `10` | Requests per window per key |
 | `RATE_LIMIT_WINDOW_SECONDS` | `60` | Rate limit window |
+
+
+# Rate limit status endpoint added

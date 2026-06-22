@@ -42,6 +42,28 @@ const STYLE_CONFIG = {
 };
 
 export function InfoBox({ data }: InfoBoxProps) {
+  // `aside` is a quiet research-note variant: muted, narrower, set to the side
+  // so it can be glanced at without breaking flow.
+  if (data.style === 'aside') {
+    return (
+      <aside className="my-3 ml-auto max-w-md border-l-2 border-slate-500/50 bg-slate-800/40 px-3 py-2 text-slate-300/80">
+        <div className="flex items-start gap-2">
+          <span className="text-xs text-slate-400 mt-0.5">🔬</span>
+          <div className="flex-1 min-w-0">
+            {data.title && (
+              <div className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-1">
+                {data.title}
+              </div>
+            )}
+            <div className="text-xs italic whitespace-pre-wrap leading-relaxed">
+              {data.content}
+            </div>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
   const config = STYLE_CONFIG[data.style];
 
   return (

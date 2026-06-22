@@ -26,7 +26,7 @@ CORS_ORIGINS: list[str] = [
 CORS_METHODS: list[str] = ["GET", "POST", "DELETE", "OPTIONS"]
 
 # Rate limiting
-RATE_LIMIT_REQUESTS: int = int(os.environ.get("RATE_LIMIT_REQUESTS", "10"))
+RATE_LIMIT_REQUESTS: int = int(os.environ.get("RATE_LIMIT_REQUESTS", "1000"))
 RATE_LIMIT_WINDOW_SECONDS: int = int(os.environ.get("RATE_LIMIT_WINDOW_SECONDS", "60"))
 
 # Admin API
