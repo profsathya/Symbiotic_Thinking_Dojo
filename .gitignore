@@ -45,3 +45,13 @@ backend/__pycache__/
 # database
 *.db
 backend/*.db
+*.db-shm
+*.db-wal
+
+
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+**/__pycache__/
+*.pyc

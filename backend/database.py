@@ -141,17 +141,17 @@ class _DbWrapper:
         if DATABASE_TYPE == "postgres":
             self._obj.execute(sql, params)
             row = self._obj.fetchone()
-            return dict(row) if row else None
+            return _serialize_row(dict(row)) if row else None
         else:
             row = self._obj.execute(sql, params).fetchone()
-            return dict(row) if row else None
+            return _serialize_row(dict(row)) if row else None
 
     def query_all(self, sql: str, params: tuple = ()) -> List[Dict[str, Any]]:
         if DATABASE_TYPE == "postgres":
             self._obj.execute(sql, params)
-            return [dict(r) for r in self._obj.fetchall()]
+            return [_serialize_row(dict(r)) for r in self._obj.fetchall()]
         else:
-            return [dict(r) for r in self._obj.execute(sql, params).fetchall()]
+            return [_serialize_row(dict(r)) for r in self._obj.execute(sql, params).fetchall()]
 
 
 def _get_sqlite_conn() -> sqlite3.Connection:

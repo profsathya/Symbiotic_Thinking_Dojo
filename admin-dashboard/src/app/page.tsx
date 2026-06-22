@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Trash2, Plus, Globe, CheckCircle, AlertCircle, Users, Download, TrendingUp, KeyRound, Filter, FileText, Eye } from 'lucide-react'
+import { Trash2, Plus, Globe, CheckCircle, AlertCircle, Users, Download, TrendingUp, KeyRound, Filter, FileText, Eye, LogOut, Lock } from 'lucide-react'
 
 interface ProviderKey {
   id: string
@@ -41,17 +41,37 @@ export default function AdminDashboard() {
   const [showAddBudgetModal, setShowAddBudgetModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showUsageModal, setShowUsageModal] = useState(false)
+  const [showLoginModal, setShowLoginModal] = useState(false)
   const [selectedKeyForBudget, setSelectedKeyForBudget] = useState<string | null>(null)
   const [selectedKeyForDelete, setSelectedKeyForDelete] = useState<string | null>(null)
   const [selectedKeyForUsage, setSelectedKeyForUsage] = useState<CTIKey | null>(null)
   const [activeOnlyFilter, setActiveOnlyFilter] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [adminKey, setAdminKey] = useState<string | null>(null)
 
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
+  // Check for admin key in localStorage on mount
+  useEffect(() => {
+    const storedKey = localStorage.getItem('adminKey')
+    if (storedKey) {
+      setAdminKey(storedKey)
+    } else {
+      setShowLoginModal(true)
+    }
+  }, [])
+
+  const handleLogout = () => {
+    localStorage.removeItem('adminKey')
+    setAdminKey(null)
+    setShowLoginModal(true)
+  }
+
   const fetchProviderKeys = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/provider-keys`)
+      const res = await fetch(`${API_BASE}/api/admin/provider-keys`, {
+        headers: adminKey ? { 'X-Admin-Key': adminKey } : {}
+      })
       if (res.ok) {
         const data = await res.json()
         setProviderKeys(data)
@@ -64,7 +84,9 @@ export default function AdminDashboard() {
   const fetchCTIKeys = async () => {
     try {
       const url = activeOnlyFilter ? `${API_BASE}/api/admin/keys?active_only=true` : `${API_BASE}/api/admin/keys`
-      const res = await fetch(url)
+      const res = await fetch(url, {
+        headers: adminKey ? { 'X-Admin-Key': adminKey } : {}
+      })
       if (res.ok) {
         const data = await res.json()
         setCtiKeys(data)
@@ -105,7 +127,9 @@ export default function AdminDashboard() {
 
   const exportUsage = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/usage`)
+      const res = await fetch(`${API_BASE}/api/admin/usage`, {
+        headers: adminKey ? { 'X-Admin-Key': adminKey } : {}
+      })
       if (res.ok) {
         const data = await res.json()
         const csv = [
@@ -125,7 +149,7 @@ export default function AdminDashboard() {
             row.last_used
           ])
         ].map(row => row.join(',')).join('\n')
-        
+
         const blob = new Blob([csv], { type: 'text/csv' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
@@ -144,6 +168,20 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-6">
+      {/* Login Modal */}
+      {showLoginModal && (
+        <LoginModal
+          onClose={() => setShowLoginModal(false)}
+          onLogin={(key) => {
+            localStorage.setItem('adminKey', key)
+            setAdminKey(key)
+            setShowLoginModal(false)
+            fetchProviderKeys()
+            fetchCTIKeys()
+          }}
+        />
+      )}
+
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -151,6 +189,13 @@ export default function AdminDashboard() {
             <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
             <p className="text-slate-400 mt-1">Manage Provider API Keys and CTI Keys</p>
           </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            Logout
+          </button>
         </div>
 
         {/* Tabs */}
@@ -241,6 +286,7 @@ export default function AdminDashboard() {
                               onClick={() => {
                                 fetch(`${API_BASE}/api/admin/provider-keys/${key.id}/${key.active ? 'deactivate' : 'activate'}`, {
                                   method: 'POST',
+                                  headers: adminKey ? { 'X-Admin-Key': adminKey } : {}
                                 }).then(() => {
                                   fetchProviderKeys()
                                   setToast({ message: `Key ${key.active ? 'deactivated' : 'activated'}`, type: 'success' })
@@ -256,6 +302,7 @@ export default function AdminDashboard() {
                               onClick={() => {
                                 fetch(`${API_BASE}/api/admin/provider-keys/${key.id}`, {
                                   method: 'DELETE',
+                                  headers: adminKey ? { 'X-Admin-Key': adminKey } : {}
                                 }).then(() => {
                                   fetchProviderKeys()
                                   setToast({ message: 'Key deleted', type: 'success' })
@@ -441,6 +488,7 @@ export default function AdminDashboard() {
                                   onClick={() => {
                                     fetch(`${API_BASE}/api/admin/keys/${key.id}/${key.active ? 'deactivate' : 'reactivate'}`, {
                                       method: 'POST',
+                                      headers: adminKey ? { 'X-Admin-Key': adminKey } : {}
                                     }).then(() => {
                                       fetchCTIKeys()
                                       setToast({ message: `Key ${key.active ? 'deactivated' : 'reactivated'}`, type: 'success' })
@@ -482,6 +530,7 @@ export default function AdminDashboard() {
             API_BASE={API_BASE}
             setToast={setToast}
             onSuccess={() => { fetchProviderKeys(); }}
+            adminKey={adminKey}
           />
         )}
 
@@ -493,6 +542,7 @@ export default function AdminDashboard() {
             setToast={setToast}
             onSuccess={() => { fetchCTIKeys(); }}
             providerKeys={providerKeys}
+            adminKey={adminKey}
           />
         )}
 
@@ -507,6 +557,7 @@ export default function AdminDashboard() {
               setToast={setToast}
               onSuccess={() => { fetchCTIKeys(); }}
               currentBudget={key.total_budget_tokens}
+              adminKey={adminKey}
             />
           ) : null
         })()}
@@ -541,6 +592,7 @@ export default function AdminDashboard() {
                       try {
                         const res = await fetch(`${API_BASE}/api/admin/keys/${selectedKeyForDelete}`, {
                           method: 'DELETE',
+                          headers: adminKey ? { 'X-Admin-Key': adminKey } : {}
                         })
                         if (!res.ok) throw new Error('Failed to delete CTI key')
                         setToast({ message: 'CTI key deleted successfully', type: 'success' })
@@ -568,6 +620,7 @@ export default function AdminDashboard() {
             API_BASE={API_BASE}
             setToast={setToast}
             onSuccess={() => { fetchCTIKeys(); }}
+            adminKey={adminKey}
           />
         )}
 
@@ -584,16 +637,18 @@ export default function AdminDashboard() {
   )
 }
 
-function CreateProviderKeyModal({ 
-  onClose, 
-  API_BASE, 
-  setToast, 
-  onSuccess 
-}: { 
+function CreateProviderKeyModal({
+  onClose,
+  API_BASE,
+  setToast,
+  onSuccess,
+  adminKey
+}: {
   onClose: () => void
   API_BASE: string
   setToast: (toast: { message: string; type: 'success' | 'error' } | null) => void
   onSuccess: () => void
+  adminKey: string | null
 }) {
   const [provider, setProvider] = useState('openai')
   const [keyValue, setKeyValue] = useState('')
@@ -613,10 +668,11 @@ function CreateProviderKeyModal({
     try {
       const res = await fetch(`${API_BASE}/api/admin/provider-keys`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json'
+        headers: {
+          'Content-Type': 'application/json',
+          ...(adminKey && { 'X-Admin-Key': adminKey })
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           provider,
           key_value: keyValue,
           label: label || null,
@@ -727,13 +783,15 @@ function CreateCTIKeyModal({
   API_BASE,
   setToast,
   onSuccess,
-  providerKeys
+  providerKeys,
+  adminKey
 }: {
   onClose: () => void
   API_BASE: string
   setToast: (toast: { message: string; type: 'success' | 'error' } | null) => void
   onSuccess: () => void
   providerKeys: ProviderKey[]
+  adminKey: string | null
 }) {
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
@@ -759,7 +817,8 @@ function CreateCTIKeyModal({
       const res = await fetch(`${API_BASE}/api/admin/keys`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...(adminKey && { 'X-Admin-Key': adminKey })
         },
         body: JSON.stringify({
           email,
@@ -943,7 +1002,8 @@ function AddBudgetModal({
   keyId,
   setToast,
   onSuccess,
-  currentBudget
+  currentBudget,
+  adminKey
 }: {
   onClose: () => void
   API_BASE: string
@@ -951,6 +1011,7 @@ function AddBudgetModal({
   setToast: (toast: { message: string; type: 'success' | 'error' } | null) => void
   onSuccess: () => void
   currentBudget: number
+  adminKey: string | null
 }) {
   const [tokens, setTokens] = useState(currentBudget.toString())
   const [loading, setLoading] = useState(false)
@@ -968,7 +1029,8 @@ function AddBudgetModal({
       const res = await fetch(`${API_BASE}/api/admin/keys/${keyId}/add-budget`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...(adminKey && { 'X-Admin-Key': adminKey })
         },
         body: JSON.stringify({
           tokens: parseInt(tokens)
@@ -1048,12 +1110,14 @@ function BulkCreateModal({
   onClose,
   API_BASE,
   setToast,
-  onSuccess
+  onSuccess,
+  adminKey
 }: {
   onClose: () => void
   API_BASE: string
   setToast: (toast: { message: string; type: 'success' | 'error' } | null) => void
   onSuccess: () => void
+  adminKey: string | null
 }) {
   const [csvContent, setCsvContent] = useState('')
   const [loading, setLoading] = useState(false)
@@ -1084,7 +1148,8 @@ function BulkCreateModal({
       const res = await fetch(`${API_BASE}/api/admin/keys/bulk`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...(adminKey && { 'X-Admin-Key': adminKey })
         },
         body: JSON.stringify({
           students,
@@ -1275,6 +1340,96 @@ function UsageModal({
             Close
           </button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function LoginModal({
+  onClose,
+  onLogin
+}: {
+  onClose: () => void
+  onLogin: (key: string) => void
+}) {
+  const [adminKey, setAdminKeyInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!adminKey) {
+      setError('Admin key is required')
+      return
+    }
+    setLoading(true)
+    setError('')
+    try {
+      // Validate the admin key by making a test request
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const res = await fetch(`${API_BASE}/api/admin/provider-keys`, {
+        headers: { 'X-Admin-Key': adminKey }
+      })
+
+      if (res.ok) {
+        onLogin(adminKey)
+      } else {
+        setError('Invalid admin key')
+      }
+    } catch (err) {
+      setError('Failed to validate admin key. Check your connection.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div className="bg-slate-800 rounded-xl p-6 w-full max-w-md border border-slate-700">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-3 bg-blue-900/50 rounded-full">
+            <Lock className="w-6 h-6 text-blue-400" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white">Admin Login</h2>
+            <p className="text-slate-400 text-sm">Enter your admin key to access the dashboard</p>
+          </div>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Admin Key</label>
+            <input
+              type="password"
+              value={adminKey}
+              onChange={(e) => setAdminKeyInput(e.target.value)}
+              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter your admin key"
+              required
+            />
+            <p className="text-slate-500 text-xs mt-1">This key is used to authenticate admin API requests</p>
+          </div>
+          {error && (
+            <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded-lg border border-red-800">
+              {error}
+            </div>
+          )}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Validating...' : 'Login'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )
