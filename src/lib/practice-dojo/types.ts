@@ -59,7 +59,7 @@ export interface FrameworkDiagramData {
 
 export interface InfoBoxData {
   type: 'info-box';
-  style: 'reveal' | 'insight' | 'summary' | 'warning';
+  style: 'reveal' | 'insight' | 'summary' | 'warning' | 'aside';
   title?: string;
   content: string;
 }

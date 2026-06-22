@@ -1,0 +1,18 @@
+# Copy to terraform.tfvars (gitignored) and fill in real values, OR export as
+# TF_VAR_* environment variables when running Terraform.
+#
+#   cp terraform.tfvars.example terraform.tfvars
+#
+# Required (sensitive) values for the staging app tier:
+
+# Cloud SQL "postgres" user password.
+db_password = "REPLACE_ME"
+
+# Anthropic API key stored in Secret Manager (anthropic-api-key-staging).
+anthropic_api_key = "REPLACE_ME"
+
+# Optional overrides (defaults shown):
+# project_id              = "cti-backend-prod"
+# region                  = "us-central1"
+# compute_service_account = "561867108932-compute@developer.gserviceaccount.com"
+# image                   = "gcr.io/cti-backend-prod/dojo-backend-staging:latest"

@@ -54,17 +54,22 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |
+          cat > env_vars.yaml << EOF
+          CORS_ORIGINS: https://symbioticthinking.ai,https://dojo.symbioticthinking.ai,https://symbiotic-thinking.netlify.app,http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001
+          DATABASE_TYPE: postgres
+          RATE_LIMIT_REQUESTS: "1000"
+          EOF
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image ${{ env.IMAGE }}:${{ github.sha }} \
             --region ${{ env.REGION }} \
             --platform managed \
             --allow-unauthenticated \
-            --memory 256Mi \
+            --memory 512Mi \
             --min-instances 0 \
             --max-instances 5 \
             --add-cloudsql-instances ${{ secrets.GCP_PROJECT_ID }}:us-central1:dojo-db \
             --set-secrets "ANTHROPIC_API_KEY=anthropic-api-key:latest,DATABASE_URL=database-url:latest" \
-            --set-env-vars "CORS_ORIGINS=${{ vars.CORS_ORIGINS || 'https://symbioticthinking.ai,https://dojo.symbioticthinking.ai' }},DATABASE_TYPE=postgres" \
+            --env-vars-file env_vars.yaml \
             --execution-environment gen2 \
             --quiet
 
@@ -74,3 +79,21 @@ jobs:
             --region ${{ env.REGION }} \
             --format 'value(status.url)')
           echo "## Backend deployed to: $URL" >> $GITHUB_STEP_SUMMARY
+
+      - name: Verify environment variables
+        run: |
+          echo "## RATE_LIMIT_REQUESTS" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format 'value(spec.template.spec.containers[0].env[?(@.name=="RATE_LIMIT_REQUESTS")].value)' >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Verify traffic status
+        run: |
+          echo "## Traffic Status" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region ${{ env.REGION }} \
+            --format 'value(status.traffic)' >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

@@ -15,6 +15,7 @@ import {
   DIKW_MARKER_REGEX,
   DIKW_MARKER_MAP,
   DIKW_ORDER,
+  NEXT_PHASE_MARKER_REGEX,
 } from '@/lib/types';
 import { createWelcomeMessage, composeSystemPrompt, createPracticeDojoWelcome } from '@/lib/prompts';
 import { streamChat, getDefaultModel, QuotaExceededError } from '@/lib/providers';
@@ -31,6 +32,10 @@ interface UseChatOptions {
   provider: AIProvider;
   isGuidedPractice?: boolean;
   practiceDojoContext?: PracticeDojoContext | null;
+  // Called once at end-of-message when the Practice Dojo model emits the
+  // [NEXT_PHASE] marker. The consumer decides whether to actually advance
+  // (e.g., no-op past the last phase).
+  onPhaseComplete?: () => void;
 }
 
 interface UseChatReturn {
@@ -127,7 +132,18 @@ function updateDIKWState(current: DIKWState, newLevel: DIKWLevel): DIKWState {
   };
 }
 
-export function useChat({ config, activeConstruct, activePartners, apiKey, provider, practiceDojoContext }: UseChatOptions): UseChatReturn {
+// True if the content contains the Practice Dojo phase-advance marker.
+function hasNextPhaseMarker(content: string): boolean {
+  NEXT_PHASE_MARKER_REGEX.lastIndex = 0;
+  return NEXT_PHASE_MARKER_REGEX.test(content);
+}
+
+// Strip the [NEXT_PHASE] marker from content for display (also during streaming).
+function stripNextPhaseMarker(content: string): string {
+  return content.replace(NEXT_PHASE_MARKER_REGEX, '').trim();
+}
+
+export function useChat({ config, activeConstruct, activePartners, apiKey, provider, practiceDojoContext, onPhaseComplete }: UseChatOptions): UseChatReturn {
   const [isGuidedPractice, setIsGuidedPractice] = useState(false);
   const [isImportedSession, setIsImportedSession] = useState(false);
 
@@ -231,6 +247,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, provi
           // Strip markers for display during streaming
           let displayContent = stripBalanceMarker(accumulatedContent);
           displayContent = stripDIKWMarker(displayContent);
+          displayContent = stripNextPhaseMarker(displayContent);
           setMessages(current =>
             current.map(msg =>
               msg.id === assistantMessageId
@@ -252,9 +269,16 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, provi
             setDikw(current => updateDIKWState(current, dikwLevel));
           }
 
+          // Parse phase-advance marker — fire callback at most once per message.
+          // Only meaningful in Practice Dojo, but harmless elsewhere.
+          if (hasNextPhaseMarker(accumulatedContent) && onPhaseComplete) {
+            onPhaseComplete();
+          }
+
           // Strip markers from final content
           let cleanContent = stripBalanceMarker(accumulatedContent);
           cleanContent = stripDIKWMarker(cleanContent);
+          cleanContent = stripNextPhaseMarker(cleanContent);
 
           // Track consecutive text-only responses for interactive element encouragement
           if (hasInteractiveElements(cleanContent)) {
@@ -304,7 +328,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, provi
     } finally {
       setIsLoading(false);
     }
-  }, [messages, config, activeConstruct, activePartners, apiKey, provider, isLoading, isGuidedPractice, practiceDojoContext, consecutiveTextOnlyResponses]);
+  }, [messages, config, activeConstruct, activePartners, apiKey, provider, isLoading, isGuidedPractice, practiceDojoContext, consecutiveTextOnlyResponses, onPhaseComplete]);
 
   const resetChat = useCallback(() => {
     // Cancel any existing request

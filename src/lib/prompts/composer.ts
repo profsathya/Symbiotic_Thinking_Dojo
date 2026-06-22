@@ -600,33 +600,46 @@ This is an interactive experience to help you deeply understand the course—not
   if (topic.topicId === 'career-know-yourself') {
     return `**Sensei:** Welcome to the Career Intelligence Dojo. 🪞
 
-This is about translating what you know about yourself into language that has market value. By the end, you'll have a **Value Statement** — not a resume blurb, but a clear articulation of what you uniquely bring and why it matters to an employer.
+By the end of this session you'll have a **working draft** of a Value Statement — what you uniquely bring and why it matters to an employer. Treat it as a draft to develop, not a final verdict on who you are. We'll start specific and stay specific.
 
-We'll build on what came out of the Story Swap session. You don't need to remember everything perfectly — rough notes are fine.
-
-**Let's start with what stuck with you from the session.**
-
-What capabilities did your partner identify in your story that surprised you?`;
-  }
-
-  // Career Intelligence: Know the Market
-  if (topic.topicId === 'career-know-market') {
-    return `**Sensei:** Welcome to the Career Intelligence Dojo. 🗺️
-
-This is required work before the next synchronous session. By the end, you'll have a **Market Map** — a research-backed picture of where your capabilities have real value, what employers in that space actually ask for, and how to position yourself in their language.
-
-This isn't about browsing job boards. It's about testing a hypothesis: *does the market actually value what I bring?*
-
-**First, let's establish where you're starting.**
+Let's start with something from your own experience that points to a real interest or ability — labels like "creative" or "good communicator" are too vague to build on, so pick whichever of these is easier to answer.
 
 \`\`\`dojo-visual
 {
   "type": "selection-cards",
-  "prompt": "Where are you coming from?",
+  "prompt": "Where do you want to start?",
   "options": [
-    {"id": "know-yourself", "icon": "🪞", "title": "I completed the Know Yourself Dojo", "description": "I have a Value Statement and intersection ready"},
-    {"id": "story-swap", "icon": "🤝", "title": "I'm starting from the Story Swap session", "description": "I did the live session but skipped Know Yourself"}
+    {"id": "moment", "icon": "⏳", "title": "A moment that pulled you in", "description": "A recent time you were so absorbed you lost track of time"},
+    {"id": "people", "icon": "🤝", "title": "What people come to you for", "description": "Something people seek you out for specifically"},
+    {"id": "either", "icon": "🌗", "title": "Not sure — pick either", "description": "There is no wrong door. Just start."}
   ]
+}
+\`\`\`
+
+\`\`\`dojo-visual
+{
+  "type": "info-box",
+  "style": "aside",
+  "title": "Why we start here",
+  "content": "We start from a real moment, not adjectives — people read themselves most accurately from specific episodes (Eurich; Reflected Best Self)."
+}
+\`\`\``;
+  }
+
+  // Career Intelligence: Know the Market
+  if (topic.topicId === 'career-know-market') {
+    return `**Sensei:** Welcome to the Know the Market Dojo. 🗺️
+
+Goal: **get good at understanding the market so you can be strategic with your job search.** This dojo teaches a *method* on a small sample — you'll take the same method to your full niche doc.
+
+Drop **3–5 real job postings** that interest you here. Roles you'd actually want to apply to, or roles close enough to be useful. For each, **paste the title plus a few key lines of the posting text** (responsibilities, required skills, qualifications — the language the posting actually uses). A link is fine to include for your own reference, but it's not enough on its own — **this dojo works only from the text you paste**. Mix what you're targeting with what you're curious about.
+
+\`\`\`dojo-visual
+{
+  "type": "info-box",
+  "style": "aside",
+  "title": "Why we start here",
+  "content": "Real postings are the market saying — in its own words — what it wants. We start from evidence, not from what we assume the market wants."
 }
 \`\`\``;
   }
