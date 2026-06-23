@@ -97,6 +97,10 @@ export interface PhaseConfig {
   contentGuidance: string;
   // Checkpoint evaluation criteria (if hasCheckpoint is true)
   checkpointCriteria?: string;
+  // Marks the phase that delivers the core payoff ("you've arrived"), so the
+  // ProgressIndicator can signal arrival rather than an unfinished checklist.
+  // Optional and backward-compatible: topics that omit it behave as before.
+  isArrivalMilestone?: boolean;
 }
 
 // Topic configuration

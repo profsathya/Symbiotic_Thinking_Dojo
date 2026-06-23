@@ -15,9 +15,18 @@ export function ProgressIndicator({
   completedPhases,
   onExit,
 }: ProgressIndicatorProps) {
+  // Phase 0 is a welcome-owned placeholder (the engine starts on phase 1), so
+  // the "real" steps are phases[1..]. Count and number against those, and frame
+  // the cue as momentum/arrival rather than an unfinished checklist.
   const totalPhases = topic.phases.length;
+  const realTotal = Math.max(1, totalPhases - 1);
+  const step = Math.min(Math.max(currentPhase, 1), realTotal);
   const currentPhaseConfig = topic.phases[currentPhase];
-  const progress = (completedPhases.length / totalPhases) * 100;
+  const arrivalIndex = topic.phases.findIndex((p) => p.isArrivalMilestone);
+  const hasArrived =
+    arrivalIndex >= 0 &&
+    (currentPhase >= arrivalIndex || completedPhases.includes(arrivalIndex));
+  const progress = Math.min(100, (completedPhases.length / realTotal) * 100);
 
   return (
     <div className="bg-gray-900/80 border-b border-gray-800 px-4 py-3">
@@ -35,27 +44,29 @@ export function ProgressIndicator({
               </span>
             </div>
             <p className="text-xs text-gray-400 truncate">
-              Phase {currentPhase + 1} of {totalPhases}: {currentPhaseConfig?.title || 'Loading...'}
+              Step {step} of {realTotal}: {currentPhaseConfig?.title || 'Loading...'}
             </p>
           </div>
         </div>
 
-        {/* Progress Bar */}
+        {/* Progress Bar - momentum, not a checklist. Turns warm once the
+            student reaches the "arrival" step (the core payoff). */}
         <div className="flex-1 max-w-xs hidden sm:block">
           <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 transition-all duration-500"
+              className={`h-full bg-gradient-to-r transition-all duration-500 ${
+                hasArrived
+                  ? 'from-emerald-600 to-teal-500'
+                  : 'from-purple-600 to-indigo-600'
+              }`}
               style={{ width: `${progress}%` }}
             />
           </div>
-          <div className="flex justify-between mt-1">
-            <span className="text-[10px] text-gray-500">
-              {completedPhases.length} completed
-            </span>
-            <span className="text-[10px] text-gray-500">
-              {totalPhases - completedPhases.length} remaining
-            </span>
-          </div>
+          {hasArrived && (
+            <p className="text-[10px] text-emerald-400/90 mt-1">
+              You&apos;ve reached the heart of it &mdash; anything more is yours to explore.
+            </p>
+          )}
         </div>
 
         {/* Exit Button */}
@@ -72,21 +83,33 @@ export function ProgressIndicator({
         )}
       </div>
 
-      {/* Phase dots (mobile alternative to progress bar) */}
+      {/* Step dots (mobile alternative to progress bar). Phase 0 is the
+          welcome placeholder, so it is not shown as a step. The arrival
+          step warms to emerald once reached. */}
       <div className="flex items-center justify-center gap-1.5 mt-2 sm:hidden">
-        {topic.phases.map((phase, index) => (
-          <div
-            key={phase.phaseId}
-            className={`w-2 h-2 rounded-full transition-colors ${
-              completedPhases.includes(index)
-                ? 'bg-purple-500'
-                : index === currentPhase
-                ? 'bg-purple-400 ring-2 ring-purple-400/30'
-                : 'bg-gray-700'
-            }`}
-            title={`Phase ${index + 1}: ${phase.title}`}
-          />
-        ))}
+        {topic.phases.map((phase, index) => {
+          if (index === 0) return null;
+          const isArrival = index === arrivalIndex;
+          const done = completedPhases.includes(index);
+          const current = index === currentPhase;
+          return (
+            <div
+              key={phase.phaseId}
+              className={`w-2 h-2 rounded-full transition-colors ${
+                done
+                  ? isArrival
+                    ? 'bg-emerald-500'
+                    : 'bg-purple-500'
+                  : current
+                  ? isArrival
+                    ? 'bg-emerald-400 ring-2 ring-emerald-400/30'
+                    : 'bg-purple-400 ring-2 ring-purple-400/30'
+                  : 'bg-gray-700'
+              }`}
+              title={`Step ${index}: ${phase.title}`}
+            />
+          );
+        })}
       </div>
     </div>
   );

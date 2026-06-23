@@ -644,13 +644,13 @@ Drop **3–5 real job postings** that interest you here. Roles you'd actually wa
 \`\`\``;
   }
 
-  // Map Your Curiosity: open with the Phase 0 free-time selection cards
+  // Map Your Curiosity: open with the free-time selection cards
   if (topic.topicId === 'map-curiosity') {
     return `**Sensei:** Welcome. 💡
 
-This is a short journey — about 25–35 minutes — to help you notice something you're already curious about, name it as a real question, and connect it to whatever you're working on right now.
+Four quick steps to notice something you're curious about, name it, and connect it to what you're working on. About 15 minutes — stay longer if it pulls you in.
 
-Let's start with you. When you have free time, what do you find yourself doing?
+So: when you have free time, what do you find yourself doing?
 
 \`\`\`dojo-visual
 {
