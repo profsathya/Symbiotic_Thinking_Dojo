@@ -487,6 +487,8 @@ npm run build
 
 See `cloudbuild.yaml` for frontend deployment and `backend/cloudbuild.yaml` for CTI backend deployment.
 
+**Production maintainers:** See [`PRODUCTION_DEPLOYMENT.md`](./PRODUCTION_DEPLOYMENT.md) for the full guide to deploying to production (`symbioticthinking.ai`, `dojo.symbioticthinking.ai`) and connecting the local admin dashboard to the production backend.
+
 ---
 
 ## Usage
