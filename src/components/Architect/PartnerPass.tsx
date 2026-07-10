@@ -58,9 +58,12 @@ export function PartnerPass({
   const activeDecision = DECISIONS.find((d) => d.id === activeId)!;
   const activeState = decisions[activeId] ?? EMPTY_PARTNER_DECISION;
 
-  const finalsDone = DECISIONS.filter(
-    (d) => (decisions[d.id]?.finalChoice ?? '').trim().length > 0
-  );
+  // A final is only "done" when both the call AND its justification are
+  // recorded — capturing why the call survived the argument is the point.
+  const finalDone = (id: string) =>
+    (decisions[id]?.finalChoice ?? '').trim().length > 0 &&
+    (decisions[id]?.finalJustification ?? '').trim().length > 0;
+  const finalsDone = DECISIONS.filter((d) => finalDone(d.id));
   const allFinalsDone = finalsDone.length === DECISIONS.length;
   const canFinish = allFinalsDone && synthesis.trim().length > 0;
 
@@ -174,7 +177,7 @@ export function PartnerPass({
       {/* Decision stepper */}
       <div className="flex flex-wrap gap-2">
         {DECISIONS.map((d) => {
-          const done = (decisions[d.id]?.finalChoice ?? '').trim().length > 0;
+          const done = finalDone(d.id);
           return (
             <button
               key={d.id}
@@ -316,7 +319,7 @@ export function PartnerPass({
         <p className="text-sm text-gray-400">
           {allFinalsDone
             ? 'All finals recorded. Have the AI draft the synthesis paragraph, then edit it until it says what you mean.'
-            : `Record a final call for every decision first (${finalsDone.length}/${DECISIONS.length}).`}
+            : `Record a final call AND its justification for every decision first (${finalsDone.length}/${DECISIONS.length}).`}
         </p>
         <button
           onClick={draftSynthesis}

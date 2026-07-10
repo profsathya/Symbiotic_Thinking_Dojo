@@ -66,7 +66,16 @@ export function SoloPass({ responses, stamp, onChange, onFinish }: SoloPassProps
                       type="radio"
                       name={`${decision.id}-option`}
                       checked={response.optionId === opt.id}
-                      onChange={() => update({ optionId: opt.id })}
+                      onChange={() =>
+                        update({
+                          optionId: opt.id,
+                          // Text typed under "write my own" was a standalone
+                          // answer, not a refinement of this preset — carrying
+                          // it over would silently corrupt the locked record.
+                          ownAnswer:
+                            response.optionId === 'own' ? '' : response.ownAnswer,
+                        })
+                      }
                       className="mt-1 accent-emerald-500"
                     />
                     <span>{opt.label}</span>
