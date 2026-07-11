@@ -6,6 +6,7 @@ import {
   CAMPUSMESH_NAME,
   CAMPUSMESH_SUMMARY,
   DECISIONS,
+  LEARNING_GOAL,
 } from '@/lib/architect/content';
 
 interface SetupScreenProps {
@@ -19,6 +20,16 @@ interface SetupScreenProps {
 export function SetupScreen({ onStart }: SetupScreenProps) {
   return (
     <div className="max-w-3xl mx-auto space-y-8">
+      <div className="rounded-lg border border-emerald-800/50 bg-emerald-900/20 p-4">
+        <div className="text-xs font-semibold uppercase tracking-wide text-emerald-400">
+          Learning goal
+        </div>
+        <p className="mt-1 font-medium text-emerald-100">
+          {LEARNING_GOAL.headline}
+        </p>
+        <p className="mt-2 text-sm text-emerald-100/80">{LEARNING_GOAL.body}</p>
+      </div>
+
       <div>
         <h1 className="text-2xl font-bold text-gray-100">
           Architect Studio: {CAMPUSMESH_NAME}

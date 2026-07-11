@@ -3,6 +3,12 @@ import { DecisionDef } from './types';
 // The product brief students architect against. Kept as plain strings so the
 // same text drives the setup screen and every AI prompt (one source of truth).
 
+export const LEARNING_GOAL = {
+  headline: 'Exercise your ability to partner with AI rather than depend on it.',
+  body:
+    'True partnership requires differentiating where AI brings knowledge and speed, and where you bring Human Value. In this activity, you will make seven different types of decisions by yourself, have AI make them, and then revise them in partnership — to clearly experience the difference between AI capability and Human Value.',
+};
+
 export const CAMPUSMESH_NAME = 'CampusMesh';
 
 export const CAMPUSMESH_SUMMARY =
