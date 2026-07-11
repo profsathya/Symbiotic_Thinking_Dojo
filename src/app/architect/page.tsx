@@ -38,7 +38,13 @@ export default function ArchitectPage() {
 
   // Mid-run escape hatch. Deliberately quiet (small header link) and
   // double-confirmed — it erases a run that may represent an hour of work.
-  const [confirmingReset, setConfirmingReset] = useState(false);
+  // The pending confirmation is keyed to the stage it was opened in, so it
+  // cannot outlive that stage: finishing Reflection with the banner open
+  // must not carry the destructive erase onto the Complete screen, which
+  // has its own export-first reset flow.
+  const [confirmingResetStage, setConfirmingResetStage] =
+    useState<ArchitectStage | null>(null);
+  const confirmingReset = confirmingResetStage === run.stage;
 
   const { pauseStageTimer, resumeStageTimer, isLoaded } = state;
   useEffect(() => {
@@ -112,7 +118,7 @@ export default function ArchitectPage() {
               reset with export-first guidance. */}
           {run.startedAt && run.stage !== 'complete' ? (
             <button
-              onClick={() => setConfirmingReset(true)}
+              onClick={() => setConfirmingResetStage(run.stage)}
               className="shrink-0 text-xs text-gray-600 hover:text-gray-300 transition-colors"
               title="Erase this run and start the activity from the beginning"
             >
@@ -125,7 +131,7 @@ export default function ArchitectPage() {
       </header>
 
       <main className="px-4 py-8">
-        {confirmingReset && (
+        {confirmingReset && run.stage !== 'complete' && (
           <div className="mx-auto mb-6 max-w-3xl rounded-lg border border-red-800/60 bg-red-900/20 p-4">
             <p className="text-sm text-red-200">
               Start over? This erases your <strong>entire run</strong> — solo
@@ -136,7 +142,7 @@ export default function ArchitectPage() {
             <div className="mt-3 flex gap-2">
               <button
                 onClick={() => {
-                  setConfirmingReset(false);
+                  setConfirmingResetStage(null);
                   setViewStage(null);
                   state.resetRun();
                 }}
@@ -145,7 +151,7 @@ export default function ArchitectPage() {
                 Erase everything and start over
               </button>
               <button
-                onClick={() => setConfirmingReset(false)}
+                onClick={() => setConfirmingResetStage(null)}
                 className="rounded-lg border border-gray-700 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 transition-colors"
               >
                 Keep my run
