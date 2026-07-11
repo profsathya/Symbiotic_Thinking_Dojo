@@ -139,8 +139,8 @@ Note: SQLite is NOT recommended for Cloud Run as the filesystem is ephemeral.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `ANTHROPIC_API_KEY` | (required) | Anthropic API key |
-| `SONNET_MODEL` | `claude-sonnet-4-20250514` | Model for reasoning requests |
-| `HAIKU_MODEL` | `claude-haiku-4-5-20241022` | Model for extraction requests |
+| `SONNET_MODEL` | `claude-sonnet-5` | Model for reasoning requests |
+| `HAIKU_MODEL` | `claude-haiku-4-5-20251001` | Model for extraction requests |
 | `DATABASE_TYPE` | `sqlite` | `sqlite` or `postgres` |
 | `DATABASE_PATH` | `./cti_keys.db` | SQLite file path |
 | `DATABASE_URL` | | PostgreSQL connection string |

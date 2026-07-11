@@ -58,6 +58,7 @@ jobs:
           CORS_ORIGINS: https://symbioticthinking.ai,https://dojo.symbioticthinking.ai,https://symbiotic-thinking.netlify.app,http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001
           DATABASE_TYPE: postgres
           RATE_LIMIT_REQUESTS: "1000"
+          SONNET_MODEL: claude-sonnet-5
           EOF
           gcloud run deploy ${{ env.SERVICE_NAME }} \
             --image ${{ env.IMAGE }}:${{ github.sha }} \
