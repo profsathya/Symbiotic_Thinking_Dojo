@@ -157,6 +157,7 @@ export default function ArchitectPage() {
                 apiKey={apiKey}
                 solo={run.solo}
                 delegateAnswers={run.delegate.answers}
+                annotations={run.delegate.annotations}
                 decisions={run.partner.decisions}
                 synthesis={run.partner.synthesis}
                 stamp={run.timestamps.partner}

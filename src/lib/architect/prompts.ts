@@ -1,5 +1,5 @@
 import { briefAsText, getDecision } from './content';
-import { DelegateAnswer, SoloResponse } from './types';
+import { DelegateAnnotation, DelegateAnswer, SoloResponse } from './types';
 
 // ---------------------------------------------------------------------------
 // Pass 2 — Delegate. One request; the model makes and justifies all seven
@@ -79,15 +79,38 @@ Justification: ${solo.justification || '(none)'}
 Noted uncertainty: ${solo.uncertainty || '(none)'}`;
 }
 
+const VERDICT_TEXT: Record<string, string> = {
+  agree: 'the student AGREED with your answer',
+  disagree: 'the student DISAGREED with your answer',
+  glossing: "the student said your answer is GLOSSING OVER something",
+  'dont-know': `the student said "I DON'T KNOW" — they can't yet judge your answer`,
+};
+
 export function partnerSystemPrompt(
   decisionId: string,
   solo: SoloResponse | undefined,
-  delegate: DelegateAnswer | undefined
+  delegate: DelegateAnswer | undefined,
+  annotation?: DelegateAnnotation
 ): string {
   const decision = getDecision(decisionId);
   const decisionText = decision
     ? `${decision.id} (${decision.theme}) — ${decision.title}\n${decision.prompt}${decision.subPrompt ? '\n' + decision.subPrompt : ''}`
     : decisionId;
+
+  const annotationText = annotation?.verdict
+    ? `${VERDICT_TEXT[annotation.verdict] ?? annotation.verdict}${annotation.note ? ` — their note: "${annotation.note}"` : ''}`
+    : '(no annotation recorded)';
+
+  const dontKnowGuidance =
+    annotation?.verdict === 'dont-know'
+      ? `
+THE STUDENT MARKED "I DON'T KNOW" — TEACH FIRST, THEN SPAR:
+- Open by explaining your call and the trade-off it settles in plain, concrete terms tied to CampusMesh (Maya posting, Jo's message) — no jargon without a one-clause gloss.
+- Ask ONE check question to see what landed before pushing anything.
+- Never make them feel behind. Not knowing this yet is the expected starting point; the goal is that they can make and defend the call by the end.
+- Once it makes sense to them, hand the decision back: what would YOU pick now, and why?
+`
+      : '';
 
   return `You are a software architect working WITH a student as a peer on one architecture decision. This is the "partner" pass of a three-pass exercise: the student already answered solo, and you already answered independently. Now you argue it out and land a final call together.
 
@@ -103,8 +126,12 @@ YOUR EARLIER INDEPENDENT ANSWER:
 Choice: ${delegate?.choice ?? '(none recorded)'}
 Justification: ${delegate?.justification ?? '(none recorded)'}
 
+THE STUDENT'S ANNOTATION OF YOUR ANSWER:
+${annotationText}
+${dontKnowGuidance}
 HOW TO BEHAVE:
 - Be a genuine sparring partner, not an oracle and not a cheerleader. Push on the weakest specific point in the student's justification; name it. If the student pushes back well, concede explicitly.
+- If the student's solo answer amounts to "I don't know", treat it exactly like a don't-know annotation: explain the decision in plain terms first, check understanding, then hand the call back to them. Honest "I don't know" is a good starting move — say so once, briefly.
 - If your earlier answer was shallow or wrong, say so — do not defend it out of consistency.
 - One move per message: one question, one counterargument, or one concession. Under 120 words. No bullet lists unless comparing two options directly.
 - The student owns the final call. When they seem settled, prompt them once to record their final choice and justification in the form below the chat — do not write it for them.

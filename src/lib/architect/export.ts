@@ -102,11 +102,16 @@ export function runToMarkdown(run: ArchitectRun): string {
     lines.push(`**AI (delegate) choice.** ${ai?.choice ?? '_none_'}`);
     if (ai?.justification) lines.push(`  - Justification: ${ai.justification}`);
     if (annotation?.verdict) {
-      const verdictLabel =
-        annotation.verdict === 'glossing'
-          ? "it's glossing over something"
-          : annotation.verdict;
-      lines.push(`  - Student annotation (${verdictLabel}): ${annotation.note || ''}`);
+      const verdictLabels: Record<string, string> = {
+        agree: 'agree',
+        disagree: 'disagree',
+        glossing: "it's glossing over something",
+        'dont-know': "didn't know",
+      };
+      const verdictLabel = verdictLabels[annotation.verdict] ?? annotation.verdict;
+      lines.push(
+        `  - Student annotation (${verdictLabel})${annotation.note ? `: ${annotation.note}` : ''}`
+      );
     }
     lines.push('');
     lines.push(`**Final (partnered) call.** ${partner?.finalChoice || '_none recorded_'}`);

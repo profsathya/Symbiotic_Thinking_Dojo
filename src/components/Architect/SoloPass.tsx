@@ -39,6 +39,12 @@ export function SoloPass({ responses, stamp, onChange, onFinish }: SoloPassProps
             your own, justify it in 2–4 sentences, and note one thing you&apos;re
             unsure about. The justifying is where the thinking is.
           </p>
+          <p className="mt-2 text-sm text-sky-300/90">
+            Don&apos;t know one? Say exactly that — write &quot;I don&apos;t
+            know&quot; and your best guess at what the decision depends on. An
+            honest gap is real data for Pass 2 and 3; a bluffed answer
+            isn&apos;t.
+          </p>
         </div>
         <Timer stamp={stamp} minutes={PASS_MINUTES.solo ?? 25} />
       </div>

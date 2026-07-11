@@ -32,6 +32,7 @@ const VERDICTS: { id: AnnotationVerdict; label: string; active: string }[] = [
   { id: 'agree', label: 'Agree', active: 'bg-emerald-800/60 border-emerald-600 text-emerald-200' },
   { id: 'disagree', label: 'Disagree', active: 'bg-red-800/50 border-red-600 text-red-200' },
   { id: 'glossing', label: "It's glossing over something", active: 'bg-amber-800/50 border-amber-600 text-amber-200' },
+  { id: 'dont-know', label: "I don't know", active: 'bg-sky-800/50 border-sky-600 text-sky-200' },
 ];
 
 // Pass 2 — pure delegation. One prompt, the AI's seven calls, then the
@@ -52,10 +53,23 @@ export function DelegatePass({
   const abortRef = useRef<AbortController | null>(null);
 
   const hasAnswers = Object.keys(answers).length === DECISIONS.length;
+  // "I don't know" is complete on its own — demanding a "how you know" note
+  // from a student who just said they can't judge would be incoherent.
   const allAnnotated = DECISIONS.every((d) => {
     const a = annotations[d.id];
-    return a && a.verdict !== null && a.note.trim().length > 0;
+    return (
+      a &&
+      a.verdict !== null &&
+      (a.verdict === 'dont-know' || a.note.trim().length > 0)
+    );
   });
+
+  // Live progress while the AI works the sheet: the response is streamed
+  // JSON keyed D1..D7, so counting which keys have appeared is a REAL
+  // progress signal, not a spinner.
+  const seenDecisions = DECISIONS.filter((d) =>
+    streamed.includes(`"${d.id}"`)
+  );
 
   const runDelegate = async () => {
     if (!apiKey) return;
@@ -143,10 +157,34 @@ export function DelegatePass({
                 : 'Hand the sheet to the AI'}
             </button>
           )}
-          {isRunning && streamed && (
-            <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded bg-gray-950 p-3 text-xs text-gray-500">
-              {streamed}
-            </pre>
+          {isRunning && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs text-gray-400">
+                <span>
+                  {seenDecisions.length === 0
+                    ? 'AI is reading the brief…'
+                    : seenDecisions.length < DECISIONS.length
+                      ? `Working ${seenDecisions[seenDecisions.length - 1].id} — ${seenDecisions.length} of ${DECISIONS.length} decisions drafted`
+                      : 'Finishing the last justification…'}
+                </span>
+                <span className="font-mono">
+                  {seenDecisions.length}/{DECISIONS.length}
+                </span>
+              </div>
+              <div className="flex gap-1">
+                {DECISIONS.map((d) => (
+                  <div
+                    key={d.id}
+                    className={`h-2 flex-1 rounded-full transition-colors ${
+                      streamed.includes(`"${d.id}"`)
+                        ? 'bg-purple-500'
+                        : 'bg-gray-800'
+                    }`}
+                    title={d.id}
+                  />
+                ))}
+              </div>
+            </div>
           )}
           {error && (
             <div className="rounded border border-red-800 bg-red-900/30 p-3 text-sm text-red-300">
@@ -178,7 +216,13 @@ export function DelegatePass({
                   <button
                     key={v.id}
                     onClick={() =>
-                      onAnnotate(decision.id, { ...annotation, verdict: v.id })
+                      onAnnotate(decision.id, {
+                        ...annotation,
+                        verdict: v.id,
+                        // "I don't know" needs no note; clear any typed one so
+                        // hidden stale text can't leak into the record.
+                        note: v.id === 'dont-know' ? '' : annotation.note,
+                      })
                     }
                     className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${
                       annotation.verdict === v.id
@@ -190,14 +234,21 @@ export function DelegatePass({
                   </button>
                 ))}
               </div>
-              <input
-                value={annotation.note}
-                onChange={(e) =>
-                  onAnnotate(decision.id, { ...annotation, note: e.target.value })
-                }
-                placeholder="…and how you know"
-                className="w-full rounded border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-100 placeholder-gray-600"
-              />
+              {annotation.verdict === 'dont-know' ? (
+                <p className="text-xs text-sky-300/80">
+                  That&apos;s a legitimate answer — no note needed. In Pass 3,
+                  the AI will explain this one before you argue it out.
+                </p>
+              ) : (
+                <input
+                  value={annotation.note}
+                  onChange={(e) =>
+                    onAnnotate(decision.id, { ...annotation, note: e.target.value })
+                  }
+                  placeholder="…and how you know"
+                  className="w-full rounded border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-100 placeholder-gray-600"
+                />
+              )}
             </div>
           );
         })}
@@ -207,7 +258,7 @@ export function DelegatePass({
           <div className="text-sm text-gray-400">
             {allAnnotated
               ? 'All seven annotated. In Pass 3 you argue each decision out with the AI and land the final calls.'
-              : 'Annotate every answer (verdict + how you know) to continue.'}
+              : "Annotate every answer to continue — verdict plus how you know (no note needed for “I don't know”)."}
           </div>
           <button
             onClick={onFinish}

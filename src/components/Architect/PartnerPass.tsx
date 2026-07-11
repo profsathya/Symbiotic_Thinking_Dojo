@@ -12,6 +12,7 @@ import {
   synthesisUserMessage,
 } from '@/lib/architect/prompts';
 import {
+  DelegateAnnotation,
   DelegateAnswer,
   EMPTY_PARTNER_DECISION,
   PASS_MINUTES,
@@ -27,6 +28,7 @@ interface PartnerPassProps {
   apiKey: string | null;
   solo: Record<string, SoloResponse>;
   delegateAnswers: Record<string, DelegateAnswer>;
+  annotations: Record<string, DelegateAnnotation>;
   decisions: Record<string, PartnerDecisionState>;
   synthesis: string;
   stamp: StageStamp | undefined;
@@ -42,6 +44,7 @@ export function PartnerPass({
   apiKey,
   solo,
   delegateAnswers,
+  annotations,
   decisions,
   synthesis,
   stamp,
@@ -58,6 +61,16 @@ export function PartnerPass({
 
   const activeDecision = DECISIONS.find((d) => d.id === activeId)!;
   const activeState = decisions[activeId] ?? EMPTY_PARTNER_DECISION;
+
+  // Did the student signal "I don't know" on this decision — via the Pass 2
+  // annotation button (structured), or by writing it in their solo answer
+  // (best-effort text match, per the Pass 1 guidance encouraging exactly that)?
+  const DONT_KNOW_RE = /\bi\s*(?:don'?t|do\s*not)\s*know\b|\bno\s*idea\b/i;
+  const activeSolo = solo[activeId];
+  const saidDontKnow =
+    annotations[activeId]?.verdict === 'dont-know' ||
+    DONT_KNOW_RE.test(activeSolo?.ownAnswer ?? '') ||
+    DONT_KNOW_RE.test(activeSolo?.justification ?? '');
 
   // A final is only "done" when the call, its justification, AND the
   // kept/changed declaration are recorded — the justification captures why
@@ -103,7 +116,8 @@ export function PartnerPass({
         systemPrompt: partnerSystemPrompt(
           activeId,
           solo[activeId],
-          delegateAnswers[activeId]
+          delegateAnswers[activeId],
+          annotations[activeId]
         ),
         messages: baseMessages,
         signal: abortRef.current.signal,
@@ -251,12 +265,23 @@ export function PartnerPass({
           </div>
         </div>
 
+        {saidDontKnow && (
+          <div className="rounded border border-sky-800/50 bg-sky-900/20 p-3 text-sm text-sky-200">
+            You said &quot;I don&apos;t know&quot; on this one earlier —
+            that&apos;s a good starting point, not a problem. Use this pass to
+            learn it: ask the AI to explain its call in plain terms, ask what
+            would make it wrong, and record your final call once it makes
+            sense. It&apos;s still yours to make.
+          </div>
+        )}
+
         {/* Chat */}
         <div className="space-y-2">
           {activeState.messages.length === 0 && (
             <p className="text-sm text-gray-500 italic">
-              Open the argument — e.g. challenge the AI&apos;s justification, or
-              test the point you were unsure about.
+              {saidDontKnow
+                ? 'Open with a question — e.g. "Explain your call like I\'ve never built one of these. What breaks if we do it the other way?"'
+                : "Open the argument — e.g. challenge the AI's justification, or test the point you were unsure about."}
             </p>
           )}
           {activeState.messages.map((m, i) => (

@@ -15,6 +15,7 @@ const VERDICT_LABELS: Record<string, { label: string; classes: string }> = {
   agree: { label: 'agreed', classes: 'bg-emerald-900/40 text-emerald-300 border-emerald-800' },
   disagree: { label: 'disagreed', classes: 'bg-red-900/40 text-red-300 border-red-800' },
   glossing: { label: 'glossing', classes: 'bg-amber-900/40 text-amber-300 border-amber-800' },
+  'dont-know': { label: "didn't know", classes: 'bg-sky-900/40 text-sky-300 border-sky-800' },
 };
 
 // The per-decision comparison the spec calls for: solo | AI | final, side by

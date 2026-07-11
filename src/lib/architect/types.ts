@@ -58,7 +58,10 @@ export interface DelegateAnswer {
   justification: string;
 }
 
-export type AnnotationVerdict = 'agree' | 'disagree' | 'glossing';
+// 'dont-know' = the student can't yet judge this answer. A legitimate
+// annotation — it needs no supporting note, and Pass 3 turns it into a
+// teach-first conversation.
+export type AnnotationVerdict = 'agree' | 'disagree' | 'glossing' | 'dont-know';
 
 export interface DelegateAnnotation {
   verdict: AnnotationVerdict | null;

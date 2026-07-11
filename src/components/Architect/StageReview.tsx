@@ -66,8 +66,13 @@ export function StageReview({ stage, run }: StageReviewProps) {
               )}
               {note?.verdict && (
                 <p className="text-xs text-gray-400">
-                  Your annotation ({note.verdict === 'glossing' ? "it's glossing over something" : note.verdict}
-                  ): {note.note}
+                  Your annotation (
+                  {note.verdict === 'glossing'
+                    ? "it's glossing over something"
+                    : note.verdict === 'dont-know'
+                      ? "didn't know"
+                      : note.verdict}
+                  ){note.note ? `: ${note.note}` : ''}
                 </p>
               )}
             </div>
