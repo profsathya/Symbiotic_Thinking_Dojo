@@ -56,6 +56,14 @@ export function getTopicBySlug(slug: string): TopicConfig | undefined {
   return ALL_TOPICS.find(t => t.topicId === topicId);
 }
 
+// Slugs that launch standalone activity pages rather than chat topics.
+// ?topic=architect on the main page redirects here (after any ?key= has
+// been persisted), so faculty can share one consistent URL scheme for
+// everything — chat topics and activities alike.
+export const ACTIVITY_ROUTES: Record<string, string> = {
+  'architect': '/architect',
+};
+
 // Get topics organized by category for display
 export interface TopicsByCategory {
   foundations: TopicConfig[];

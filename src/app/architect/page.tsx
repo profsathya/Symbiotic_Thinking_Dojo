@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useArchitectState } from '@/hooks/useArchitectState';
 import { useApiKey } from '@/hooks/useApiKey';
+import { isCtiEnabled } from '@/lib/providers';
 import { SetupScreen } from '@/components/Architect/SetupScreen';
 import { SoloPass } from '@/components/Architect/SoloPass';
 import { DelegatePass } from '@/components/Architect/DelegatePass';
@@ -22,13 +23,51 @@ const STAGE_LABELS: Record<string, string> = {
   complete: 'Complete',
 };
 
+// A ?key= value from the URL that is worth persisting: CTI must be enabled
+// in this deployment and the key must pass the same length sanity-check the
+// main page uses. Pure read — safe to call from a lazy state initializer.
+function validCtiKeyFromUrl(): string | null {
+  const raw = new URLSearchParams(window.location.search).get('key');
+  if (!raw || !isCtiEnabled()) return null;
+  const trimmed = raw.trim();
+  return trimmed.length >= 8 && trimmed.length <= 256 ? trimmed : null;
+}
+
 // Architect Studio — a three-pass architecture activity. Lives beside the
 // Practice Dojo (not inside its chat-phase engine) because its core mechanic
 // is mode gating over structured forms, not guided conversation.
 export default function ArchitectPage() {
   const state = useArchitectState();
-  const { provider, apiKey } = useApiKey();
+  const { provider, apiKey, setKeyForProvider, setProvider } = useApiKey();
   const { run } = state;
+
+  // Accept ?key=<cti-key> on the direct URL, mirroring the main page: store
+  // it in the CTI provider slot, switch the active provider, and strip the
+  // param from the visible URL so it doesn't linger in history/screenshots.
+  // (Links shaped /?key=X&topic=architect are handled by the main page, which
+  // persists the key before redirecting here — this covers direct links.)
+  // The notice is derived lazily at first render (pure URL read); the effect
+  // below only updates external systems — localStorage, history, provider.
+  const keyUrlProcessedRef = useRef(false);
+  const [keyFromUrlNotice, setKeyFromUrlNotice] = useState(
+    () => typeof window !== 'undefined' && validCtiKeyFromUrl() !== null
+  );
+  useEffect(() => {
+    if (keyUrlProcessedRef.current) return;
+    keyUrlProcessedRef.current = true;
+
+    if (!new URLSearchParams(window.location.search).has('key')) return;
+    const validKey = validCtiKeyFromUrl();
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('key');
+    window.history.replaceState({}, '', url.pathname);
+
+    if (validKey) {
+      setKeyForProvider('cti', validKey);
+      setProvider('cti');
+    }
+  }, [setKeyForProvider, setProvider]);
 
   // Which stage is being DISPLAYED. null = the current (frontier) stage.
   // Students can navigate back to review any earlier stage read-only; the
@@ -131,6 +170,22 @@ export default function ArchitectPage() {
       </header>
 
       <main className="px-4 py-8">
+        {keyFromUrlNotice && (
+          <div className="mx-auto mb-6 flex max-w-3xl items-center justify-between gap-3 rounded-lg border border-amber-800/50 bg-amber-900/20 p-3 text-sm text-amber-200">
+            <span>
+              Your CTI key from the link was saved to this browser — the AI
+              passes are ready to go.
+            </span>
+            <button
+              onClick={() => setKeyFromUrlNotice(false)}
+              className="shrink-0 text-amber-400 hover:text-amber-200 transition-colors"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {confirmingReset && run.stage !== 'complete' && (
           <div className="mx-auto mb-6 max-w-3xl rounded-lg border border-red-800/60 bg-red-900/20 p-4">
             <p className="text-sm text-red-200">
