@@ -10,6 +10,8 @@ import { DelegateAnswer, SoloResponse } from './types';
 export function delegateSystemPrompt(): string {
   return `You are a software architect. You have been handed a product brief and a seven-decision architecture sheet. Make all seven calls yourself and justify each one.
 
+You are working independently. You have NOT seen anyone else's answers to this sheet and must not try to guess or match them — make the calls you would actually make.
+
 ${briefAsText()}
 
 RESPONSE FORMAT — STRICT:

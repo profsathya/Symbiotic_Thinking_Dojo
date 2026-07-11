@@ -72,10 +72,17 @@ export interface PartnerMessage {
   content: string;
 }
 
+// Student-declared relationship between the final call and the solo call.
+// This — not text comparison — drives "decisions that flipped": rewording a
+// kept call is not a flip, and only the student can say which it was.
+export type FinalStance = 'kept' | 'changed' | 'new';
+
 export interface PartnerDecisionState {
   messages: PartnerMessage[];
   finalChoice: string;
   finalJustification: string;
+  // 'new' = there was no solo call to compare against
+  finalStance: FinalStance | null;
 }
 
 // ---- Reflection ----
@@ -90,6 +97,27 @@ export interface ReflectionAnswers {
 export interface StageStamp {
   enteredAt: string;
   exitedAt?: string;
+  // Pausable active time: accumulated milliseconds actually spent in the
+  // stage, plus the moment the current active stretch began (null while
+  // paused, e.g. when the student navigates back to review an earlier pass).
+  // Stamps written before this field existed have neither — the timer falls
+  // back to wall-clock since enteredAt for those.
+  activeMs?: number;
+  resumedAt?: string | null;
+}
+
+// Elapsed active time for a stamp. Legacy stamps (no activeMs/resumedAt)
+// count wall-clock time since entry, matching the original behavior.
+export function stampElapsedMs(stamp: StageStamp | undefined, nowMs: number): number {
+  if (!stamp) return 0;
+  if (stamp.activeMs === undefined && stamp.resumedAt === undefined) {
+    return nowMs - new Date(stamp.enteredAt).getTime();
+  }
+  const base = stamp.activeMs ?? 0;
+  const running = stamp.resumedAt
+    ? nowMs - new Date(stamp.resumedAt).getTime()
+    : 0;
+  return base + running;
 }
 
 export interface ArchitectRun {
@@ -128,6 +156,7 @@ export const EMPTY_PARTNER_DECISION: PartnerDecisionState = {
   messages: [],
   finalChoice: '',
   finalJustification: '',
+  finalStance: null,
 };
 
 export const INITIAL_ARCHITECT_RUN: ArchitectRun = {

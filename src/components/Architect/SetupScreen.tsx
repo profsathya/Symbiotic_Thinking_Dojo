@@ -9,7 +9,10 @@ import {
 } from '@/lib/architect/content';
 
 interface SetupScreenProps {
-  onStart: () => void;
+  // Omitted when the screen is being reviewed from a later pass — the
+  // orientation stays readable all activity long, but there is nothing to
+  // start twice.
+  onStart?: () => void;
 }
 
 // Orientation: the destination has to be vivid before any decision makes sense.
@@ -91,12 +94,14 @@ export function SetupScreen({ onStart }: SetupScreenProps) {
         </p>
       </div>
 
-      <button
-        onClick={onStart}
-        className="w-full rounded-lg bg-emerald-700 px-4 py-3 font-semibold text-white hover:bg-emerald-600 transition-colors"
-      >
-        Start Pass 1 — Solo (AI off)
-      </button>
+      {onStart && (
+        <button
+          onClick={onStart}
+          className="w-full rounded-lg bg-emerald-700 px-4 py-3 font-semibold text-white hover:bg-emerald-600 transition-colors"
+        >
+          Start Pass 1 — Solo (AI off)
+        </button>
+      )}
     </div>
   );
 }

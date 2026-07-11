@@ -16,21 +16,28 @@ export function soloChoiceText(
   return solo.ownAnswer;
 }
 
-// A decision "flipped" when the student recorded both a solo choice and a
-// final choice and they materially differ. Comparison is intentionally
-// shallow (normalized text) — the reflection asks the student to judge the
-// interesting cases; this just surfaces candidates.
+// A decision "flipped" when the student, while recording the final call,
+// declared it changed from their solo call. Student-declared stance is the
+// signal — text comparison was tried first and misfired, since the final
+// call is free text and any rewording of a kept call looked like a flip.
 export function decisionFlipped(run: ArchitectRun, decisionId: string): boolean {
-  const soloText = soloChoiceText(decisionId, run.solo[decisionId]).trim().toLowerCase();
-  const finalText = (run.partner.decisions[decisionId]?.finalChoice ?? '')
-    .trim()
-    .toLowerCase();
-  if (!soloText || !finalText) return false;
-  return soloText !== finalText && !finalText.includes(soloText) && !soloText.includes(finalText);
+  return run.partner.decisions[decisionId]?.finalStance === 'changed';
 }
 
 export function flippedDecisions(run: ArchitectRun): string[] {
   return DECISIONS.filter((d) => decisionFlipped(run, d.id)).map((d) => d.id);
+}
+
+// A decision counts as "argued" once there has been at least one real
+// exchange (student message + AI reply) in the partner chat. Surfaced, not
+// gated — skipping the argument is the student's call, but it should be
+// visible that they did.
+export function decisionArgued(run: ArchitectRun, decisionId: string): boolean {
+  return (run.partner.decisions[decisionId]?.messages.length ?? 0) >= 2;
+}
+
+export function arguedDecisions(run: ArchitectRun): string[] {
+  return DECISIONS.filter((d) => decisionArgued(run, d.id)).map((d) => d.id);
 }
 
 export function runToJson(run: ArchitectRun): string {
@@ -56,8 +63,12 @@ export function runToMarkdown(run: ArchitectRun): string {
   if (run.startedAt) lines.push(`Started: ${run.startedAt}`);
   if (run.completedAt) lines.push(`Completed: ${run.completedAt}`);
   const flips = flippedDecisions(run);
+  const argued = arguedDecisions(run);
   lines.push(
-    `Decisions that flipped between solo and final: ${flips.length > 0 ? flips.join(', ') : 'none detected'}`
+    `Decisions that flipped between solo and final (student-declared): ${flips.length > 0 ? flips.join(', ') : 'none'}`
+  );
+  lines.push(
+    `Decisions argued with the AI in the partner pass: ${argued.length > 0 ? argued.join(', ') : 'none'} (${argued.length}/7)`
   );
   lines.push('');
 
@@ -87,7 +98,15 @@ export function runToMarkdown(run: ArchitectRun): string {
     lines.push(`**Final (partnered) call.** ${partner?.finalChoice || '_none recorded_'}`);
     if (partner?.finalJustification)
       lines.push(`  - Justification: ${partner.finalJustification}`);
-    if (decisionFlipped(run, d.id)) lines.push(`  - _Flipped from the solo choice._`);
+    if (partner?.finalStance === 'changed')
+      lines.push(`  - _Student marked this as changed from the solo call._`);
+    if (partner?.finalStance === 'kept')
+      lines.push(`  - _Student marked this as keeping the solo call._`);
+    if (partner?.finalStance === 'new')
+      lines.push(`  - _No solo call to compare (not reached in Pass 1)._`);
+    lines.push(
+      `  - ${decisionArgued(run, d.id) ? `Argued with the AI (${Math.floor((partner?.messages.length ?? 0) / 2)} exchange(s)).` : 'Not argued with the AI.'}`
+    );
     lines.push('');
   }
 

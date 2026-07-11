@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import Link from 'next/link';
 import { getDefaultModel, streamChat } from '@/lib/providers';
 import { AIProvider } from '@/lib/providers/types';
 import { DECISIONS } from '@/lib/architect/content';
@@ -116,16 +117,20 @@ export function DelegatePass({
             judgment: annotate each answer before moving on.
           </p>
         </div>
-        <Timer enteredAt={stamp?.enteredAt} minutes={PASS_MINUTES.delegate ?? 15} />
+        <Timer stamp={stamp} minutes={PASS_MINUTES.delegate ?? 15} />
       </div>
 
       {!hasAnswers && (
         <div className="rounded-lg border border-gray-800 bg-gray-900 p-4 space-y-3">
           {!apiKey ? (
             <p className="text-sm text-amber-300">
-              No AI key is set. Open the main Dojo page, set your API key
-              (sidebar → API Key), then return here — your solo answers are
-              saved.
+              No AI key is set.{' '}
+              <Link href="/" className="underline hover:text-amber-100">
+                Open the main Dojo page
+              </Link>
+              , set your API key (sidebar → API Key), then return here — your
+              solo answers are saved and this pass will pick up where you left
+              off.
             </p>
           ) : (
             <button

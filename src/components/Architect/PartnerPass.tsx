@@ -5,6 +5,7 @@ import { getDefaultModel, streamChat } from '@/lib/providers';
 import { AIProvider } from '@/lib/providers/types';
 import { DECISIONS } from '@/lib/architect/content';
 import { soloChoiceText } from '@/lib/architect/export';
+import Link from 'next/link';
 import {
   partnerSystemPrompt,
   synthesisSystemPrompt,
@@ -58,14 +59,23 @@ export function PartnerPass({
   const activeDecision = DECISIONS.find((d) => d.id === activeId)!;
   const activeState = decisions[activeId] ?? EMPTY_PARTNER_DECISION;
 
-  // A final is only "done" when both the call AND its justification are
-  // recorded — capturing why the call survived the argument is the point.
+  // A final is only "done" when the call, its justification, AND the
+  // kept/changed declaration are recorded — the justification captures why
+  // the call survived the argument, and the declaration is the flip signal
+  // the reflection and comparison view are built on.
   const finalDone = (id: string) =>
     (decisions[id]?.finalChoice ?? '').trim().length > 0 &&
-    (decisions[id]?.finalJustification ?? '').trim().length > 0;
+    (decisions[id]?.finalJustification ?? '').trim().length > 0 &&
+    (decisions[id]?.finalStance ?? null) !== null;
   const finalsDone = DECISIONS.filter((d) => finalDone(d.id));
   const allFinalsDone = finalsDone.length === DECISIONS.length;
   const canFinish = allFinalsDone && synthesis.trim().length > 0;
+
+  // Argued = at least one real exchange in this decision's chat. Surfaced,
+  // never gated — but skipping the argument should be visible, not silent.
+  const arguedCount = DECISIONS.filter(
+    (d) => (decisions[d.id]?.messages.length ?? 0) >= 2
+  ).length;
 
   const sendMessage = async () => {
     const text = draft.trim();
@@ -171,8 +181,18 @@ export function PartnerPass({
             push on yours, and record a final call for each. You own the call.
           </p>
         </div>
-        <Timer enteredAt={stamp?.enteredAt} minutes={PASS_MINUTES.partner ?? 30} />
+        <Timer stamp={stamp} minutes={PASS_MINUTES.partner ?? 30} />
       </div>
+
+      {!apiKey && (
+        <div className="rounded-lg border border-amber-800/50 bg-amber-900/20 p-3 text-sm text-amber-200">
+          No AI key is set, so the chat and synthesis are disabled.{' '}
+          <Link href="/" className="underline hover:text-amber-100">
+            Set your API key on the main Dojo page
+          </Link>{' '}
+          (sidebar → API Key) and come back — everything here is saved.
+        </div>
+      )}
 
       {/* Decision stepper */}
       <div className="flex flex-wrap gap-2">
@@ -308,6 +328,54 @@ export function PartnerPass({
             rows={2}
             className="w-full rounded border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-100 placeholder-gray-600"
           />
+          {/* Kept/changed declaration — this, not text comparison, is what
+              "decisions that flipped" is computed from. */}
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <span className="text-xs text-gray-500">
+              Compared to your solo call, this is:
+            </span>
+            {soloChoiceText(activeId, solo[activeId]).trim() ? (
+              <>
+                <button
+                  onClick={() =>
+                    onDecisionChange(activeId, { ...activeState, finalStance: 'kept' })
+                  }
+                  className={`rounded-lg border px-3 py-1 text-xs transition-colors ${
+                    activeState.finalStance === 'kept'
+                      ? 'border-emerald-600 bg-emerald-800/50 text-emerald-200'
+                      : 'border-gray-700 text-gray-400 hover:bg-gray-800'
+                  }`}
+                >
+                  The same call (kept it)
+                </button>
+                <button
+                  onClick={() =>
+                    onDecisionChange(activeId, { ...activeState, finalStance: 'changed' })
+                  }
+                  className={`rounded-lg border px-3 py-1 text-xs transition-colors ${
+                    activeState.finalStance === 'changed'
+                      ? 'border-sky-600 bg-sky-800/50 text-sky-200'
+                      : 'border-gray-700 text-gray-400 hover:bg-gray-800'
+                  }`}
+                >
+                  A different call (changed it)
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() =>
+                  onDecisionChange(activeId, { ...activeState, finalStance: 'new' })
+                }
+                className={`rounded-lg border px-3 py-1 text-xs transition-colors ${
+                  activeState.finalStance === 'new'
+                    ? 'border-amber-600 bg-amber-800/50 text-amber-200'
+                    : 'border-gray-700 text-gray-400 hover:bg-gray-800'
+                }`}
+              >
+                New — I didn&apos;t answer this one solo
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -319,7 +387,7 @@ export function PartnerPass({
         <p className="text-sm text-gray-400">
           {allFinalsDone
             ? 'All finals recorded. Have the AI draft the synthesis paragraph, then edit it until it says what you mean.'
-            : `Record a final call AND its justification for every decision first (${finalsDone.length}/${DECISIONS.length}).`}
+            : `For every decision, record the final call, its justification, and whether you kept or changed your solo call (${finalsDone.length}/${DECISIONS.length}).`}
         </p>
         <button
           onClick={draftSynthesis}
@@ -339,6 +407,19 @@ export function PartnerPass({
           rows={5}
           className="w-full rounded border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-100 placeholder-gray-600"
         />
+      </div>
+
+      <div
+        className={`rounded-lg border p-3 text-sm ${
+          arguedCount < DECISIONS.length
+            ? 'border-amber-800/50 bg-amber-900/15 text-amber-200/90'
+            : 'border-gray-800 bg-gray-900 text-gray-400'
+        }`}
+      >
+        You&apos;ve argued {arguedCount} of {DECISIONS.length} decisions with
+        the AI.{' '}
+        {arguedCount < DECISIONS.length &&
+          'Skipping the argument is your call — but the decisions where you disagreed with the AI or marked it as glossing are exactly where the argument earns its keep. This is noted in your run record.'}
       </div>
 
       <button

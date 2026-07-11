@@ -11,6 +11,7 @@ import {
   ReflectionAnswers,
   SoloResponse,
   STAGE_ORDER,
+  StageStamp,
 } from '@/lib/architect/types';
 
 const STORAGE_KEY = 'architectStudio';
@@ -22,7 +23,17 @@ function loadRun(): ArchitectRun {
     if (stored) {
       const parsed = JSON.parse(stored);
       if (parsed && parsed.version === 1) {
-        return { ...INITIAL_ARCHITECT_RUN, ...parsed };
+        const run: ArchitectRun = { ...INITIAL_ARCHITECT_RUN, ...parsed };
+        // Integrity guards: a fresh run must enter at setup. If the stored
+        // stage is unknown, or claims progress without the corroborating
+        // start stamp, treat the state as corrupt and start clean rather
+        // than dropping a student into the middle of a pass.
+        if (!STAGE_ORDER.includes(run.stage)) return INITIAL_ARCHITECT_RUN;
+        if (run.stage !== 'setup' && (!run.startedAt || !run.timestamps[run.stage])) {
+          console.warn('Architect Studio: inconsistent stored run, resetting to setup');
+          return INITIAL_ARCHITECT_RUN;
+        }
+        return run;
       }
     }
   } catch (e) {
@@ -31,11 +42,36 @@ function loadRun(): ArchitectRun {
   return INITIAL_ARCHITECT_RUN;
 }
 
+// Fold the running stretch of a stamp into its accumulated active time and
+// pause it. Legacy stamps (written before pausing existed) are converted
+// from wall-clock on first fold.
+function foldStamp(stamp: { enteredAt: string; exitedAt?: string; activeMs?: number; resumedAt?: string | null }): {
+  enteredAt: string;
+  exitedAt?: string;
+  activeMs: number;
+  resumedAt: null;
+} {
+  const now = Date.now();
+  let activeMs: number;
+  if (stamp.activeMs === undefined && stamp.resumedAt === undefined) {
+    activeMs = now - new Date(stamp.enteredAt).getTime();
+  } else {
+    activeMs =
+      (stamp.activeMs ?? 0) +
+      (stamp.resumedAt ? now - new Date(stamp.resumedAt).getTime() : 0);
+  }
+  return { ...stamp, activeMs, resumedAt: null };
+}
+
 export interface UseArchitectStateReturn {
   run: ArchitectRun;
   isLoaded: boolean;
   // Forward-only stage advance; records exit/enter timestamps for the trace.
   advanceStage: () => void;
+  // Pause/resume the CURRENT stage's timer — used when the student navigates
+  // back to review an earlier pass. Both are idempotent.
+  pauseStageTimer: () => void;
+  resumeStageTimer: () => void;
   resetRun: () => void;
   setSoloResponse: (decisionId: string, response: SoloResponse) => void;
   setDelegateResult: (raw: string, answers: Record<string, DelegateAnswer>) => void;
@@ -76,15 +112,50 @@ export function useArchitectState(): UseArchitectStateReturn {
       const timestamps = { ...current.timestamps };
       const currentStamp = timestamps[current.stage];
       if (currentStamp && !currentStamp.exitedAt) {
-        timestamps[current.stage] = { ...currentStamp, exitedAt: now };
+        timestamps[current.stage] = { ...foldStamp(currentStamp), exitedAt: now };
       }
-      timestamps[next] = timestamps[next] ?? { enteredAt: now };
+      timestamps[next] =
+        timestamps[next] ?? { enteredAt: now, activeMs: 0, resumedAt: now };
       return {
         ...current,
         stage: next,
         timestamps,
         startedAt: current.startedAt ?? now,
         completedAt: next === 'complete' ? now : current.completedAt,
+      };
+    });
+  }, []);
+
+  const pauseStageTimer = useCallback(() => {
+    setRun((current) => {
+      const stamp = current.timestamps[current.stage];
+      // Nothing running to pause: no stamp, already exited, or already paused
+      // (a modern stamp with resumedAt null). Legacy stamps count as running.
+      if (!stamp || stamp.exitedAt) return current;
+      if (stamp.activeMs !== undefined && !stamp.resumedAt) return current;
+      return {
+        ...current,
+        timestamps: {
+          ...current.timestamps,
+          [current.stage]: foldStamp(stamp) as StageStamp,
+        },
+      };
+    });
+  }, []);
+
+  const resumeStageTimer = useCallback(() => {
+    setRun((current) => {
+      const stamp = current.timestamps[current.stage];
+      if (!stamp || stamp.exitedAt) return current;
+      // Only resume an explicitly paused modern stamp; a legacy stamp is
+      // already "running" on wall-clock.
+      if (stamp.activeMs === undefined || stamp.resumedAt) return current;
+      return {
+        ...current,
+        timestamps: {
+          ...current.timestamps,
+          [current.stage]: { ...stamp, resumedAt: new Date().toISOString() },
+        },
       };
     });
   }, []);
@@ -162,6 +233,8 @@ export function useArchitectState(): UseArchitectStateReturn {
     run,
     isLoaded,
     advanceStage,
+    pauseStageTimer,
+    resumeStageTimer,
     resetRun,
     setSoloResponse,
     setDelegateResult,

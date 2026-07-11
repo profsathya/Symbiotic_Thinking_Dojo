@@ -2,7 +2,8 @@
 
 import { DECISIONS, REFLECTION_QUESTIONS } from '@/lib/architect/content';
 import {
-  decisionFlipped,
+  arguedDecisions,
+  decisionArgued,
   flippedDecisions,
   soloChoiceText,
 } from '@/lib/architect/export';
@@ -20,6 +21,7 @@ const VERDICT_LABELS: Record<string, { label: string; classes: string }> = {
 // both the completed run and the shared read-only view.
 export function ComparisonView({ run }: { run: ArchitectRun }) {
   const flips = flippedDecisions(run);
+  const argued = arguedDecisions(run);
 
   return (
     <div className="space-y-6">
@@ -27,8 +29,12 @@ export function ComparisonView({ run }: { run: ArchitectRun }) {
         <h2 className="font-semibold text-sky-200">Decisions that flipped</h2>
         <p className="mt-1 text-sm text-sky-100/80">
           {flips.length > 0
-            ? `Your final call differs from your solo call on: ${flips.join(', ')}.`
-            : 'No decision materially changed between your solo pass and the final calls.'}
+            ? `You marked your final call as changed from your solo call on: ${flips.join(', ')}.`
+            : 'You kept your solo call on every decision you answered.'}
+        </p>
+        <p className="mt-1 text-sm text-sky-100/70">
+          Argued with the AI on {argued.length} of {DECISIONS.length} decisions
+          {argued.length > 0 ? ` (${argued.join(', ')})` : ''}.
         </p>
       </div>
 
@@ -48,11 +54,23 @@ export function ComparisonView({ run }: { run: ArchitectRun }) {
           >
             <div className="flex items-start justify-between gap-2">
               <DecisionHeader decision={decision} />
-              {decisionFlipped(run, decision.id) && (
-                <span className="shrink-0 rounded border border-sky-800 bg-sky-900/40 px-2 py-0.5 text-xs text-sky-300">
-                  flipped
-                </span>
-              )}
+              <div className="flex shrink-0 gap-1.5">
+                {partner?.finalStance === 'changed' && (
+                  <span className="rounded border border-sky-800 bg-sky-900/40 px-2 py-0.5 text-xs text-sky-300">
+                    flipped
+                  </span>
+                )}
+                {partner?.finalStance === 'new' && (
+                  <span className="rounded border border-amber-800 bg-amber-900/40 px-2 py-0.5 text-xs text-amber-300">
+                    new in pass 3
+                  </span>
+                )}
+                {!decisionArgued(run, decision.id) && (
+                  <span className="rounded border border-gray-700 bg-gray-800/60 px-2 py-0.5 text-xs text-gray-400">
+                    not argued
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="grid gap-3 lg:grid-cols-3">

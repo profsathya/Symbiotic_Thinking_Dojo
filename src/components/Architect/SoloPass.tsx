@@ -40,7 +40,7 @@ export function SoloPass({ responses, stamp, onChange, onFinish }: SoloPassProps
             unsure about. The justifying is where the thinking is.
           </p>
         </div>
-        <Timer enteredAt={stamp?.enteredAt} minutes={PASS_MINUTES.solo ?? 25} />
+        <Timer stamp={stamp} minutes={PASS_MINUTES.solo ?? 25} />
       </div>
 
       {DECISIONS.map((decision) => {
