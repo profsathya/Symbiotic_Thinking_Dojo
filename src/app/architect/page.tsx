@@ -36,6 +36,16 @@ export default function ArchitectPage() {
   const [viewStage, setViewStage] = useState<ArchitectStage | null>(null);
   const reviewing = viewStage !== null && viewStage !== run.stage;
 
+  // Mid-run escape hatch. Deliberately quiet (small header link) and
+  // double-confirmed — it erases a run that may represent an hour of work.
+  // The pending confirmation is keyed to the stage it was opened in, so it
+  // cannot outlive that stage: finishing Reflection with the banner open
+  // must not carry the destructive erase onto the Complete screen, which
+  // has its own export-first reset flow.
+  const [confirmingResetStage, setConfirmingResetStage] =
+    useState<ArchitectStage | null>(null);
+  const confirmingReset = confirmingResetStage === run.stage;
+
   const { pauseStageTimer, resumeStageTimer, isLoaded } = state;
   useEffect(() => {
     if (!isLoaded) return;
@@ -104,10 +114,52 @@ export default function ArchitectPage() {
               );
             })}
           </nav>
+          {/* Only once there is something to reset; Complete has its own
+              reset with export-first guidance. */}
+          {run.startedAt && run.stage !== 'complete' ? (
+            <button
+              onClick={() => setConfirmingResetStage(run.stage)}
+              className="shrink-0 text-xs text-gray-600 hover:text-gray-300 transition-colors"
+              title="Erase this run and start the activity from the beginning"
+            >
+              Start over
+            </button>
+          ) : (
+            <span className="w-14 shrink-0" aria-hidden />
+          )}
         </div>
       </header>
 
       <main className="px-4 py-8">
+        {confirmingReset && run.stage !== 'complete' && (
+          <div className="mx-auto mb-6 max-w-3xl rounded-lg border border-red-800/60 bg-red-900/20 p-4">
+            <p className="text-sm text-red-200">
+              Start over? This erases your <strong>entire run</strong> — solo
+              answers, the AI&apos;s calls and your annotations, every partner
+              chat, finals, and reflection. There is no undo, and nothing is
+              exported until the Complete screen.
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={() => {
+                  setConfirmingResetStage(null);
+                  setViewStage(null);
+                  state.resetRun();
+                }}
+                className="rounded-lg bg-red-800 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition-colors"
+              >
+                Erase everything and start over
+              </button>
+              <button
+                onClick={() => setConfirmingResetStage(null)}
+                className="rounded-lg border border-gray-700 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 transition-colors"
+              >
+                Keep my run
+              </button>
+            </div>
+          </div>
+        )}
+
         {reviewing && viewStage && (
           <div className="mx-auto mb-6 flex max-w-3xl items-center justify-between gap-3 rounded-lg border border-sky-800/50 bg-sky-900/20 p-3 text-sm text-sky-200">
             <span>
