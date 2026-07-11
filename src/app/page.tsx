@@ -20,7 +20,7 @@ import { TourOverlay, TourPrompt } from '@/components/Tour';
 import { StatsModal } from '@/components/StatsModal';
 import { BudgetIndicator } from '@/components/BudgetIndicator';
 import { ImportedSession } from '@/lib/export';
-import { getTopicById, getTopicBySlug } from '@/lib/practice-dojo/topics';
+import { ACTIVITY_ROUTES, getTopicById, getTopicBySlug } from '@/lib/practice-dojo/topics';
 import { PracticeDojoContext, Pathway } from '@/lib/practice-dojo/types';
 import { isCtiEnabled } from '@/lib/providers/types';
 
@@ -312,6 +312,17 @@ export default function Home() {
     }
 
     if (!topicSlug) return;
+
+    // Standalone activities (e.g. ?topic=architect) live on their own routes,
+    // not in the chat engine. Any ?key= was already persisted to localStorage
+    // above (setKeyForProvider writes synchronously), so the activity page's
+    // useApiKey picks it up on mount. No key gate here — Architect Studio's
+    // first pass is deliberately AI-free and it explains missing keys itself.
+    const activityRoute = ACTIVITY_ROUTES[topicSlug];
+    if (activityRoute) {
+      window.location.replace(activityRoute);
+      return;
+    }
 
     // Validate the slug maps to a real, enabled topic
     const topic = getTopicBySlug(topicSlug);
