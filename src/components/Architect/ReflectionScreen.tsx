@@ -1,7 +1,11 @@
 'use client';
 
 import { REFLECTION_QUESTIONS } from '@/lib/architect/content';
-import { flippedDecisions } from '@/lib/architect/export';
+import {
+  arguedDecisions,
+  flippedDecisions,
+  hasStanceData,
+} from '@/lib/architect/export';
 import {
   ArchitectRun,
   PASS_MINUTES,
@@ -21,6 +25,7 @@ interface ReflectionScreenProps {
 // what did the student know, or do, that the AI didn't — and how do they know.
 export function ReflectionScreen({ run, stamp, onChange, onFinish }: ReflectionScreenProps) {
   const flips = flippedDecisions(run);
+  const argued = arguedDecisions(run);
   const allAnswered = REFLECTION_QUESTIONS.every(
     (q) => run.reflection[q.key].trim().length > 0
   );
@@ -37,15 +42,24 @@ export function ReflectionScreen({ run, stamp, onChange, onFinish }: ReflectionS
             run, not in general.
           </p>
         </div>
-        <Timer enteredAt={stamp?.enteredAt} minutes={PASS_MINUTES.reflection ?? 15} />
+        <Timer stamp={stamp} minutes={PASS_MINUTES.reflection ?? 15} />
       </div>
 
-      {flips.length > 0 && (
-        <div className="rounded-lg border border-sky-800/50 bg-sky-900/20 p-3 text-sm text-sky-200">
-          For reference: your final call differs from your solo call on{' '}
-          <span className="font-mono">{flips.join(', ')}</span>.
-        </div>
-      )}
+      <div className="rounded-lg border border-sky-800/50 bg-sky-900/20 p-3 text-sm text-sky-200">
+        For reference:{' '}
+        {!hasStanceData(run) ? (
+          'this run has no kept/changed declarations (recorded before they existed)'
+        ) : flips.length > 0 ? (
+          <>
+            you marked <span className="font-mono">{flips.join(', ')}</span> as
+            changed from your solo call
+          </>
+        ) : (
+          'you marked no decision as changed from your solo call'
+        )}
+        , and you argued {argued.length} of 7 decisions with the AI in the
+        partner pass.
+      </div>
 
       {REFLECTION_QUESTIONS.map((q, i) => (
         <div

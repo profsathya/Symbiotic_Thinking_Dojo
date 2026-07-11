@@ -22,7 +22,7 @@ export const CAMPUSMESH_FLOWS = [
 ];
 
 export const ARCHITECT_JOB =
-  'You are the architect. An architecture is the set of decisions that make these flows real. You will make seven of them — three about networking, three about design, one about engineering practice. For each: pick an option (or write your own), justify it in 2–4 sentences, and note one thing you are unsure about.';
+  'You are the architect. An architecture is the set of decisions that make these flows real. You will make seven of them — two about networking, three about design, two about engineering practice. For each: pick an option (or write your own), justify it in 2–4 sentences, and note one thing you are unsure about.';
 
 export const DECISIONS: DecisionDef[] = [
   {
