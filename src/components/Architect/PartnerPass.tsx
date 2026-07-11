@@ -63,14 +63,18 @@ export function PartnerPass({
   const activeState = decisions[activeId] ?? EMPTY_PARTNER_DECISION;
 
   // Did the student signal "I don't know" on this decision — via the Pass 2
-  // annotation button (structured), or by writing it in their solo answer
-  // (best-effort text match, per the Pass 1 guidance encouraging exactly that)?
-  const DONT_KNOW_RE = /\bi\s*(?:don'?t|do\s*not)\s*know\b|\bno\s*idea\b/i;
+  // annotation button (structured), or by OPENING their solo answer with it
+  // (the Pass 1 guidance says to write exactly that)? The match is anchored
+  // to the start of the answer and skipped when a preset option was picked,
+  // so an ordinary caveat like "…I don't know how SSE handles reconnects, so
+  // I chose WebSocket" does not trigger the teach-first pathway.
+  const DONT_KNOW_OPEN_RE = /^\s*["'“”]?\s*(?:i\s*(?:don'?t|do\s*not)\s*know|no\s*idea)\b/i;
   const activeSolo = solo[activeId];
+  const soloMadeNoCall =
+    (!activeSolo?.optionId || activeSolo.optionId === 'own') &&
+    DONT_KNOW_OPEN_RE.test(activeSolo?.ownAnswer ?? '');
   const saidDontKnow =
-    annotations[activeId]?.verdict === 'dont-know' ||
-    DONT_KNOW_RE.test(activeSolo?.ownAnswer ?? '') ||
-    DONT_KNOW_RE.test(activeSolo?.justification ?? '');
+    annotations[activeId]?.verdict === 'dont-know' || soloMadeNoCall;
 
   // A final is only "done" when the call, its justification, AND the
   // kept/changed declaration are recorded — the justification captures why
