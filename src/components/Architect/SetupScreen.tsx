@@ -20,14 +20,25 @@ interface SetupScreenProps {
 export function SetupScreen({ onStart }: SetupScreenProps) {
   return (
     <div className="max-w-3xl mx-auto space-y-8">
-      <div className="rounded-lg border border-emerald-800/50 bg-emerald-900/20 p-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-emerald-400">
-          Learning goal
+      {/* The one element that should grab the eye first — everything else on
+          this page stays at normal weight so the goal reads as THE headline. */}
+      <div className="rounded-xl border-2 border-emerald-500/60 bg-gradient-to-br from-emerald-900/60 via-emerald-950/40 to-gray-950 p-5 shadow-lg shadow-emerald-900/40 ring-1 ring-emerald-400/20">
+        <div className="flex items-start gap-4">
+          <span className="text-3xl leading-none" aria-hidden>
+            🎯
+          </span>
+          <div>
+            <div className="text-xs font-bold uppercase tracking-widest text-emerald-400">
+              Learning goal
+            </div>
+            <p className="mt-1.5 text-xl font-bold leading-snug text-white">
+              {LEARNING_GOAL.headline}
+            </p>
+            <p className="mt-2.5 text-sm leading-relaxed text-emerald-100/85">
+              {LEARNING_GOAL.body}
+            </p>
+          </div>
         </div>
-        <p className="mt-1 font-medium text-emerald-100">
-          {LEARNING_GOAL.headline}
-        </p>
-        <p className="mt-2 text-sm text-emerald-100/80">{LEARNING_GOAL.body}</p>
       </div>
 
       <div>
