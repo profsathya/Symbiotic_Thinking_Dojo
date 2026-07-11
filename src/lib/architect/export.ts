@@ -29,11 +29,23 @@ export function flippedDecisions(run: ArchitectRun): string[] {
 }
 
 // A decision counts as "argued" once there has been at least one real
-// exchange (student message + AI reply) in the partner chat. Surfaced, not
-// gated — skipping the argument is the student's call, but it should be
-// visible that they did.
+// exchange in the partner chat. The test is an actual ASSISTANT reply (which
+// in this flow only ever follows a student message) — a raw length check
+// would miscount two student messages left behind by a failed/retried
+// request as an argument.
 export function decisionArgued(run: ArchitectRun, decisionId: string): boolean {
-  return (run.partner.decisions[decisionId]?.messages.length ?? 0) >= 2;
+  return (run.partner.decisions[decisionId]?.messages ?? []).some(
+    (m) => m.role === 'assistant'
+  );
+}
+
+// Whether this run carries kept/changed declarations at all. Runs recorded
+// before finalStance existed have none — their flip data is UNAVAILABLE,
+// which is different from "the student kept every call".
+export function hasStanceData(run: ArchitectRun): boolean {
+  return DECISIONS.some(
+    (d) => (run.partner.decisions[d.id]?.finalStance ?? null) !== null
+  );
 }
 
 export function arguedDecisions(run: ArchitectRun): string[] {
@@ -65,7 +77,9 @@ export function runToMarkdown(run: ArchitectRun): string {
   const flips = flippedDecisions(run);
   const argued = arguedDecisions(run);
   lines.push(
-    `Decisions that flipped between solo and final (student-declared): ${flips.length > 0 ? flips.join(', ') : 'none'}`
+    hasStanceData(run)
+      ? `Decisions that flipped between solo and final (student-declared): ${flips.length > 0 ? flips.join(', ') : 'none'}`
+      : 'Decisions that flipped: not recorded (this run predates kept/changed declarations).'
   );
   lines.push(
     `Decisions argued with the AI in the partner pass: ${argued.length > 0 ? argued.join(', ') : 'none'} (${argued.length}/7)`
@@ -105,7 +119,7 @@ export function runToMarkdown(run: ArchitectRun): string {
     if (partner?.finalStance === 'new')
       lines.push(`  - _No solo call to compare (not reached in Pass 1)._`);
     lines.push(
-      `  - ${decisionArgued(run, d.id) ? `Argued with the AI (${Math.floor((partner?.messages.length ?? 0) / 2)} exchange(s)).` : 'Not argued with the AI.'}`
+      `  - ${decisionArgued(run, d.id) ? `Argued with the AI (${(partner?.messages ?? []).filter((m) => m.role === 'assistant').length} exchange(s)).` : 'Not argued with the AI.'}`
     );
     lines.push('');
   }

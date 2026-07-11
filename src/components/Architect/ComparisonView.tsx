@@ -5,6 +5,7 @@ import {
   arguedDecisions,
   decisionArgued,
   flippedDecisions,
+  hasStanceData,
   soloChoiceText,
 } from '@/lib/architect/export';
 import { ArchitectRun } from '@/lib/architect/types';
@@ -28,9 +29,11 @@ export function ComparisonView({ run }: { run: ArchitectRun }) {
       <div className="rounded-lg border border-sky-800/50 bg-sky-900/20 p-4">
         <h2 className="font-semibold text-sky-200">Decisions that flipped</h2>
         <p className="mt-1 text-sm text-sky-100/80">
-          {flips.length > 0
-            ? `You marked your final call as changed from your solo call on: ${flips.join(', ')}.`
-            : 'You kept your solo call on every decision you answered.'}
+          {!hasStanceData(run)
+            ? 'Flip data is not available for this run — it was recorded before kept/changed declarations existed.'
+            : flips.length > 0
+              ? `You marked your final call as changed from your solo call on: ${flips.join(', ')}.`
+              : 'You kept your solo call on every decision you answered.'}
         </p>
         <p className="mt-1 text-sm text-sky-100/70">
           Argued with the AI on {argued.length} of {DECISIONS.length} decisions

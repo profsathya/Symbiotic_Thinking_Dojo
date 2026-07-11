@@ -95,8 +95,9 @@ export function StageReview({ stage, run }: StageReviewProps) {
               {p && p.messages.length > 0 && (
                 <details className="text-xs text-gray-500">
                   <summary className="cursor-pointer hover:text-gray-300">
-                    Argument transcript ({Math.floor(p.messages.length / 2)} exchange
-                    {Math.floor(p.messages.length / 2) === 1 ? '' : 's'})
+                    Argument transcript (
+                    {p.messages.filter((m) => m.role === 'assistant').length} exchange
+                    {p.messages.filter((m) => m.role === 'assistant').length === 1 ? '' : 's'})
                   </summary>
                   <div className="mt-2 space-y-1.5">
                     {p.messages.map((m, i) => (

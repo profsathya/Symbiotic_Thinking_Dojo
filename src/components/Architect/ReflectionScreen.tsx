@@ -1,7 +1,11 @@
 'use client';
 
 import { REFLECTION_QUESTIONS } from '@/lib/architect/content';
-import { arguedDecisions, flippedDecisions } from '@/lib/architect/export';
+import {
+  arguedDecisions,
+  flippedDecisions,
+  hasStanceData,
+} from '@/lib/architect/export';
 import {
   ArchitectRun,
   PASS_MINUTES,
@@ -42,14 +46,16 @@ export function ReflectionScreen({ run, stamp, onChange, onFinish }: ReflectionS
       </div>
 
       <div className="rounded-lg border border-sky-800/50 bg-sky-900/20 p-3 text-sm text-sky-200">
-        For reference: you marked{' '}
-        {flips.length > 0 ? (
+        For reference:{' '}
+        {!hasStanceData(run) ? (
+          'this run has no kept/changed declarations (recorded before they existed)'
+        ) : flips.length > 0 ? (
           <>
-            <span className="font-mono">{flips.join(', ')}</span> as changed
-            from your solo call
+            you marked <span className="font-mono">{flips.join(', ')}</span> as
+            changed from your solo call
           </>
         ) : (
-          'no decision as changed from your solo call'
+          'you marked no decision as changed from your solo call'
         )}
         , and you argued {argued.length} of 7 decisions with the AI in the
         partner pass.

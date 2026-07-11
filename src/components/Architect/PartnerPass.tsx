@@ -71,10 +71,11 @@ export function PartnerPass({
   const allFinalsDone = finalsDone.length === DECISIONS.length;
   const canFinish = allFinalsDone && synthesis.trim().length > 0;
 
-  // Argued = at least one real exchange in this decision's chat. Surfaced,
-  // never gated — but skipping the argument should be visible, not silent.
-  const arguedCount = DECISIONS.filter(
-    (d) => (decisions[d.id]?.messages.length ?? 0) >= 2
+  // Argued = at least one actual AI reply in this decision's chat (a length
+  // check would count a failed request's orphaned student messages).
+  // Surfaced, never gated — but skipping the argument should be visible.
+  const arguedCount = DECISIONS.filter((d) =>
+    (decisions[d.id]?.messages ?? []).some((m) => m.role === 'assistant')
   ).length;
 
   const sendMessage = async () => {
