@@ -1,10 +1,11 @@
 'use client';
 
-import { DECISIONS, REFLECTION_QUESTIONS } from '@/lib/architect/content';
+import { REFLECTION_QUESTIONS } from '@/lib/architect/content';
 import {
   arguedDecisions,
   flippedDecisions,
   hasStanceData,
+  runDecisions,
 } from '@/lib/architect/export';
 import {
   ArchitectRun,
@@ -57,7 +58,7 @@ export function ReflectionScreen({ run, stamp, onChange, onFinish }: ReflectionS
         ) : (
           'you marked no decision as changed from your solo call'
         )}
-        , and you argued {argued.length} of {DECISIONS.length} decisions with the AI in the
+        , and you argued {argued.length} of {runDecisions(run).length} decisions with the AI in the
         partner pass.
       </div>
 

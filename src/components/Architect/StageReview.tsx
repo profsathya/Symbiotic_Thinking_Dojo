@@ -1,7 +1,7 @@
 'use client';
 
-import { DECISIONS, REFLECTION_QUESTIONS } from '@/lib/architect/content';
-import { soloChoiceText } from '@/lib/architect/export';
+import { REFLECTION_QUESTIONS } from '@/lib/architect/content';
+import { runDecisions, soloChoiceText } from '@/lib/architect/export';
 import { ArchitectRun, ArchitectStage } from '@/lib/architect/types';
 import { DecisionHeader } from './DecisionHeader';
 import { SetupScreen } from './SetupScreen';
@@ -15,6 +15,7 @@ interface StageReviewProps {
 // Reviewing is always allowed; editing is not — the one-way locks are the
 // mode gates, and this component simply has no inputs.
 export function StageReview({ stage, run }: StageReviewProps) {
+  const sheet = runDecisions(run);
   if (stage === 'setup') {
     return <SetupScreen />;
   }
@@ -25,7 +26,7 @@ export function StageReview({ stage, run }: StageReviewProps) {
         <h1 className="text-xl font-bold text-gray-100">
           Pass 1 — Solo <span className="text-sm font-normal text-gray-500">(locked)</span>
         </h1>
-        {DECISIONS.map((d) => {
+        {sheet.map((d) => {
           const r = run.solo[d.id];
           return (
             <div key={d.id} className="rounded-lg border border-gray-800 bg-gray-900 p-4 space-y-2">
@@ -54,7 +55,7 @@ export function StageReview({ stage, run }: StageReviewProps) {
         <h1 className="text-xl font-bold text-gray-100">
           Pass 2 — Delegate <span className="text-sm font-normal text-gray-500">(locked)</span>
         </h1>
-        {DECISIONS.map((d) => {
+        {sheet.map((d) => {
           const a = run.delegate.answers[d.id];
           const note = run.delegate.annotations[d.id];
           return (
@@ -88,7 +89,7 @@ export function StageReview({ stage, run }: StageReviewProps) {
         <h1 className="text-xl font-bold text-gray-100">
           Pass 3 — Partner <span className="text-sm font-normal text-gray-500">(locked)</span>
         </h1>
-        {DECISIONS.map((d) => {
+        {sheet.map((d) => {
           const p = run.partner.decisions[d.id];
           return (
             <div key={d.id} className="rounded-lg border border-gray-800 bg-gray-900 p-4 space-y-2">

@@ -1,5 +1,16 @@
 import { DECISIONS, getDecision, REFLECTION_QUESTIONS } from './content';
-import { ArchitectRun, SoloResponse } from './types';
+import { ArchitectRun, DecisionDef, SoloResponse } from './types';
+
+// The decision sheet AS IT EXISTED for this run. Version-1 runs were the
+// seven-decision sheet (no Experience theme) — rendering or summarizing them
+// against today's ten would make complete legacy submissions look unfinished
+// ("argued 7/10", E1-E3 "not reached"). The D decisions are unchanged across
+// versions, so filtering the current list is a faithful reconstruction.
+export function runDecisions(run: ArchitectRun): DecisionDef[] {
+  return run.version === 1
+    ? DECISIONS.filter((d) => !d.id.startsWith('E'))
+    : DECISIONS;
+}
 
 // Human-readable form of a solo choice (resolves preset option ids to labels)
 export function soloChoiceText(
@@ -25,7 +36,7 @@ export function decisionFlipped(run: ArchitectRun, decisionId: string): boolean 
 }
 
 export function flippedDecisions(run: ArchitectRun): string[] {
-  return DECISIONS.filter((d) => decisionFlipped(run, d.id)).map((d) => d.id);
+  return runDecisions(run).filter((d) => decisionFlipped(run, d.id)).map((d) => d.id);
 }
 
 // A decision counts as "argued" once there has been at least one real
@@ -43,13 +54,13 @@ export function decisionArgued(run: ArchitectRun, decisionId: string): boolean {
 // before finalStance existed have none — their flip data is UNAVAILABLE,
 // which is different from "the student kept every call".
 export function hasStanceData(run: ArchitectRun): boolean {
-  return DECISIONS.some(
+  return runDecisions(run).some(
     (d) => (run.partner.decisions[d.id]?.finalStance ?? null) !== null
   );
 }
 
 export function arguedDecisions(run: ArchitectRun): string[] {
-  return DECISIONS.filter((d) => decisionArgued(run, d.id)).map((d) => d.id);
+  return runDecisions(run).filter((d) => decisionArgued(run, d.id)).map((d) => d.id);
 }
 
 export function runToJson(run: ArchitectRun): string {
@@ -60,8 +71,9 @@ export function parseRunJson(text: string): ArchitectRun | null {
   try {
     const parsed = JSON.parse(text);
     // Accept both schema versions: version-1 files are seven-decision runs
-    // exported before the Experience theme existed. All rendering tolerates
-    // their missing E1-E3 keys, so the shared viewer keeps opening them.
+    // exported before the Experience theme existed. runDecisions() gives the
+    // viewer that run's own sheet, so legacy runs summarize as x/7 — never
+    // as incomplete ten-decision runs.
     if (parsed && (parsed.version === 1 || parsed.version === 2) && parsed.solo && parsed.partner) {
       return parsed as ArchitectRun;
     }
@@ -77,6 +89,7 @@ export function runToMarkdown(run: ArchitectRun): string {
   lines.push('');
   if (run.startedAt) lines.push(`Started: ${run.startedAt}`);
   if (run.completedAt) lines.push(`Completed: ${run.completedAt}`);
+  const sheet = runDecisions(run);
   const flips = flippedDecisions(run);
   const argued = arguedDecisions(run);
   lines.push(
@@ -85,11 +98,11 @@ export function runToMarkdown(run: ArchitectRun): string {
       : 'Decisions that flipped: not recorded (this run predates kept/changed declarations).'
   );
   lines.push(
-    `Decisions argued with the AI in the partner pass: ${argued.length > 0 ? argued.join(', ') : 'none'} (${argued.length}/${DECISIONS.length})`
+    `Decisions argued with the AI in the partner pass: ${argued.length > 0 ? argued.join(', ') : 'none'} (${argued.length}/${sheet.length})`
   );
   lines.push('');
 
-  for (const d of DECISIONS) {
+  for (const d of sheet) {
     const solo = run.solo[d.id];
     const ai = run.delegate.answers[d.id];
     const annotation = run.delegate.annotations[d.id];
