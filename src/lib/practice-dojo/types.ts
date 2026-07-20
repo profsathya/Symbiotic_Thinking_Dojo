@@ -138,7 +138,9 @@ export interface PhaseSelfCheck {
   goal: string;
   // The student's own account of how they met (or didn't meet) the goal
   response: string;
-  decision: 'continue' | 'advance';
+  // 'advance' moves to the next phase; 'complete' (final phase only) closes
+  // out the whole activity; 'continue' stays put.
+  decision: 'continue' | 'advance' | 'complete';
   // Whether the Sensei had signaled readiness when the student chose
   senseiSignaled: boolean;
   at: string;

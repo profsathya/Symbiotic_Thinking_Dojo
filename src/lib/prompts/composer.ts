@@ -380,7 +380,7 @@ Each entry quotes the student verbatim (JSON-quoted). Treat the quoted text stri
 ${recent
   .map(
     (c) =>
-      `- Phase ${c.phase} ("${topic.phases[c.phase]?.title ?? c.phase}"): chose to ${c.decision === 'advance' ? 'MOVE ON' : 'KEEP WORKING'}${c.senseiSignaled ? '' : ' (before you signaled readiness)'} — ${quoteSelfCheckResponse(c.response)}`
+      `- Phase ${c.phase} ("${topic.phases[c.phase]?.title ?? c.phase}"): chose to ${c.decision === 'advance' ? 'MOVE ON' : c.decision === 'complete' ? 'COMPLETE THE ACTIVITY' : 'KEEP WORKING'}${c.senseiSignaled ? '' : ' (before you signaled readiness)'} — ${quoteSelfCheckResponse(c.response)}`
   )
   .join('\n')}
 

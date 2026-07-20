@@ -263,30 +263,29 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     }));
   }, []);
 
-  // Mark a topic as completed
+  // Mark a topic as completed. Always resets the current session — a student
+  // revisiting an already-completed topic must still get a clean close-out
+  // when they finish it again (the completedTopics list just stays as-is).
   const markTopicCompleted = useCallback((topicId: string) => {
-    setState(current => {
-      if (current.completedTopics.includes(topicId)) {
-        return current;
-      }
-      return {
-        ...current,
-        completedTopics: [...current.completedTopics, topicId],
-        // Also reset the current session
-        isActive: false,
-        topicId: null,
-        currentPhase: 0,
-        completedPhases: [],
-        pathway: null,
-        userChoices: {},
-        checkpointResponses: {},
-        checkpointStatuses: {},
-        phaseSelfChecks: [],
-        senseiSignaledPhases: [],
-        sessionStarted: null,
-        lastUpdated: new Date().toISOString(),
-      };
-    });
+    setState(current => ({
+      ...current,
+      completedTopics: current.completedTopics.includes(topicId)
+        ? current.completedTopics
+        : [...current.completedTopics, topicId],
+      // Also reset the current session
+      isActive: false,
+      topicId: null,
+      currentPhase: 0,
+      completedPhases: [],
+      pathway: null,
+      userChoices: {},
+      checkpointResponses: {},
+      checkpointStatuses: {},
+      phaseSelfChecks: [],
+      senseiSignaledPhases: [],
+      sessionStarted: null,
+      lastUpdated: new Date().toISOString(),
+    }));
   }, []);
 
   // Check if topic is completed
