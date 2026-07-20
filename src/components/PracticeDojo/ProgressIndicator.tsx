@@ -7,12 +7,15 @@ interface ProgressIndicatorProps {
   currentPhase: number;
   completedPhases: number[];
   onExit?: () => void;
-  // "Ready to move on?" — present when a next phase exists. The student owns
-  // phase transitions; this button opens the self-check dialog.
+  // "Ready to move on?" / "Finished with this activity?" — the student owns
+  // phase transitions and completion; this button opens the self-check dialog.
   onRequestPhaseCheck?: () => void;
   // The Sensei emitted [NEXT_PHASE] for the current phase — highlight the
   // button as a readiness signal (it never advances anything by itself).
   senseiReady?: boolean;
+  // True on the topic's last phase: the gate completes the activity instead
+  // of advancing, so the button reads accordingly.
+  finalPhase?: boolean;
 }
 
 export function ProgressIndicator({
@@ -22,6 +25,7 @@ export function ProgressIndicator({
   onExit,
   onRequestPhaseCheck,
   senseiReady = false,
+  finalPhase = false,
 }: ProgressIndicatorProps) {
   // Phase 0 is a welcome-owned placeholder (the engine starts on phase 1), so
   // the "real" steps are phases[1..]. Count and number against those, and frame
@@ -83,7 +87,7 @@ export function ProgressIndicator({
           )}
         </div>
 
-        {/* Ready to move on? — the student-owned phase gate */}
+        {/* Ready to move on? / Finish — the student-owned phase gate */}
         {onRequestPhaseCheck && (
           <button
             onClick={onRequestPhaseCheck}
@@ -98,7 +102,13 @@ export function ProgressIndicator({
                 : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
             }`}
           >
-            {senseiReady ? 'Sensei says ready →' : 'Ready to move on?'}
+            {finalPhase
+              ? senseiReady
+                ? 'Sensei says done ✓'
+                : 'Finish this activity?'
+              : senseiReady
+                ? 'Sensei says ready →'
+                : 'Ready to move on?'}
           </button>
         )}
 
