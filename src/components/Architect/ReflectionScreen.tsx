@@ -1,6 +1,6 @@
 'use client';
 
-import { REFLECTION_QUESTIONS } from '@/lib/architect/content';
+import { DECISIONS, REFLECTION_QUESTIONS } from '@/lib/architect/content';
 import {
   arguedDecisions,
   flippedDecisions,
@@ -57,7 +57,7 @@ export function ReflectionScreen({ run, stamp, onChange, onFinish }: ReflectionS
         ) : (
           'you marked no decision as changed from your solo call'
         )}
-        , and you argued {argued.length} of 7 decisions with the AI in the
+        , and you argued {argued.length} of {DECISIONS.length} decisions with the AI in the
         partner pass.
       </div>
 

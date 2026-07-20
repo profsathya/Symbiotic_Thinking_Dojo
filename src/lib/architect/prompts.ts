@@ -1,26 +1,26 @@
-import { briefAsText, getDecision } from './content';
+import { briefAsText, DECISIONS, getDecision } from './content';
 import { DelegateAnnotation, DelegateAnswer, SoloResponse } from './types';
 
 // ---------------------------------------------------------------------------
-// Pass 2 — Delegate. One request; the model makes and justifies all seven
+// Pass 2 — Delegate. One request; the model makes and justifies all ten
 // calls with no student input. Output is strict JSON so we can render each
 // answer next to the student's solo answer later.
 // ---------------------------------------------------------------------------
 
 export function delegateSystemPrompt(): string {
-  return `You are a software architect. You have been handed a product brief and a seven-decision architecture sheet. Make all seven calls yourself and justify each one.
+  return `You are a software architect. You have been handed a product brief and a ten-decision architecture sheet. Make all ten calls yourself and justify each one.
 
 You are working independently. You have NOT seen anyone else's answers to this sheet and must not try to guess or match them — make the calls you would actually make.
 
 ${briefAsText()}
 
 RESPONSE FORMAT — STRICT:
-Respond with ONLY a JSON object, no prose before or after, no markdown fences. One key per decision id ("D1" through "D7"). Each value is an object with exactly two string fields:
+Respond with ONLY a JSON object, no prose before or after, no markdown fences. One key per decision id — exactly these ten, in this order: "D1","D2","D3","D4","D5","E1","E2","E3","D6","D7". Each value is an object with exactly two string fields:
 - "choice": your call, stated concretely in one or two sentences. If the decision has preset options, name the option you picked; you may modify or replace an option if you think all presets are wrong.
 - "justification": 2-4 sentences defending the call for THIS system at student-project scale.
 
 Example shape (content illustrative only):
-{"D1": {"choice": "...", "justification": "..."}, "D2": {"choice": "...", "justification": "..."}, "D3": {"choice": "...", "justification": "..."}, "D4": {"choice": "...", "justification": "..."}, "D5": {"choice": "...", "justification": "..."}, "D6": {"choice": "...", "justification": "..."}, "D7": {"choice": "...", "justification": "..."}}
+{"D1": {"choice": "...", "justification": "..."}, "D2": {"choice": "...", "justification": "..."}, "D3": {"choice": "...", "justification": "..."}, "D4": {"choice": "...", "justification": "..."}, "D5": {"choice": "...", "justification": "..."}, "E1": {"choice": "...", "justification": "..."}, "E2": {"choice": "...", "justification": "..."}, "E3": {"choice": "...", "justification": "..."}, "D6": {"choice": "...", "justification": "..."}, "D7": {"choice": "...", "justification": "..."}}
 
 Make real calls — do not hedge with "it depends" without landing on an answer.`;
 }
@@ -39,7 +39,7 @@ export function parseDelegateAnswers(
   try {
     const parsed = JSON.parse(text.slice(start, end + 1));
     const out: Record<string, DelegateAnswer> = {};
-    for (const id of ['D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7']) {
+    for (const id of DECISIONS.map((d) => d.id)) {
       const entry = parsed[id];
       if (
         !entry ||
@@ -139,12 +139,12 @@ HOW TO BEHAVE:
 }
 
 // ---------------------------------------------------------------------------
-// Synthesis — the AI drafts one paragraph on how the seven final calls fit
+// Synthesis — the AI drafts one paragraph on how the ten final calls fit
 // together; the student edits it.
 // ---------------------------------------------------------------------------
 
 export function synthesisSystemPrompt(): string {
-  return `You are a software architect. Draft the closing synthesis of an architecture decision sheet: ONE paragraph (120-180 words) on how the seven final calls fit together as a coherent system — where they reinforce each other, and the one tension or risk the set carries. Plain prose, no headings, no lists, no preamble. Write it so the student can edit it directly.`;
+  return `You are a software architect. Draft the closing synthesis of an architecture decision sheet: ONE paragraph (150-220 words) on how the ten final calls fit together as a coherent system — where they reinforce each other, and the one tension or risk the set carries. Plain prose, no headings, no lists, no preamble. Write it so the student can edit it directly.`;
 }
 
 export function synthesisUserMessage(
@@ -156,5 +156,5 @@ export function synthesisUserMessage(
         `${f.id} ${f.title}: ${f.choice || '(no final recorded)'}${f.justification ? ` — ${f.justification}` : ''}`
     )
     .join('\n');
-  return `Here are the seven final calls:\n\n${lines}\n\nDraft the synthesis paragraph.`;
+  return `Here are the ten final calls:\n\n${lines}\n\nDraft the synthesis paragraph.`;
 }

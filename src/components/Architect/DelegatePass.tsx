@@ -35,7 +35,7 @@ const VERDICTS: { id: AnnotationVerdict; label: string; active: string }[] = [
   { id: 'dont-know', label: "I don't know", active: 'bg-sky-800/50 border-sky-600 text-sky-200' },
 ];
 
-// Pass 2 — pure delegation. One prompt, the AI's seven calls, then the
+// Pass 2 — pure delegation. One prompt, the AI's ten calls, then the
 // student's job is judgment: annotate every answer before moving on.
 export function DelegatePass({
   provider,
@@ -65,7 +65,7 @@ export function DelegatePass({
   });
 
   // Live progress while the AI works the sheet: the response is streamed
-  // JSON keyed D1..D7, so counting which keys have appeared is a REAL
+  // JSON keyed by decision id (D1..D7, E1..E3), so counting which keys have appeared is a REAL
   // progress signal, not a spinner.
   const seenDecisions = DECISIONS.filter((d) =>
     streamed.includes(`"${d.id}"`)
@@ -88,7 +88,7 @@ export function DelegatePass({
           {
             role: 'user',
             content:
-              'Make all seven calls now. Respond with the strict JSON object only.',
+              'Make all ten calls now. Respond with the strict JSON object only.',
           },
         ],
         signal: abortRef.current.signal,
@@ -102,7 +102,7 @@ export function DelegatePass({
             onResult(accumulated, parsed);
           } else {
             setError(
-              'The AI response could not be parsed into the seven decisions. Retry — this usually resolves on a second attempt.'
+              'The AI response could not be parsed into the ten decisions. Retry — this usually resolves on a second attempt.'
             );
           }
           setIsRunning(false);
@@ -126,7 +126,7 @@ export function DelegatePass({
         <div>
           <h1 className="text-xl font-bold text-gray-100">Pass 2 — Delegate</h1>
           <p className="mt-1 text-sm text-gray-400">
-            The AI gets the same brief and sheet and makes all seven calls
+            The AI gets the same brief and sheet and makes all ten calls
             itself — you don&apos;t co-work the content. Your job here is
             judgment: annotate each answer before moving on.
           </p>
@@ -257,7 +257,7 @@ export function DelegatePass({
         <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
           <div className="text-sm text-gray-400">
             {allAnnotated
-              ? 'All seven annotated. In Pass 3 you argue each decision out with the AI and land the final calls.'
+              ? 'All ten annotated. In Pass 3 you argue each decision out with the AI and land the final calls.'
               : "Annotate every answer to continue — verdict plus how you know (no note needed for “I don't know”)."}
           </div>
           <button

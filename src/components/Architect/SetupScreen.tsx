@@ -6,6 +6,7 @@ import {
   CAMPUSMESH_NAME,
   CAMPUSMESH_SUMMARY,
   DECISIONS,
+  EXPERIENCE_RATIONALE,
   LEARNING_GOAL,
 } from '@/lib/architect/content';
 
@@ -70,7 +71,7 @@ export function SetupScreen({ onStart }: SetupScreenProps) {
 
       <div>
         <h2 className="text-lg font-semibold text-gray-200">
-          The seven decisions
+          The ten decisions
         </h2>
         <ul className="mt-3 grid gap-2 sm:grid-cols-2">
           {DECISIONS.map((d) => (
@@ -84,24 +85,27 @@ export function SetupScreen({ onStart }: SetupScreenProps) {
             </li>
           ))}
         </ul>
+        <p className="mt-3 rounded-lg border border-rose-800/40 bg-rose-900/15 p-3 text-sm text-rose-200/90">
+          {EXPERIENCE_RATIONALE}
+        </p>
       </div>
 
       <div className="rounded-lg border border-gray-800 bg-gray-900 p-4 text-sm text-gray-300 space-y-2">
-        <h2 className="font-semibold text-gray-200">How the session runs (~90 min)</h2>
+        <h2 className="font-semibold text-gray-200">How the session runs (~100 min)</h2>
         <ol className="list-decimal ml-5 space-y-1">
           <li>
-            <strong className="text-gray-100">Solo (25 min).</strong> You work the
+            <strong className="text-gray-100">Solo (30 min).</strong> You work the
             sheet alone — AI is off. Picking is fast; the justifying is the
             thinking. Unfinished is fine.
           </li>
           <li>
             <strong className="text-gray-100">Delegate (15 min).</strong> The AI
-            gets the same sheet and makes all seven calls itself. You annotate
-            each: agree, disagree, or it&apos;s glossing over something — and how
-            you know.
+            gets the same sheet and makes all ten calls itself. You annotate
+            each: agree, disagree, it&apos;s glossing over something — or say you
+            don&apos;t know — and how you know.
           </li>
           <li>
-            <strong className="text-gray-100">Partner (30 min).</strong> Decision
+            <strong className="text-gray-100">Partner (35 min).</strong> Decision
             by decision, you and the AI argue it out and land a final call, then
             close with a synthesis the AI drafts and you edit.
           </li>

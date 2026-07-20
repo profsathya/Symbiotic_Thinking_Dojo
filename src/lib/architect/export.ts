@@ -59,7 +59,10 @@ export function runToJson(run: ArchitectRun): string {
 export function parseRunJson(text: string): ArchitectRun | null {
   try {
     const parsed = JSON.parse(text);
-    if (parsed && parsed.version === 1 && parsed.solo && parsed.partner) {
+    // Accept both schema versions: version-1 files are seven-decision runs
+    // exported before the Experience theme existed. All rendering tolerates
+    // their missing E1-E3 keys, so the shared viewer keeps opening them.
+    if (parsed && (parsed.version === 1 || parsed.version === 2) && parsed.solo && parsed.partner) {
       return parsed as ArchitectRun;
     }
     return null;
@@ -82,7 +85,7 @@ export function runToMarkdown(run: ArchitectRun): string {
       : 'Decisions that flipped: not recorded (this run predates kept/changed declarations).'
   );
   lines.push(
-    `Decisions argued with the AI in the partner pass: ${argued.length > 0 ? argued.join(', ') : 'none'} (${argued.length}/7)`
+    `Decisions argued with the AI in the partner pass: ${argued.length > 0 ? argued.join(', ') : 'none'} (${argued.length}/${DECISIONS.length})`
   );
   lines.push('');
 

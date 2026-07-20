@@ -22,7 +22,7 @@ export const STAGE_ORDER: ArchitectStage[] = [
   'complete',
 ];
 
-export type DecisionTheme = 'Networking' | 'Design' | 'Engineering';
+export type DecisionTheme = 'Networking' | 'Design' | 'Experience' | 'Engineering';
 
 export interface DecisionOption {
   id: string;
@@ -30,7 +30,7 @@ export interface DecisionOption {
 }
 
 export interface DecisionDef {
-  id: string; // 'D1'..'D7'
+  id: string; // 'D1'..'D7' plus 'E1'..'E3' (Experience)
   theme: DecisionTheme;
   title: string;
   // Main question text
@@ -124,7 +124,10 @@ export function stampElapsedMs(stamp: StageStamp | undefined, nowMs: number): nu
 }
 
 export interface ArchitectRun {
-  version: 1;
+  // 2 = ten-decision sheet (Experience theme added). Version-1 runs were the
+  // seven-decision sheet; the shared viewer still renders their exports, but
+  // in-progress version-1 localStorage runs reset rather than migrate.
+  version: 1 | 2;
   stage: ArchitectStage;
   startedAt: string | null;
   completedAt: string | null;
@@ -163,7 +166,7 @@ export const EMPTY_PARTNER_DECISION: PartnerDecisionState = {
 };
 
 export const INITIAL_ARCHITECT_RUN: ArchitectRun = {
-  version: 1,
+  version: 2,
   stage: 'setup',
   startedAt: null,
   completedAt: null,
@@ -181,8 +184,8 @@ export const INITIAL_ARCHITECT_RUN: ArchitectRun = {
 
 // Soft time boxes per pass, in minutes (timer is visible but never blocks)
 export const PASS_MINUTES: Partial<Record<ArchitectStage, number>> = {
-  solo: 25,
+  solo: 30,
   delegate: 15,
-  partner: 30,
+  partner: 35,
   reflection: 15,
 };

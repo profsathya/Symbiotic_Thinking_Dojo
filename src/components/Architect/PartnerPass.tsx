@@ -200,7 +200,7 @@ export function PartnerPass({
             push on yours, and record a final call for each. You own the call.
           </p>
         </div>
-        <Timer stamp={stamp} minutes={PASS_MINUTES.partner ?? 30} />
+        <Timer stamp={stamp} minutes={PASS_MINUTES.partner ?? 35} />
       </div>
 
       {!apiKey && (
@@ -412,7 +412,7 @@ export function PartnerPass({
       {/* Synthesis */}
       <div className="rounded-lg border border-gray-800 bg-gray-900 p-4 space-y-3">
         <h2 className="font-semibold text-gray-200">
-          Synthesis — how the seven calls fit together
+          Synthesis — how the ten calls fit together
         </h2>
         <p className="text-sm text-gray-400">
           {allFinalsDone
