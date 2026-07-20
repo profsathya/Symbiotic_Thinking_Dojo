@@ -313,9 +313,10 @@ def get_key(key_id: str) -> Optional[Dict[str, Any]]:
 def reserve_budget(key_id: str, tokens: int) -> bool:
     """Atomically reserve tokens against a key's budget.
 
-    Adds the reservation to used_tokens_output only if the key is still under
-    budget, in a single conditional UPDATE — concurrent requests cannot all
-    slip past a stale read. Returns True if the reservation was made.
+    Adds the reservation to used_tokens_output only if the whole reservation
+    fits inside the remaining budget, in a single conditional UPDATE —
+    concurrent requests cannot all slip past a stale read, and usage can
+    never be pushed past total_budget_tokens. Returns True if reserved.
     """
     with get_db() as db:
         affected = db.execute_rowcount(
@@ -323,9 +324,9 @@ def reserve_budget(key_id: str, tokens: int) -> bool:
             UPDATE cti_keys
             SET used_tokens_output = used_tokens_output + {_PH}
             WHERE id = {_PH}
-              AND (used_tokens_input + used_tokens_output) < total_budget_tokens
+              AND (used_tokens_input + used_tokens_output + {_PH}) <= total_budget_tokens
             """,
-            (tokens, key_id),
+            (tokens, key_id, tokens),
         )
         return affected == 1
 
