@@ -18,11 +18,13 @@ import { ApiKeyModal } from '@/components/ApiKeyModal';
 import { TopicSelectionModal, TopicEditor, ProgressIndicator } from '@/components/PracticeDojo';
 import { TourOverlay, TourPrompt } from '@/components/Tour';
 import { StatsModal } from '@/components/StatsModal';
+import { TelemetryConsentBanner } from '@/components/TelemetryConsentBanner';
 import { BudgetIndicator } from '@/components/BudgetIndicator';
 import { ImportedSession } from '@/lib/export';
 import { ACTIVITY_ROUTES, getTopicById, getTopicBySlug } from '@/lib/practice-dojo/topics';
 import { PracticeDojoContext, Pathway } from '@/lib/practice-dojo/types';
 import { isCtiEnabled } from '@/lib/providers/types';
+import { urlHasKey, validKeyFromUrl, stripKeyFromUrl } from '@/lib/url-key';
 
 export default function Home() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
@@ -274,41 +276,38 @@ export default function Home() {
     }
   }, [practiceDojoState, restoreMessages]);
 
-  // Auto-fill CTI API key from URL (?key=...) and/or auto-start a Practice
-  // Dojo topic (?topic=slug). Both params are stripped from the visible URL
-  // immediately after read. Combined into one effect so a link that supplies
-  // both can skip the API-key modal — the URL-supplied key counts as "set"
-  // for this render, even though React state hasn't flushed yet.
+  // Auto-fill CTI API key from URL (#key=... preferred, ?key=... legacy)
+  // and/or auto-start a Practice Dojo topic (?topic=slug). Key and topic are
+  // stripped from the visible URL immediately after read. Combined into one
+  // effect so a link that supplies both can skip the API-key modal — the
+  // URL-supplied key counts as "set" for this render, even though React
+  // state hasn't flushed yet.
   useEffect(() => {
     if (!mounted || topicUrlProcessedRef.current) return;
 
-    const params = new URLSearchParams(window.location.search);
-    const topicSlug = params.get('topic');
-    const urlKey = params.get('key');
-    if (!topicSlug && !urlKey) return;
+    const topicSlug = new URLSearchParams(window.location.search).get('topic');
+    const hasUrlKey = urlHasKey();
+    if (!topicSlug && !hasUrlKey) return;
 
     // Mark as processed so we don't re-trigger on re-renders
     topicUrlProcessedRef.current = true;
 
-    // Strip both params from the visible URL without a reload, so they don't
-    // linger in browser history, screenshots, or shared screen-captures.
-    const url = new URL(window.location.href);
-    url.searchParams.delete('topic');
-    url.searchParams.delete('key');
-    window.history.replaceState({}, '', url.pathname);
+    const urlKey = validKeyFromUrl();
+
+    // Strip key (fragment and query) and topic from the visible URL without
+    // a reload, so they don't linger in browser history, screenshots, or
+    // shared screen-captures.
+    stripKeyFromUrl(['topic']);
 
     // Handle URL-supplied CTI key. We accept it only when CTI is enabled in
     // this deployment; otherwise we silently ignore (no useful provider to
-    // attach it to). Cheap sanity-check on length to avoid persisting noise.
+    // attach it to). validKeyFromUrl already length-checked it.
     let keyApplied = false;
     if (urlKey && isCtiEnabled()) {
-      const trimmed = urlKey.trim();
-      if (trimmed.length >= 8 && trimmed.length <= 256) {
-        setKeyForProvider('cti', trimmed);
-        setProvider('cti');
-        setKeyFromUrlNotice(true);
-        keyApplied = true;
-      }
+      setKeyForProvider('cti', urlKey);
+      setProvider('cti');
+      setKeyFromUrlNotice(true);
+      keyApplied = true;
     }
 
     if (!topicSlug) return;
@@ -599,6 +598,12 @@ export default function Home() {
           onPrev={tour.prevStep}
           onSkip={tour.skipTour}
         />
+      )}
+
+      {/* Telemetry opt-in ask — only when a stats endpoint exists and the
+          user has never answered. Nothing is sent until they say yes. */}
+      {mounted && stats.isEnabled && stats.consent === null && (
+        <TelemetryConsentBanner onDecision={stats.setConsent} />
       )}
     </div>
   );

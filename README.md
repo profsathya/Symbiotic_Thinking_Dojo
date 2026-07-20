@@ -256,7 +256,7 @@ We encourage you to audit the code:
 
 The **CTI backend** (in `backend/`) is a FastAPI service that proxies Anthropic's Claude API for institutional and classroom use. Each student gets a **CTI key** with a fixed token budget that a coordinator creates, distributes, monitors, and tops up — all from a single CLI tool.
 
-This section is for the **coordinator** running a deployment. End users (students) only need to receive a key and paste it into the Dojo's API Key settings — or click a `?key=` link.
+This section is for the **coordinator** running a deployment. End users (students) only need to receive a key and paste it into the Dojo's API Key settings — or click a `#key=` link. (See `docs/PRIVACY.md` for the full picture of what data lives where.)
 
 ### What CTI Keys Are
 
@@ -276,7 +276,7 @@ When a student's browser calls the backend, it sends the UUID in the `X-CTI-Key`
 ```
 create  ──▶  distribute  ──▶  student uses  ──▶  monitor  ──▶  top up / deactivate
    │              │                  │                │              │
-  CLI       email or ?key=     X-CTI-Key header     CLI list       CLI add-budget
+  CLI       email or #key=     X-CTI-Key header     CLI list       CLI add-budget
                                                       / usage         / deactivate
 ```
 
@@ -370,7 +370,7 @@ Run `python3 manage_keys.py --help` or `python3 manage_keys.py <command> --help`
 Once a key is distributed, a student has three ways to load it into the Dojo:
 
 1. **Manual paste** — Open API Key settings in the sidebar, select **CTI Program**, paste the UUID, save. The key persists in the browser's `localStorage` only.
-2. **`?key=` URL parameter** — A coordinator shares a link like `https://your-dojo-url/?key=<uuid>` (optionally combined with `?topic=<slug>` to land directly in a Practice Dojo activity). The Dojo writes the key into the CTI provider slot, switches the active provider to CTI, strips the URL parameter, and shows a dismissible banner so the student knows a key was saved.
+2. **Key link** — A coordinator shares a link like `https://your-dojo-url/#key=<uuid>` (optionally combined with `?topic=<slug>` to land directly in a Practice Dojo activity, e.g. `/?topic=architect#key=<uuid>`). The Dojo writes the key into the CTI provider slot, switches the active provider to CTI, strips the key from the URL, and shows a dismissible banner so the student knows a key was saved. Prefer the `#key=` fragment form — fragments never leave the browser, so the key can't land in server or proxy access logs. The older `?key=` query form is still accepted so existing links keep working.
 3. **Already saved** — Returning students keep their key in `localStorage` until they clear it.
 
 While the CTI provider is active, the chat header shows a **BudgetIndicator** that polls `GET /api/budget` and displays the student's remaining tokens out of their total. The component is in `src/components/BudgetIndicator.tsx`.
@@ -392,7 +392,7 @@ Every request from the browser to the backend carries the key in the `X-CTI-Key`
 | Chat proxy + token usage recording | `backend/router_chat.py` | Calls Anthropic, then `database.update_usage` |
 | Per-key rate limiting | `backend/rate_limiter.py` | In-memory sliding window — see operational notes |
 | Browser-side CTI provider | `src/lib/providers/cti-client.ts` | Sends `X-CTI-Key` on every request |
-| `?key=` URL handling | `src/app/page.tsx` | Auto-loads the key into the CTI provider slot |
+| `#key=` / `?key=` URL handling | `src/lib/url-key.ts` + `src/app/page.tsx` | Auto-loads the key into the CTI provider slot |
 | Budget UI | `src/components/BudgetIndicator.tsx` | Polls `GET /api/budget` |
 
 ### Operational Notes
@@ -426,7 +426,7 @@ The simplest workflow for a cohort:
 
 1. Prepare `students.csv` with one row per student (`email,name`).
 2. Run `./create_prod_keys.sh students.csv cohort-keys.csv`.
-3. Mail-merge `cohort-keys.csv` into per-student emails containing a `?key=<uuid>` link.
+3. Mail-merge `cohort-keys.csv` into per-student emails containing a `#key=<uuid>` link.
 4. Periodically run `python3 manage_keys.py list` (via the prod proxy) to watch usage; `export-usage` for record-keeping at the end of the cohort.
 
 ---

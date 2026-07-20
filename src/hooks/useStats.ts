@@ -1,10 +1,33 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { DIKWState, DIKWLevel } from '@/lib/types';
 
 // Configure the stats API URL - can be overridden via environment variable
 const STATS_API_URL = process.env.NEXT_PUBLIC_STATS_API_URL || '';
+
+// Telemetry is strictly opt-in: no event leaves the browser unless the user
+// has explicitly granted consent. Unset means "not asked yet" — treated the
+// same as denied for sending, but it's what tells the UI to show the ask.
+const CONSENT_STORAGE_KEY = 'dojo-telemetry-consent';
+
+export type TelemetryConsent = 'granted' | 'denied' | null;
+
+function readStoredConsent(): TelemetryConsent {
+  if (typeof window === 'undefined') return null;
+  try {
+    const value = localStorage.getItem(CONSENT_STORAGE_KEY);
+    return value === 'granted' || value === 'denied' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+// Read at call time (not captured at hook init) so every tracking function
+// respects a consent change made in another tab or earlier in the session.
+function hasConsent(): boolean {
+  return readStoredConsent() === 'granted';
+}
 
 // Convert DIKWLevel to numeric score
 function dikwLevelToScore(level: DIKWLevel): number {
@@ -94,17 +117,27 @@ export function useStats() {
   const [stats, setStats] = useState<AggregateStats | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isEnabled, setIsEnabled] = useState(false);
 
-  // Check if stats API is configured
-  useEffect(() => {
-    setIsEnabled(!!STATS_API_URL);
+  // Whether the stats API is configured at all (build-time constant)
+  const isEnabled = !!STATS_API_URL;
+
+  // Consent state mirrors localStorage; null = not asked yet. Lazy
+  // initializer so the stored answer is picked up without an effect.
+  const [consent, setConsentState] = useState<TelemetryConsent>(() => readStoredConsent());
+
+  const setConsent = useCallback((value: 'granted' | 'denied') => {
+    try {
+      localStorage.setItem(CONSENT_STORAGE_KEY, value);
+    } catch {
+      // Storage unavailable — the in-memory state still governs this session.
+    }
+    setConsentState(value);
   }, []);
 
   // Track an event
   const trackEvent = useCallback(async (event: TrackEvent) => {
-    if (!STATS_API_URL) {
-      // Stats API not configured, silently skip
+    if (!STATS_API_URL || !hasConsent()) {
+      // Stats API not configured or user hasn't opted in — send nothing.
       return;
     }
 
@@ -145,7 +178,7 @@ export function useStats() {
     partnersUsed: string[];
     construct: string;
   }) => {
-    if (!STATS_API_URL) return;
+    if (!STATS_API_URL || !hasConsent()) return;
 
     const payload = JSON.stringify({
       type: 'session_end',
@@ -224,6 +257,10 @@ export function useStats() {
     isLoading,
     error,
     isEnabled,
+
+    // Consent (null = not asked yet; nothing is sent unless 'granted')
+    consent,
+    setConsent,
 
     // Tracking functions
     trackSessionEnd,

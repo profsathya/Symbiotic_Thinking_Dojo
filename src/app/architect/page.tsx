@@ -13,6 +13,7 @@ import { ReflectionScreen } from '@/components/Architect/ReflectionScreen';
 import { CompleteScreen } from '@/components/Architect/CompleteScreen';
 import { StageReview } from '@/components/Architect/StageReview';
 import { ArchitectStage, STAGE_ORDER } from '@/lib/architect/types';
+import { urlHasKey, validKeyFromUrl, stripKeyFromUrl } from '@/lib/url-key';
 
 const STAGE_LABELS: Record<string, string> = {
   setup: 'Setup',
@@ -23,14 +24,13 @@ const STAGE_LABELS: Record<string, string> = {
   complete: 'Complete',
 };
 
-// A ?key= value from the URL that is worth persisting: CTI must be enabled
-// in this deployment and the key must pass the same length sanity-check the
-// main page uses. Pure read — safe to call from a lazy state initializer.
+// A key from the URL (#key= preferred, ?key= legacy) that is worth
+// persisting: CTI must be enabled in this deployment and the key must pass
+// the same length sanity-check the main page uses. Pure read — safe to call
+// from a lazy state initializer.
 function validCtiKeyFromUrl(): string | null {
-  const raw = new URLSearchParams(window.location.search).get('key');
-  if (!raw || !isCtiEnabled()) return null;
-  const trimmed = raw.trim();
-  return trimmed.length >= 8 && trimmed.length <= 256 ? trimmed : null;
+  if (!isCtiEnabled()) return null;
+  return validKeyFromUrl();
 }
 
 // Architect Studio — a three-pass architecture activity. Lives beside the
@@ -41,13 +41,14 @@ export default function ArchitectPage() {
   const { provider, apiKey, setKeyForProvider, setProvider } = useApiKey();
   const { run } = state;
 
-  // Accept ?key=<cti-key> on the direct URL, mirroring the main page: store
-  // it in the CTI provider slot, switch the active provider, and strip the
-  // param from the visible URL so it doesn't linger in history/screenshots.
-  // (Links shaped /?key=X&topic=architect are handled by the main page, which
-  // persists the key before redirecting here — this covers direct links.)
-  // The notice is derived lazily at first render (pure URL read); the effect
-  // below only updates external systems — localStorage, history, provider.
+  // Accept a key on the direct URL (#key= preferred, ?key= legacy),
+  // mirroring the main page: store it in the CTI provider slot, switch the
+  // active provider, and strip it from the visible URL so it doesn't linger
+  // in history/screenshots. (Links shaped /?topic=architect with a key are
+  // handled by the main page, which persists the key before redirecting
+  // here — this covers direct links.) The notice is derived lazily at first
+  // render (pure URL read); the effect below only updates external systems —
+  // localStorage, history, provider.
   const keyUrlProcessedRef = useRef(false);
   const [keyFromUrlNotice, setKeyFromUrlNotice] = useState(
     () => typeof window !== 'undefined' && validCtiKeyFromUrl() !== null
@@ -56,12 +57,10 @@ export default function ArchitectPage() {
     if (keyUrlProcessedRef.current) return;
     keyUrlProcessedRef.current = true;
 
-    if (!new URLSearchParams(window.location.search).has('key')) return;
+    if (!urlHasKey()) return;
     const validKey = validCtiKeyFromUrl();
 
-    const url = new URL(window.location.href);
-    url.searchParams.delete('key');
-    window.history.replaceState({}, '', url.pathname);
+    stripKeyFromUrl();
 
     if (validKey) {
       setKeyForProvider('cti', validKey);
