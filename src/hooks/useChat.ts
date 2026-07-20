@@ -478,7 +478,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, provi
 }
 
 // Helper to determine which persona is speaking based on content
-function determineSpeaker(content: string, activePartners: SparringPartner[]): Message['speaker'] {
+function determineSpeaker(content: string, _activePartners: SparringPartner[]): Message['speaker'] {
   const lowerContent = content.toLowerCase();
 
   // Check for explicit speaker markers

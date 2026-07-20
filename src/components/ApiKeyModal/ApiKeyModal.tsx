@@ -53,14 +53,19 @@ export function ApiKeyModal({
     }
   );
 
-  // Reset state when modal opens or provider changes
-  useEffect(() => {
-    if (isOpen) {
+  // Reset the form when the modal opens or the provider changes while open —
+  // during render (React's "adjust state when props change" pattern), not in
+  // an effect. Token is null while closed so every open triggers one reset.
+  const resetToken = isOpen ? currentProvider : null;
+  const [lastResetToken, setLastResetToken] = useState<string | null>(null);
+  if (resetToken !== lastResetToken) {
+    setLastResetToken(resetToken);
+    if (resetToken !== null) {
       setKeyInput('');
       setValidationResult(null);
       setShowKey(false);
     }
-  }, [isOpen, currentProvider]);
+  }
 
   // Handle escape key
   useEffect(() => {

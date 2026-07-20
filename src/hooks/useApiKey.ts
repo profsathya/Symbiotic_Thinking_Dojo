@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { AIProvider, isCommonsEnabled, isCtiEnabled } from '@/lib/providers/types';
 
 const STORAGE_KEY_PREFIX = 'dojo_api_key_';
@@ -30,55 +30,65 @@ interface UseApiKeyReturn {
   setKeyForProvider: (provider: AIProvider, key: string) => void;
 }
 
-export function useApiKey(): UseApiKeyReturn {
-  const [provider, setProviderState] = useState<AIProvider>('gemini');
-  const [keys, setKeys] = useState<Record<AIProvider, string | null>>({
+// Read the persisted provider preference. Resets to 'gemini' when the stored
+// provider is disabled via env var (prevents users from remaining on
+// Commons/CTI after they've been hidden). Runs in a lazy initializer — the
+// server (no window) just gets the default.
+function loadStoredProvider(): AIProvider {
+  if (typeof window === 'undefined') return 'gemini';
+  try {
+    const storedProvider = localStorage.getItem(PROVIDER_STORAGE_KEY) as AIProvider | null;
+    if (storedProvider && ALL_PROVIDERS.includes(storedProvider)) {
+      const isDisabled =
+        (storedProvider === 'commons' && !isCommonsEnabled()) ||
+        (storedProvider === 'cti' && !isCtiEnabled());
+      if (isDisabled) {
+        localStorage.setItem(PROVIDER_STORAGE_KEY, 'gemini');
+        return 'gemini';
+      }
+      return storedProvider;
+    }
+  } catch (e) {
+    console.warn('Failed to load provider preference from localStorage:', e);
+  }
+  return 'gemini';
+}
+
+// Read all persisted keys, migrating the legacy Gemini key first (the
+// migration is idempotent, so a double-invoked initializer is harmless).
+function loadStoredKeys(): Record<AIProvider, string | null> {
+  const empty: Record<AIProvider, string | null> = {
     gemini: null,
     groq: null,
     cti: null,
-    commons: null,
-  });
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  // Load from localStorage on mount
-  useEffect(() => {
-    try {
-      // Migrate legacy Gemini key if exists
-      const legacyKey = localStorage.getItem(LEGACY_GEMINI_KEY);
-      if (legacyKey) {
-        localStorage.setItem(`${STORAGE_KEY_PREFIX}gemini`, legacyKey);
-        localStorage.removeItem(LEGACY_GEMINI_KEY);
-      }
-
-      // Load provider preference
-      // Reset to 'gemini' if the stored provider is disabled via env var
-      // (prevents users from remaining on Commons/CTI after they've been hidden)
-      const storedProvider = localStorage.getItem(PROVIDER_STORAGE_KEY) as AIProvider | null;
-      if (storedProvider && ALL_PROVIDERS.includes(storedProvider)) {
-        const isDisabled =
-          (storedProvider === 'commons' && !isCommonsEnabled()) ||
-          (storedProvider === 'cti' && !isCtiEnabled());
-        if (isDisabled) {
-          localStorage.setItem(PROVIDER_STORAGE_KEY, 'gemini');
-          setProviderState('gemini');
-        } else {
-          setProviderState(storedProvider);
-        }
-      }
-
-      // Load keys for all providers
-      const loadedKeys: Record<AIProvider, string | null> = {
-        gemini: localStorage.getItem(`${STORAGE_KEY_PREFIX}gemini`),
-        groq: localStorage.getItem(`${STORAGE_KEY_PREFIX}groq`),
-        cti: localStorage.getItem(`${STORAGE_KEY_PREFIX}cti`),
-        commons: 'commons', // Commons doesn't need a key — always "set"
-      };
-      setKeys(loadedKeys);
-    } catch (e) {
-      console.warn('Failed to load API keys from localStorage:', e);
+    commons: 'commons', // Commons doesn't need a key — always "set"
+  };
+  if (typeof window === 'undefined') return { ...empty, commons: null };
+  try {
+    const legacyKey = localStorage.getItem(LEGACY_GEMINI_KEY);
+    if (legacyKey) {
+      localStorage.setItem(`${STORAGE_KEY_PREFIX}gemini`, legacyKey);
+      localStorage.removeItem(LEGACY_GEMINI_KEY);
     }
-    setIsLoaded(true);
-  }, []);
+
+    return {
+      gemini: localStorage.getItem(`${STORAGE_KEY_PREFIX}gemini`),
+      groq: localStorage.getItem(`${STORAGE_KEY_PREFIX}groq`),
+      cti: localStorage.getItem(`${STORAGE_KEY_PREFIX}cti`),
+      commons: 'commons',
+    };
+  } catch (e) {
+    console.warn('Failed to load API keys from localStorage:', e);
+    return { ...empty, commons: null };
+  }
+}
+
+export function useApiKey(): UseApiKeyReturn {
+  const [provider, setProviderState] = useState<AIProvider>(loadStoredProvider);
+  const [keys, setKeys] = useState<Record<AIProvider, string | null>>(loadStoredKeys);
+  // With lazy initializers the client is loaded from the first render; only
+  // the server (no localStorage) reports not-loaded.
+  const [isLoaded] = useState(() => typeof window !== 'undefined');
 
   // Set active provider
   const setProvider = useCallback((newProvider: AIProvider) => {

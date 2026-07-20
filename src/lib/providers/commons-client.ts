@@ -119,7 +119,7 @@ export async function testCommonsApiKey(): Promise<{
   error?: string;
 }> {
   try {
-    const { available, provider } = await checkCommonsAvailability();
+    const { available } = await checkCommonsAvailability();
     if (!available) {
       return {
         valid: false,

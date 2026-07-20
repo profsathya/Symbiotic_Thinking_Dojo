@@ -34,13 +34,16 @@ export function TopicSelectionModal({
   const hasResumeableSession = !practiceDojoState.isActive && practiceDojoState.topicId !== null && practiceDojoState.sessionStarted !== null;
   const resumeTopicId = practiceDojoState.topicId;
 
-  // Reset state when modal opens
-  useEffect(() => {
+  // Reset selection when the modal opens — during render (React's "adjust
+  // state when props change" pattern), not in an effect.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
     if (isOpen) {
       setSelectedTopic(null);
       setShowPathwaySelection(false);
     }
-  }, [isOpen]);
+  }
 
   // Handle escape key
   useEffect(() => {

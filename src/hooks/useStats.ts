@@ -6,16 +6,6 @@ import { DIKWState, DIKWLevel } from '@/lib/types';
 // Configure the stats API URL - can be overridden via environment variable
 const STATS_API_URL = process.env.NEXT_PUBLIC_STATS_API_URL || '';
 
-// Convert DIKWLevel to numeric score
-function dikwLevelToScore(level: DIKWLevel): number {
-  switch (level) {
-    case 'data': return 1;
-    case 'information': return 2;
-    case 'knowledge': return 3;
-    case 'wisdom': return 4;
-    default: return 0;
-  }
-}
 
 // Convert DIKWState to numeric scores (track how much time spent at each level)
 function dikwStateToScores(state: DIKWState): { data: number; information: number; knowledge: number; wisdom: number } {

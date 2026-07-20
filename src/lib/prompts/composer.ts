@@ -1,5 +1,5 @@
 import { DojoConfig, Construct, SparringPartner } from '../types';
-import { PracticeDojoContext, TopicConfig, PhaseConfig } from '../practice-dojo/types';
+import { PracticeDojoContext, TopicConfig } from '../practice-dojo/types';
 import { AIProvider } from '../providers/types';
 import { DEFAULT_CAREER_INTELLIGENCE_PROMPT } from './defaults/career-intelligence';
 

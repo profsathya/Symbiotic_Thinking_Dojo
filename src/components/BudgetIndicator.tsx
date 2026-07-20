@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { fetchCtiBudget, BudgetInfo } from '@/lib/providers';
 
 interface BudgetIndicatorProps {
@@ -10,19 +10,21 @@ interface BudgetIndicatorProps {
 export function BudgetIndicator({ apiKey }: BudgetIndicatorProps) {
   const [budget, setBudget] = useState<BudgetInfo | null>(null);
 
-  const refresh = useCallback(async () => {
-    try {
-      const data = await fetchCtiBudget(apiKey);
-      setBudget(data);
-    } catch {
-      // Silently fail — don't block the UI
-    }
-  }, [apiKey]);
-
-  // Fetch on mount and after each message (re-render triggers this)
+  // Fetch whenever the key changes; state lands in the async callback, and
+  // the cancelled flag drops stale responses from an unmounted/replaced key.
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    let cancelled = false;
+    fetchCtiBudget(apiKey)
+      .then((data) => {
+        if (!cancelled) setBudget(data);
+      })
+      .catch(() => {
+        // Silently fail — don't block the UI
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [apiKey]);
 
   if (!budget) return null;
 
