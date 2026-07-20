@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import {
   ARCHITECT_JOB,
   CAMPUSMESH_FLOWS,
@@ -128,6 +129,17 @@ export function SetupScreen({ onStart }: SetupScreenProps) {
           Start Pass 1 — Solo (AI off)
         </button>
       )}
+
+      {/* Instructor-facing; deliberately quiet — not part of the student flow. */}
+      <p className="text-center text-xs text-gray-600">
+        Teaching this?{' '}
+        <Link
+          href="/architect/plan"
+          className="underline hover:text-gray-400 transition-colors"
+        >
+          Lesson plan →
+        </Link>
+      </p>
     </div>
   );
 }
