@@ -46,7 +46,7 @@ export function SoloPass({ responses, stamp, onChange, onFinish }: SoloPassProps
             isn&apos;t.
           </p>
         </div>
-        <Timer stamp={stamp} minutes={PASS_MINUTES.solo ?? 25} />
+        <Timer stamp={stamp} minutes={PASS_MINUTES.solo ?? 30} />
       </div>
 
       {DECISIONS.map((decision) => {

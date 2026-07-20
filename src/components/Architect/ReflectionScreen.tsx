@@ -5,6 +5,7 @@ import {
   arguedDecisions,
   flippedDecisions,
   hasStanceData,
+  runDecisions,
 } from '@/lib/architect/export';
 import {
   ArchitectRun,
@@ -57,7 +58,7 @@ export function ReflectionScreen({ run, stamp, onChange, onFinish }: ReflectionS
         ) : (
           'you marked no decision as changed from your solo call'
         )}
-        , and you argued {argued.length} of 7 decisions with the AI in the
+        , and you argued {argued.length} of {runDecisions(run).length} decisions with the AI in the
         partner pass.
       </div>
 

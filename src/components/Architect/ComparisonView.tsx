@@ -1,11 +1,12 @@
 'use client';
 
-import { DECISIONS, REFLECTION_QUESTIONS } from '@/lib/architect/content';
+import { REFLECTION_QUESTIONS } from '@/lib/architect/content';
 import {
   arguedDecisions,
   decisionArgued,
   flippedDecisions,
   hasStanceData,
+  runDecisions,
   soloChoiceText,
 } from '@/lib/architect/export';
 import { ArchitectRun } from '@/lib/architect/types';
@@ -22,6 +23,7 @@ const VERDICT_LABELS: Record<string, { label: string; classes: string }> = {
 // side, with the "decisions that flipped" summary. Pure display — used for
 // both the completed run and the shared read-only view.
 export function ComparisonView({ run }: { run: ArchitectRun }) {
+  const sheet = runDecisions(run);
   const flips = flippedDecisions(run);
   const argued = arguedDecisions(run);
 
@@ -37,12 +39,12 @@ export function ComparisonView({ run }: { run: ArchitectRun }) {
               : 'You kept your solo call on every decision you answered.'}
         </p>
         <p className="mt-1 text-sm text-sky-100/70">
-          Argued with the AI on {argued.length} of {DECISIONS.length} decisions
+          Argued with the AI on {argued.length} of {sheet.length} decisions
           {argued.length > 0 ? ` (${argued.join(', ')})` : ''}.
         </p>
       </div>
 
-      {DECISIONS.map((decision) => {
+      {sheet.map((decision) => {
         const solo = run.solo[decision.id];
         const ai = run.delegate.answers[decision.id];
         const annotation = run.delegate.annotations[decision.id];

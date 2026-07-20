@@ -22,7 +22,7 @@ function loadRun(): ArchitectRun {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (parsed && parsed.version === 1) {
+      if (parsed && parsed.version === 2) {
         const run: ArchitectRun = { ...INITIAL_ARCHITECT_RUN, ...parsed };
         // Integrity guards: a fresh run must enter at setup. If the stored
         // stage is unknown, or claims progress without the corroborating

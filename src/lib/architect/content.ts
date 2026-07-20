@@ -6,7 +6,7 @@ import { DecisionDef } from './types';
 export const LEARNING_GOAL = {
   headline: 'Exercise your ability to partner with AI rather than depend on it.',
   body:
-    'True partnership requires differentiating where AI brings knowledge and speed, and where you bring Human Value. In this activity, you will make seven different types of decisions, about a CampusMesh app being built, by yourself, have AI make them, and then revise them in partnership — to clearly experience the difference between AI capability and Human Value.',
+    'True partnership requires differentiating where AI brings knowledge and speed, and where you bring Human Value. In this activity, you will make ten different types of decisions, about a CampusMesh app being built, by yourself, have AI make them, and then revise them in partnership — to clearly experience the difference between AI capability and Human Value.',
 };
 
 export const CAMPUSMESH_NAME = 'CampusMesh';
@@ -28,7 +28,13 @@ export const CAMPUSMESH_FLOWS = [
 ];
 
 export const ARCHITECT_JOB =
-  'You are the architect. An architecture is the set of decisions that make these flows real. You will make seven of them — two about networking, three about design, two about engineering practice. For each: pick an option (or write your own), justify it in 2–4 sentences, and note one thing you are unsure about.';
+  'You are the architect. An architecture is the set of decisions that make these flows real. You will make ten of them — two about networking, three about design, three about experience, two about engineering practice. For each: pick an option (or write your own), justify it in 2–4 sentences, and note one thing you are unsure about.';
+
+// Why the Experience theme exists — surfaced in the setup copy: these are the
+// decisions where human value is likeliest to shine. Students ARE this app's
+// users; their lived campus experience beats the AI's generic UX answers.
+export const EXPERIENCE_RATIONALE =
+  "The Experience decisions (E1\u2013E3) are where your human value is likeliest to shine \u2014 you ARE this app's users, and your lived campus experience beats the AI's generic UX answers.";
 
 export const DECISIONS: DecisionDef[] = [
   {
@@ -95,6 +101,42 @@ export const DECISIONS: DecisionDef[] = [
     options: [],
   },
   {
+    id: 'E1',
+    theme: 'Experience',
+    title: 'First open',
+    prompt:
+      'A new student opens the app and no sessions are posted nearby \u2014 what do they see, and why would they come back?',
+    options: [
+      { id: 'create-first', label: 'Create-first \u2014 an empty state that pushes posting the first session' },
+      { id: 'browse-first', label: 'Browse-first \u2014 seed course-based groups so there is always something to join' },
+      { id: 'ambient', label: 'Ambient feed \u2014 show recent campus activity even when nothing is live' },
+    ],
+  },
+  {
+    id: 'E2',
+    theme: 'Experience',
+    title: 'Presence comfort',
+    prompt:
+      "Who gets to see that you're 'live', and what control do you have over it?",
+    options: [
+      { id: 'default-live', label: 'Live-by-default to everyone in your courses, one-tap hide' },
+      { id: 'opt-in', label: 'Opt-in per session \u2014 invisible until you join' },
+      { id: 'familiar', label: "Visible only to people from sessions you've joined before" },
+    ],
+  },
+  {
+    id: 'E3',
+    theme: 'Experience',
+    title: 'The moment it fails',
+    prompt:
+      "Your message doesn't send in a dead zone \u2014 what does the app show, and what happens when signal returns?",
+    options: [
+      { id: 'optimistic', label: 'Optimistic send with a pending state, auto-retry and reorder on reconnect' },
+      { id: 'explicit', label: 'Explicit failure \u2014 message marked red, user taps retry' },
+      { id: 'queue', label: 'Silent queue with an offline banner, sends when back' },
+    ],
+  },
+  {
     id: 'D6',
     theme: 'Engineering',
     title: 'Testing',
@@ -136,7 +178,7 @@ ${CAMPUSMESH_SUMMARY}
 Core flows:
 ${flows}
 
-THE SEVEN ARCHITECTURE DECISIONS
+THE TEN ARCHITECTURE DECISIONS
 ${decisions}`;
 }
 

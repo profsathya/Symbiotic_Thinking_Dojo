@@ -5,6 +5,7 @@ import { DecisionDef } from '@/lib/architect/types';
 const THEME_COLORS: Record<string, string> = {
   Networking: 'text-sky-300 border-sky-800/60 bg-sky-900/20',
   Design: 'text-purple-300 border-purple-800/60 bg-purple-900/20',
+  Experience: 'text-rose-300 border-rose-800/60 bg-rose-900/20',
   Engineering: 'text-amber-300 border-amber-800/60 bg-amber-900/20',
 };
 
