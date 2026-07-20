@@ -129,6 +129,13 @@ class _DbWrapper:
     def execute(self, sql: str, params: tuple = ()) -> None:
         self._obj.execute(sql, params)
 
+    def execute_rowcount(self, sql: str, params: tuple = ()) -> int:
+        """Execute a statement and return the number of affected rows."""
+        if DATABASE_TYPE == "postgres":
+            self._obj.execute(sql, params)
+            return self._obj.rowcount
+        return self._obj.execute(sql, params).rowcount
+
     def fetchone(self) -> Optional[Dict[str, Any]]:
         if DATABASE_TYPE == "postgres":
             row = self._obj.fetchone()
@@ -303,18 +310,48 @@ def get_key(key_id: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def update_usage(key_id: str, input_tokens: int, output_tokens: int) -> None:
-    """Increment token usage counters and update last_used_at."""
+def reserve_budget(key_id: str, tokens: int) -> bool:
+    """Atomically reserve tokens against a key's budget.
+
+    Adds the reservation to used_tokens_output only if the whole reservation
+    fits inside the remaining budget, in a single conditional UPDATE —
+    concurrent requests cannot all slip past a stale read, and usage can
+    never be pushed past total_budget_tokens. Returns True if reserved.
+    """
+    with get_db() as db:
+        affected = db.execute_rowcount(
+            f"""
+            UPDATE cti_keys
+            SET used_tokens_output = used_tokens_output + {_PH}
+            WHERE id = {_PH}
+              AND (used_tokens_input + used_tokens_output + {_PH}) <= total_budget_tokens
+            """,
+            (tokens, key_id, tokens),
+        )
+        return affected == 1
+
+
+def release_budget(key_id: str, tokens: int) -> None:
+    """Return a reservation made by reserve_budget (e.g. after an API failure)."""
+    with get_db() as db:
+        db.execute(
+            f"UPDATE cti_keys SET used_tokens_output = used_tokens_output - {_PH} WHERE id = {_PH}",
+            (tokens, key_id),
+        )
+
+
+def settle_usage(key_id: str, input_tokens: int, output_tokens: int, reserved_tokens: int) -> None:
+    """Replace a reservation with actual token usage and update last_used_at."""
     with get_db() as db:
         db.execute(
             f"""
             UPDATE cti_keys
             SET used_tokens_input = used_tokens_input + {_PH},
-                used_tokens_output = used_tokens_output + {_PH},
+                used_tokens_output = used_tokens_output + {_PH} - {_PH},
                 last_used_at = {_PH}
             WHERE id = {_PH}
             """,
-            (input_tokens, output_tokens, datetime.utcnow().isoformat(), key_id),
+            (input_tokens, output_tokens, reserved_tokens, datetime.utcnow().isoformat(), key_id),
         )
 
 
