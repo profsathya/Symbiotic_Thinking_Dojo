@@ -123,9 +123,10 @@ export const INITIAL_BALANCE_STATE: BalanceState = {
 // Format: [BALANCE: +2] or [BALANCE: -1]
 export const BALANCE_MARKER_REGEX = /\[BALANCE:\s*([+-]?\d+)\]/;
 
-// Practice Dojo phase-advance marker - the model emits this at the end of a
-// turn to signal the current phase's STAY-UNTIL condition is met and the
-// engine should advance currentPhase by one. Stripped before display.
+// Practice Dojo phase-readiness marker - the model emits this at the end of
+// a turn to signal the current phase's goal looks met. The app highlights
+// the student's "Ready to move on?" button; the STUDENT decides whether to
+// advance. Stripped before display; never advances state by itself.
 export const NEXT_PHASE_MARKER_REGEX = /\[NEXT_PHASE\]/g;
 
 // DIKW Pyramid types

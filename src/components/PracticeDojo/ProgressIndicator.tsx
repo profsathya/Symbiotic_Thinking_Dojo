@@ -7,6 +7,12 @@ interface ProgressIndicatorProps {
   currentPhase: number;
   completedPhases: number[];
   onExit?: () => void;
+  // "Ready to move on?" — present when a next phase exists. The student owns
+  // phase transitions; this button opens the self-check dialog.
+  onRequestPhaseCheck?: () => void;
+  // The Sensei emitted [NEXT_PHASE] for the current phase — highlight the
+  // button as a readiness signal (it never advances anything by itself).
+  senseiReady?: boolean;
 }
 
 export function ProgressIndicator({
@@ -14,6 +20,8 @@ export function ProgressIndicator({
   currentPhase,
   completedPhases,
   onExit,
+  onRequestPhaseCheck,
+  senseiReady = false,
 }: ProgressIndicatorProps) {
   // Phase 0 is a welcome-owned placeholder (the engine starts on phase 1), so
   // the "real" steps are phases[1..]. Count and number against those, and frame
@@ -26,7 +34,13 @@ export function ProgressIndicator({
   const hasArrived =
     arrivalIndex >= 0 &&
     (currentPhase >= arrivalIndex || completedPhases.includes(arrivalIndex));
-  const progress = Math.min(100, (completedPhases.length / realTotal) * 100);
+  // Phase 0 is seeded into completedPhases at session start but excluded
+  // from realTotal — count only real steps so the bar starts at 0% and
+  // reaches 100% exactly at the end.
+  const progress = Math.min(
+    100,
+    (completedPhases.filter((p) => p >= 1).length / realTotal) * 100
+  );
 
   return (
     <div className="bg-gray-900/80 border-b border-gray-800 px-4 py-3">
@@ -68,6 +82,25 @@ export function ProgressIndicator({
             </p>
           )}
         </div>
+
+        {/* Ready to move on? — the student-owned phase gate */}
+        {onRequestPhaseCheck && (
+          <button
+            onClick={onRequestPhaseCheck}
+            title={
+              senseiReady
+                ? "The Sensei thinks this phase's goal is met — your call"
+                : 'Check yourself against the phase goal and decide'
+            }
+            className={`px-3 py-1.5 text-xs font-medium rounded transition-colors flex items-center gap-1.5 whitespace-nowrap ${
+              senseiReady
+                ? 'bg-emerald-800/70 text-emerald-100 hover:bg-emerald-700 ring-1 ring-emerald-500/50 animate-pulse'
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
+          >
+            {senseiReady ? 'Sensei says ready →' : 'Ready to move on?'}
+          </button>
+        )}
 
         {/* Exit Button */}
         {onExit && (

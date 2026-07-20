@@ -97,6 +97,10 @@ export interface PhaseConfig {
   contentGuidance: string;
   // Checkpoint evaluation criteria (if hasCheckpoint is true)
   checkpointCriteria?: string;
+  // Short student-facing goal, shown in the "Ready to move on?" self-check.
+  // Falls back to `purpose` when absent — add this when `purpose` reads as
+  // AI-facing prompt language rather than something a student should see.
+  studentGoal?: string;
   // Marks the phase that delivers the core payoff ("you've arrived"), so the
   // ProgressIndicator can signal arrival rather than an unfinished checklist.
   // Optional and backward-compatible: topics that omit it behave as before.
@@ -125,6 +129,21 @@ export interface TopicConfig {
   };
 }
 
+// One entry per completed "Ready to move on?" dialog. The STUDENT is the
+// judge of phase readiness; the Sensei's [NEXT_PHASE] emission is recorded
+// here as evidence (senseiSignaled) but never advances anything by itself.
+export interface PhaseSelfCheck {
+  phase: number;
+  // The goal text shown to the student at the time
+  goal: string;
+  // The student's own account of how they met (or didn't meet) the goal
+  response: string;
+  decision: 'continue' | 'advance';
+  // Whether the Sensei had signaled readiness when the student chose
+  senseiSignaled: boolean;
+  at: string;
+}
+
 // Practice Dojo local state (persisted to localStorage)
 export interface PracticeDojoState {
   // Whether session is currently active (vs just having resumable data)
@@ -146,6 +165,12 @@ export interface PracticeDojoState {
   // Checkpoint responses
   checkpointResponses: Record<string, string>;
   checkpointStatuses: Record<string, CheckpointStatus>;
+
+  // Self-checks recorded at the "Ready to move on?" gate (append-only)
+  phaseSelfChecks: PhaseSelfCheck[];
+  // Phases where the model emitted [NEXT_PHASE] — a readiness signal that
+  // highlights the student's button; the engine never advances on it
+  senseiSignaledPhases: number[];
 
   // Completed topics
   completedTopics: string[];
@@ -178,6 +203,8 @@ export const INITIAL_PRACTICE_DOJO_STATE: PracticeDojoState = {
   userChoices: {},
   checkpointResponses: {},
   checkpointStatuses: {},
+  phaseSelfChecks: [],
+  senseiSignaledPhases: [],
   completedTopics: [],
   savedMessages: null,
   lastUpdated: new Date().toISOString(),
@@ -192,6 +219,9 @@ export interface PracticeDojoContext {
   completedPhases: number[];
   userChoices: Record<string, string>;
   checkpointStatuses: Record<string, CheckpointStatus>;
+  // Self-checks so far — lets the Sensei open a new phase by addressing a
+  // gap the student admitted when they chose to move on
+  phaseSelfChecks: PhaseSelfCheck[];
   // Interaction count for progressive scaffolding
   interactionCount: number;
 }
