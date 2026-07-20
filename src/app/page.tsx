@@ -16,6 +16,7 @@ import { HelpButtons, HelpModal } from '@/components/HelpPanel';
 import { ExportButton } from '@/components/ExportButton';
 import { ApiKeyModal } from '@/components/ApiKeyModal';
 import { TopicSelectionModal, TopicEditor, ProgressIndicator } from '@/components/PracticeDojo';
+import { PhaseCheckDialog } from '@/components/PracticeDojo/PhaseCheckDialog';
 import { TourOverlay, TourPrompt } from '@/components/Tour';
 import { StatsModal } from '@/components/StatsModal';
 import { TelemetryConsentBanner } from '@/components/TelemetryConsentBanner';
@@ -74,7 +75,7 @@ export default function Home() {
 
   // Compute Practice Dojo context if in Practice Dojo mode
   // Note: We destructure specific fields to avoid re-computing when unrelated state changes (like savedMessages)
-  const { isActive, topicId, pathway, currentPhase: currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, interactionCount } = practiceDojoState.state;
+  const { isActive, topicId, pathway, currentPhase: currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, phaseSelfChecks, senseiSignaledPhases, interactionCount } = practiceDojoState.state;
 
   const practiceDojoContext = useMemo((): PracticeDojoContext | null => {
     // Only compute context when session is actively running
@@ -96,12 +97,13 @@ export default function Home() {
       completedPhases,
       userChoices,
       checkpointStatuses,
+      phaseSelfChecks,
       interactionCount,
     };
     // Note: We use topicConfig.getTopicWithCustomizations specifically to avoid
     // re-running when unrelated topicConfig properties change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, topicId, pathway, currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, interactionCount, topicConfig.getTopicWithCustomizations]);
+  }, [isActive, topicId, pathway, currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, phaseSelfChecks, interactionCount, topicConfig.getTopicWithCustomizations]);
 
   const {
     messages,
@@ -126,23 +128,20 @@ export default function Home() {
     provider,
     practiceDojoContext,
     onPhaseComplete: () => {
-      // The Practice Dojo model emits [NEXT_PHASE] at the end of a turn
-      // when the current phase's STAY-UNTIL condition is met. Advance
-      // unless we're already on the last phase of the active topic.
-      // CRITICAL: only act when a dojo session is actively running.
-      // exitSession() leaves topicId / currentPhase intact for resume,
-      // so a literal `[NEXT_PHASE]` appearing in an ordinary chat
-      // (e.g. the assistant explains the marker) would otherwise
-      // corrupt the saved dojo progress.
+      // The model emitted [NEXT_PHASE]: the Sensei's READINESS SIGNAL, not a
+      // transition. The student owns phase advancement via the "Ready to
+      // move on?" self-check — this only highlights that button.
+      // Only act when a dojo session is actively running: exitSession()
+      // leaves topicId / currentPhase intact for resume, so a literal
+      // marker appearing in an ordinary chat must not touch saved state.
       if (!isActive) return;
       if (!topicId) return;
-      const topic = topicConfig.getTopicWithCustomizations(topicId);
-      if (!topic) return;
-      if (currentPhaseIndex + 1 < topic.phases.length) {
-        practiceDojoState.advancePhase();
-      }
+      practiceDojoState.markSenseiSignaled(currentPhaseIndex);
     },
   });
+
+  // "Ready to move on?" self-check dialog (Practice Dojo phase gate)
+  const [phaseCheckOpen, setPhaseCheckOpen] = useState(false);
 
   // Handle hydration
   useEffect(() => {
@@ -466,6 +465,42 @@ export default function Home() {
             currentPhase={practiceDojoState.state.currentPhase}
             completedPhases={practiceDojoState.state.completedPhases}
             onExit={handleExitPracticeDojo}
+            senseiReady={senseiSignaledPhases.includes(currentPhaseIndex)}
+            onRequestPhaseCheck={
+              // Only when a next phase exists — final phases end with their
+              // own hand-off deliverables, not a transition.
+              currentPhaseIndex + 1 < currentTopic.phases.length
+                ? () => setPhaseCheckOpen(true)
+                : undefined
+            }
+          />
+        )}
+        {isInPracticeDojo && currentTopic && phaseCheckOpen && practiceDojoContext && (
+          <PhaseCheckDialog
+            key={currentPhaseIndex}
+            phaseTitle={practiceDojoContext.currentPhase.title}
+            goal={
+              practiceDojoContext.currentPhase.studentGoal ??
+              practiceDojoContext.currentPhase.purpose
+            }
+            senseiSignaled={senseiSignaledPhases.includes(currentPhaseIndex)}
+            onCancel={() => setPhaseCheckOpen(false)}
+            onDecision={(decision, response) => {
+              practiceDojoState.recordPhaseSelfCheck({
+                phase: currentPhaseIndex,
+                goal:
+                  practiceDojoContext.currentPhase.studentGoal ??
+                  practiceDojoContext.currentPhase.purpose,
+                response,
+                decision,
+                senseiSignaled: senseiSignaledPhases.includes(currentPhaseIndex),
+                at: new Date().toISOString(),
+              });
+              if (decision === 'advance') {
+                practiceDojoState.advancePhase();
+              }
+              setPhaseCheckOpen(false);
+            }}
           />
         )}
 

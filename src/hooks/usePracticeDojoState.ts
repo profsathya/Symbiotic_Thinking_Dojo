@@ -6,6 +6,7 @@ import {
   INITIAL_PRACTICE_DOJO_STATE,
   Pathway,
   CheckpointStatus,
+  PhaseSelfCheck,
   SerializedMessage,
 } from '@/lib/practice-dojo/types';
 
@@ -36,6 +37,11 @@ interface UsePracticeDojoStateReturn {
   // Checkpoint management
   setCheckpointResponse: (phase: number, response: string) => void;
   setCheckpointStatus: (phase: number, status: CheckpointStatus) => void;
+
+  // "Ready to move on?" self-check gate. The student judges readiness; the
+  // Sensei's [NEXT_PHASE] emission only marks a phase as signaled.
+  recordPhaseSelfCheck: (check: PhaseSelfCheck) => void;
+  markSenseiSignaled: (phase: number) => void;
 
   // User choices
   setUserChoice: (key: string, value: string) => void;
@@ -121,6 +127,8 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
       userChoices: {},
       checkpointResponses: {},
       checkpointStatuses: {},
+      phaseSelfChecks: [],
+      senseiSignaledPhases: [],
       savedMessages: null, // Clear any saved messages from previous session
       sessionStarted: new Date().toISOString(),
       lastUpdated: new Date().toISOString(),
@@ -221,6 +229,28 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     }));
   }, []);
 
+  // Record a completed "Ready to move on?" dialog (append-only trace)
+  const recordPhaseSelfCheck = useCallback((check: PhaseSelfCheck) => {
+    setState(current => ({
+      ...current,
+      phaseSelfChecks: [...current.phaseSelfChecks, check],
+      lastUpdated: new Date().toISOString(),
+    }));
+  }, []);
+
+  // The model emitted [NEXT_PHASE] for this phase — record the signal so the
+  // UI can highlight the button. Idempotent; never advances the phase.
+  const markSenseiSignaled = useCallback((phase: number) => {
+    setState(current => {
+      if (current.senseiSignaledPhases.includes(phase)) return current;
+      return {
+        ...current,
+        senseiSignaledPhases: [...current.senseiSignaledPhases, phase],
+        lastUpdated: new Date().toISOString(),
+      };
+    });
+  }, []);
+
   // Set a user choice
   const setUserChoice = useCallback((key: string, value: string) => {
     setState(current => ({
@@ -251,6 +281,8 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
         userChoices: {},
         checkpointResponses: {},
         checkpointStatuses: {},
+        phaseSelfChecks: [],
+        senseiSignaledPhases: [],
         sessionStarted: null,
         lastUpdated: new Date().toISOString(),
       };
@@ -299,6 +331,8 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     incrementInteractionCount,
     setCheckpointResponse,
     setCheckpointStatus,
+    recordPhaseSelfCheck,
+    markSenseiSignaled,
     setUserChoice,
     markTopicCompleted,
     isTopicCompleted,
