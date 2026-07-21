@@ -31,6 +31,17 @@ export function ChatInput({
 }: ChatInputProps) {
   const [value, setValue] = useState('');
   const [codeLang, setCodeLang] = useState<CodeLang>(() => toCodeLang(defaultCodeLanguage));
+
+  // Sync the composer language when the dojo's choice arrives/changes. The
+  // input is mounted before the student picks a language, so the initializer
+  // above can't see it. Adjust during render (not in an effect) when the
+  // incoming default changes; a manual selection still persists because the
+  // prop is unchanged on those renders.
+  const [lastDefault, setLastDefault] = useState(defaultCodeLanguage);
+  if (defaultCodeLanguage !== lastDefault) {
+    setLastDefault(defaultCodeLanguage);
+    setCodeLang(toCodeLang(defaultCodeLanguage));
+  }
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const wasLoadingRef = useRef(false);
   // Caret to apply after a code-block insertion re-renders the textarea.
