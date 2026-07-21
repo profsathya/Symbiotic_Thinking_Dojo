@@ -568,6 +568,14 @@ export default function Home() {
           onSendMessage={handleSendMessage}
           balance={balance}
           onVisualInteraction={handleVisualInteraction}
+          defaultCodeLanguage={
+            // In the Code Kata Dojo the student picks a language via cards
+            // (option ids java/python/javascript); use it as the composer's
+            // code-block default. Falls back to Java in the component.
+            isInPracticeDojo && topicId === 'intro-programming'
+              ? (['java', 'python', 'javascript'] as const).find((l) => userChoices[l])
+              : undefined
+          }
           headerContent={
             <div className="flex items-center gap-2">
               {provider === 'cti' && apiKey && (

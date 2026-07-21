@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { tokenize, tokenizeToLines, normalizeLanguage, Token } from '@/lib/highlight';
-import { splitMessageContent, filenameFor, languageLabel } from '@/lib/message-format';
+import { splitMessageContent, filenameFor, languageLabel, buildCodeInsertion } from '@/lib/message-format';
 
 // Concatenating token texts must always reproduce the input exactly — a
 // highlighter that drops or duplicates characters is worse than none.
@@ -118,6 +118,41 @@ describe('splitMessageContent', () => {
     const content = '```java\na\n```\nmid\n```python\nb\n```';
     const segments = splitMessageContent(content);
     expect(segments.map((s) => s.type)).toEqual(['code', 'text', 'code']);
+  });
+});
+
+describe('buildCodeInsertion (composer Code button)', () => {
+  it('wraps the whole message when there is no selection and no existing fence', () => {
+    const value = 'int x = 5;';
+    const r = buildCodeInsertion(value, 0, 0, 'java');
+    expect(r.text).toBe('```java\nint x = 5;\n```');
+    // The wrapped code is selected so the student can keep typing/replace.
+    expect(r.text.slice(r.caretStart, r.caretEnd)).toBe('int x = 5;');
+  });
+
+  it('wraps only the selection when one exists', () => {
+    const value = 'before CODE after';
+    const start = 'before '.length;
+    const end = start + 'CODE'.length;
+    const r = buildCodeInsertion(value, start, end, 'python');
+    expect(r.text).toBe('before ```python\nCODE\n``` after');
+    expect(r.text.slice(r.caretStart, r.caretEnd)).toBe('CODE');
+  });
+
+  it('inserts an empty scaffold at the caret when the value is empty', () => {
+    const r = buildCodeInsertion('', 0, 0, 'javascript');
+    expect(r.text).toBe('```javascript\n\n```');
+    // Caret sits on the empty line inside the fence, nothing selected.
+    expect(r.caretStart).toBe(r.caretEnd);
+    expect(r.caretStart).toBe('```javascript\n'.length);
+  });
+
+  it('inserts a scaffold (does not double-wrap) when a fence already exists', () => {
+    const value = '```java\nint a;\n```';
+    const caret = value.length;
+    const r = buildCodeInsertion(value, caret, caret, 'java');
+    expect(r.text.startsWith(value)).toBe(true);
+    expect(r.text.endsWith('```java\n\n```')).toBe(true);
   });
 });
 
