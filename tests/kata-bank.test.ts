@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { KATA_BANK, getKataById, renderKataBank, KataCategory } from '@/lib/practice-dojo/kata-bank';
 import { INTRODUCTORY_PROGRAMMING_TOPIC } from '@/lib/practice-dojo/topics/introductory-programming';
+import { createPracticeDojoWelcome } from '@/lib/prompts/composer';
 import { KATA_RESULT_MARKER_REGEX } from '@/lib/types';
 
 describe('kata bank invariants', () => {
@@ -66,11 +67,20 @@ describe('Code Kata Dojo topic', () => {
     expect(INTRODUCTORY_PROGRAMMING_TOPIC.systemInstructions).toContain('KATA_RESULT');
   });
 
-  it('offers Java, Python, and JavaScript', () => {
+  it('welcome message asks the language question with all three options', () => {
+    const welcome = createPracticeDojoWelcome(INTRODUCTORY_PROGRAMMING_TOPIC, 'guided');
+    expect(welcome).toContain('Code Kata Dojo');
+    expect(welcome).toContain('"java"');
+    expect(welcome).toContain('"python"');
+    expect(welcome).toContain('"javascript"');
+    // The generic "what drew you to this topic" opener must not appear
+    expect(welcome).not.toContain('What drew you to this topic');
+  });
+
+  it('setup phase treats the opening message as the language pick', () => {
     const setup = INTRODUCTORY_PROGRAMMING_TOPIC.phases[1].contentGuidance;
-    expect(setup).toContain('"java"');
-    expect(setup).toContain('"python"');
-    expect(setup).toContain('"javascript"');
+    expect(setup).toContain('WELCOME message already asked the language question');
+    expect(setup).toContain('Do NOT re-show the language cards');
   });
 
   it('final phase never signals a next phase', () => {
