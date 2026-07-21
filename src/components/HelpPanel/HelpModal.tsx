@@ -232,7 +232,7 @@ function InterfaceContent() {
           </div>
           <div className="bg-gray-800/50 rounded-lg p-3">
             <h4 className="font-medium text-blue-400 mb-1">Constructs (Learn / Learn+Solve / Learn+Solve+Build)</h4>
-            <p className="text-gray-400">Choose your engagement level. "Learn" for exploration, "Learn+Solve" for working through problems, "Learn+Solve+Build" for creating something real.</p>
+            <p className="text-gray-400">Choose your engagement level. &ldquo;Learn&rdquo; for exploration, &ldquo;Learn+Solve&rdquo; for working through problems, &ldquo;Learn+Solve+Build&rdquo; for creating something real.</p>
           </div>
           <div className="bg-gray-800/50 rounded-lg p-3">
             <h4 className="font-medium text-amber-400 mb-1">Sparring Partners</h4>
@@ -266,7 +266,7 @@ function InterfaceContent() {
         <div className="space-y-3">
           <div className="bg-gray-800/50 rounded-lg p-3">
             <h4 className="font-medium text-purple-400 mb-1">DIKW Pyramid</h4>
-            <p className="text-gray-400">Shows the depth of your current conversation. The marker shows where you are now; climb higher by asking "why" and "what if" questions.</p>
+            <p className="text-gray-400">Shows the depth of your current conversation. The marker shows where you are now; climb higher by asking &ldquo;why&rdquo; and &ldquo;what if&rdquo; questions.</p>
           </div>
           <div className="bg-gray-800/50 rounded-lg p-3">
             <h4 className="font-medium text-emerald-400 mb-1">UMPIRE Cycle</h4>
@@ -274,7 +274,7 @@ function InterfaceContent() {
           </div>
           <div className="bg-gray-800/50 rounded-lg p-3">
             <h4 className="font-medium text-amber-400 mb-1">Creating-Consuming Balance</h4>
-            <p className="text-gray-400">Visual indicator of your engagement style. If it tilts too far toward "consuming," the Sensei may gently prompt you to engage more actively.</p>
+            <p className="text-gray-400">Visual indicator of your engagement style. If it tilts too far toward &ldquo;consuming,&rdquo; the Sensei may gently prompt you to engage more actively.</p>
           </div>
         </div>
       </section>
@@ -291,7 +291,7 @@ function InterfaceContent() {
         <ul className="space-y-2">
           <li className="flex gap-2">
             <span className="text-emerald-500">1.</span>
-            <span>Try <strong>Guided Practice</strong> first if you're not sure what to work on.</span>
+            <span>Try <strong>Guided Practice</strong> first if you&apos;re not sure what to work on.</span>
           </li>
           <li className="flex gap-2">
             <span className="text-emerald-500">2.</span>

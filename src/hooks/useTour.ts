@@ -100,23 +100,25 @@ const DEFAULT_STATE: TourState = {
   currentStep: null,
 };
 
-export function useTour() {
-  const [state, setState] = useState<TourState>(DEFAULT_STATE);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  // Load state from localStorage on mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setState(parsed);
-      }
-    } catch (e) {
-      console.error('Failed to load tour state:', e);
+// Read persisted tour state synchronously; safe in a lazy initializer.
+function loadTourState(): TourState {
+  if (typeof window === 'undefined') return DEFAULT_STATE;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      return { ...DEFAULT_STATE, ...JSON.parse(saved) };
     }
-    setIsLoaded(true);
-  }, []);
+  } catch (e) {
+    console.error('Failed to load tour state:', e);
+  }
+  return DEFAULT_STATE;
+}
+
+export function useTour() {
+  const [state, setState] = useState<TourState>(loadTourState);
+  // With the lazy initializer, client state is loaded from the first render;
+  // only the server (no localStorage) reports not-loaded.
+  const [isLoaded] = useState(() => typeof window !== 'undefined');
 
   // Save state to localStorage when it changes
   useEffect(() => {

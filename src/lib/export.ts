@@ -86,7 +86,6 @@ export function exportSessionAsMarkdown(
   const constructInfo = CONSTRUCT_INFO[construct];
   const dikwInfo = DIKW_LEVELS.find(l => l.id === dikw.highWaterMark);
   const startTime = messages[0]?.timestamp || new Date();
-  const endTime = messages[messages.length - 1]?.timestamp || new Date();
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {

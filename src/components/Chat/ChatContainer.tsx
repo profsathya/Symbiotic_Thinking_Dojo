@@ -17,33 +17,6 @@ interface ChatContainerProps {
   onVisualInteraction?: (action: string, data: Record<string, string>) => void;
 }
 
-// Calculate background hue based on balance state
-function getBalanceHue(balance: BalanceState): string {
-  // Only show color after some history has accumulated
-  if (balance.history.length < 2) {
-    return 'bg-gray-950';
-  }
-
-  // Consuming (negative): red hue, increases with consecutive consuming
-  if (balance.score < 0) {
-    // Start subtle, intensify after 3+ consecutive consuming interactions
-    const intensity = balance.consecutiveConsuming >= 3
-      ? Math.min(0.15, 0.05 + (balance.consecutiveConsuming - 2) * 0.025)
-      : Math.min(0.05, Math.abs(balance.score) * 0.005);
-
-    if (intensity > 0.02) {
-      // Using rgba overlay effect
-      return `bg-gray-950 before:absolute before:inset-0 before:bg-red-600 before:pointer-events-none`;
-    }
-  }
-
-  // Creating (positive): green hue
-  if (balance.score > 2) {
-    return `bg-gray-950 before:absolute before:inset-0 before:bg-green-600 before:pointer-events-none`;
-  }
-
-  return 'bg-gray-950';
-}
 
 // Calculate opacity for the overlay
 function getOverlayOpacity(balance: BalanceState): number {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 interface PromptEditorProps {
   label: string;
@@ -20,10 +20,15 @@ export function PromptEditor({
   const [localValue, setLocalValue] = useState(value);
   const [isDirty, setIsDirty] = useState(false);
 
-  useEffect(() => {
+  // Re-sync the draft when the upstream value changes (e.g. after a reset) —
+  // done during render (React's "adjust state when props change" pattern)
+  // rather than in an effect.
+  const [lastValue, setLastValue] = useState(value);
+  if (value !== lastValue) {
+    setLastValue(value);
     setLocalValue(value);
     setIsDirty(false);
-  }, [value]);
+  }
 
   const handleChange = (newValue: string) => {
     setLocalValue(newValue);

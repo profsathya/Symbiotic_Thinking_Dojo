@@ -89,13 +89,10 @@ function saveState(state: PracticeDojoState): void {
 }
 
 export function usePracticeDojoState(): UsePracticeDojoStateReturn {
-  const [state, setState] = useState<PracticeDojoState>(INITIAL_PRACTICE_DOJO_STATE);
-
-  // Load from localStorage on mount
-  useEffect(() => {
-    const loaded = loadState();
-    setState(loaded);
-  }, []);
+  // Lazy initializer: reads localStorage synchronously on the client (the
+  // server, with no window, gets the initial state). Consumers gate their
+  // rendering on mount, so the server/client difference never reaches DOM.
+  const [state, setState] = useState<PracticeDojoState>(loadState);
 
   // Save to localStorage whenever state changes
   useEffect(() => {
