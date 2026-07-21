@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useStats, AggregateStats } from '@/hooks/useStats';
+import { useStats } from '@/hooks/useStats';
 
 interface StatsModalProps {
   isOpen: boolean;

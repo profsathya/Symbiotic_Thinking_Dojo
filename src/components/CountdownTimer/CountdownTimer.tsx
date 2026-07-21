@@ -14,11 +14,7 @@ export function CountdownTimer({ targetTime, onComplete }: CountdownTimerProps) 
   });
 
   useEffect(() => {
-    // Update immediately in case targetTime changed
-    const diff = Math.ceil((targetTime.getTime() - Date.now()) / 1000);
-    setSecondsRemaining(Math.max(0, diff));
-
-    const interval = setInterval(() => {
+    const update = () => {
       const newDiff = Math.ceil((targetTime.getTime() - Date.now()) / 1000);
       const newSeconds = Math.max(0, newDiff);
       setSecondsRemaining(newSeconds);
@@ -27,9 +23,17 @@ export function CountdownTimer({ targetTime, onComplete }: CountdownTimerProps) 
         clearInterval(interval);
         onComplete?.();
       }
-    }, 1000);
+    };
 
-    return () => clearInterval(interval);
+    const interval = setInterval(update, 1000);
+    // Immediate async tick so a changed targetTime is reflected right away
+    // (state updates stay in timer callbacks, never in the effect body).
+    const immediate = setTimeout(update, 0);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(immediate);
+    };
   }, [targetTime, onComplete]);
 
   if (secondsRemaining <= 0) {

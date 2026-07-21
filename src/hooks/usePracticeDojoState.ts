@@ -7,6 +7,7 @@ import {
   Pathway,
   CheckpointStatus,
   PhaseSelfCheck,
+  KataResult,
   SerializedMessage,
 } from '@/lib/practice-dojo/types';
 
@@ -42,6 +43,9 @@ interface UsePracticeDojoStateReturn {
   // Sensei's [NEXT_PHASE] emission only marks a phase as signaled.
   recordPhaseSelfCheck: (check: PhaseSelfCheck) => void;
   markSenseiSignaled: (phase: number) => void;
+
+  // Code Kata Dojo scorecard (persists across sessions and completion)
+  recordKataResult: (result: KataResult) => void;
 
   // User choices
   setUserChoice: (key: string, value: string) => void;
@@ -89,13 +93,10 @@ function saveState(state: PracticeDojoState): void {
 }
 
 export function usePracticeDojoState(): UsePracticeDojoStateReturn {
-  const [state, setState] = useState<PracticeDojoState>(INITIAL_PRACTICE_DOJO_STATE);
-
-  // Load from localStorage on mount
-  useEffect(() => {
-    const loaded = loadState();
-    setState(loaded);
-  }, []);
+  // Lazy initializer: reads localStorage synchronously on the client (the
+  // server, with no window, gets the initial state). Consumers gate their
+  // rendering on mount, so the server/client difference never reaches DOM.
+  const [state, setState] = useState<PracticeDojoState>(loadState);
 
   // Save to localStorage whenever state changes
   useEffect(() => {
@@ -159,6 +160,7 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     setState(current => ({
       ...INITIAL_PRACTICE_DOJO_STATE,
       completedTopics: current.completedTopics, // Keep completed topics
+      kataResults: current.kataResults, // Scorecard survives session resets
       lastUpdated: new Date().toISOString(),
     }));
   }, []);
@@ -238,6 +240,18 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     }));
   }, []);
 
+  // Append a kata cycle's outcome (reported via the [KATA_RESULT] marker).
+  // Deliberately NOT cleared by startSession/markTopicCompleted — the
+  // scorecard is the student's cross-session record of tier, solved katas,
+  // and prediction calibration.
+  const recordKataResult = useCallback((result: KataResult) => {
+    setState(current => ({
+      ...current,
+      kataResults: [...current.kataResults, result],
+      lastUpdated: new Date().toISOString(),
+    }));
+  }, []);
+
   // The model emitted [NEXT_PHASE] for this phase — record the signal so the
   // UI can highlight the button. Idempotent; never advances the phase.
   const markSenseiSignaled = useCallback((phase: number) => {
@@ -263,30 +277,29 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     }));
   }, []);
 
-  // Mark a topic as completed
+  // Mark a topic as completed. Always resets the current session — a student
+  // revisiting an already-completed topic must still get a clean close-out
+  // when they finish it again (the completedTopics list just stays as-is).
   const markTopicCompleted = useCallback((topicId: string) => {
-    setState(current => {
-      if (current.completedTopics.includes(topicId)) {
-        return current;
-      }
-      return {
-        ...current,
-        completedTopics: [...current.completedTopics, topicId],
-        // Also reset the current session
-        isActive: false,
-        topicId: null,
-        currentPhase: 0,
-        completedPhases: [],
-        pathway: null,
-        userChoices: {},
-        checkpointResponses: {},
-        checkpointStatuses: {},
-        phaseSelfChecks: [],
-        senseiSignaledPhases: [],
-        sessionStarted: null,
-        lastUpdated: new Date().toISOString(),
-      };
-    });
+    setState(current => ({
+      ...current,
+      completedTopics: current.completedTopics.includes(topicId)
+        ? current.completedTopics
+        : [...current.completedTopics, topicId],
+      // Also reset the current session
+      isActive: false,
+      topicId: null,
+      currentPhase: 0,
+      completedPhases: [],
+      pathway: null,
+      userChoices: {},
+      checkpointResponses: {},
+      checkpointStatuses: {},
+      phaseSelfChecks: [],
+      senseiSignaledPhases: [],
+      sessionStarted: null,
+      lastUpdated: new Date().toISOString(),
+    }));
   }, []);
 
   // Check if topic is completed
@@ -333,6 +346,7 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     setCheckpointStatus,
     recordPhaseSelfCheck,
     markSenseiSignaled,
+    recordKataResult,
     setUserChoice,
     markTopicCompleted,
     isTopicCompleted,

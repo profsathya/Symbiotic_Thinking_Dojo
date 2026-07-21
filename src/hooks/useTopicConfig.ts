@@ -218,7 +218,7 @@ export function useTopicConfig() {
       }
 
       return { success: true };
-    } catch (e) {
+    } catch {
       return { success: false, error: 'Invalid JSON format' };
     }
   }, []);

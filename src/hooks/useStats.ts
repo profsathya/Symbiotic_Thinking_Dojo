@@ -29,17 +29,6 @@ function hasConsent(): boolean {
   return readStoredConsent() === 'granted';
 }
 
-// Convert DIKWLevel to numeric score
-function dikwLevelToScore(level: DIKWLevel): number {
-  switch (level) {
-    case 'data': return 1;
-    case 'information': return 2;
-    case 'knowledge': return 3;
-    case 'wisdom': return 4;
-    default: return 0;
-  }
-}
-
 // Convert DIKWState to numeric scores (track how much time spent at each level)
 function dikwStateToScores(state: DIKWState): { data: number; information: number; knowledge: number; wisdom: number } {
   // Count occurrences of each level in history
