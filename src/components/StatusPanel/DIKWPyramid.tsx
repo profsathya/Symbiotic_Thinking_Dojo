@@ -11,8 +11,6 @@ export function DIKWPyramid({ dikwState }: DIKWPyramidProps) {
   const currentIndex = DIKW_ORDER[current];
   const highWaterIndex = DIKW_ORDER[highWaterMark];
 
-  // Reverse the levels so Wisdom is at top, Data at bottom
-  const reversedLevels = [...DIKW_LEVELS].reverse();
 
   return (
     <div className="space-y-2">
@@ -27,13 +25,6 @@ export function DIKWPyramid({ dikwState }: DIKWPyramidProps) {
             const isAtOrBelowHighWater = idx <= highWaterIndex;
             const isCurrent = idx === currentIndex;
 
-            // Gradient colors from bottom (data=gray) to top (wisdom=purple)
-            const levelColors = {
-              data: 'bg-gray-600',
-              information: 'bg-blue-600',
-              knowledge: 'bg-emerald-600',
-              wisdom: 'bg-purple-600',
-            };
 
             const activeColors = {
               data: 'bg-gray-500',

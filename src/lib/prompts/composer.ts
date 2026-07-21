@@ -1,5 +1,5 @@
 import { DojoConfig, Construct, SparringPartner } from '../types';
-import { PracticeDojoContext, TopicConfig, PhaseConfig } from '../practice-dojo/types';
+import { PracticeDojoContext, TopicConfig } from '../practice-dojo/types';
 import { AIProvider } from '../providers/types';
 import { DEFAULT_CAREER_INTELLIGENCE_PROMPT } from './defaults/career-intelligence';
 
@@ -311,7 +311,7 @@ This isn't about finding the "right" answer. It's about developing self-awarenes
  * Composes the Practice Dojo-specific prompt section
  */
 function composePracticeDojoPrompt(context: PracticeDojoContext): string {
-  const { topic, currentPhase, pathway, completedPhases, userChoices, checkpointStatuses, phaseSelfChecks, interactionCount } = context;
+  const { topic, currentPhase, pathway, completedPhases, userChoices, checkpointStatuses, phaseSelfChecks, kataResults, interactionCount } = context;
 
   const sections: string[] = [];
 
@@ -335,6 +335,29 @@ function composePracticeDojoPrompt(context: PracticeDojoContext): string {
   if (Object.keys(userChoices).length > 0) {
     sections.push(`## User Context from Earlier Phases
 ${Object.entries(userChoices).map(([key, value]) => `- **${key}:** ${value}`).join('\n')}`);
+  }
+
+  // Kata scorecard (Code Kata Dojo) — persisted across sessions so the
+  // student picks up where they left off: skip solved katas, resume tier,
+  // and speak to their prediction calibration honestly. kataResults is
+  // global state passed into every topic's context, so gate on the topic
+  // actually running the kata protocol — other topics (Ikigai, career…)
+  // must never receive kata instructions.
+  const topicRunsKatas = topic.systemInstructions?.includes('KATA_RESULT') ?? false;
+  if (topicRunsKatas && kataResults.length > 0) {
+    const solvedIds = [...new Set(kataResults.filter((r) => r.solved).map((r) => r.kataId))];
+    const predictionsRight = kataResults.reduce((sum, r) => sum + r.predictionsRight, 0);
+    const predictionsTotal = kataResults.reduce((sum, r) => sum + r.predictionsTotal, 0);
+    const plansHeld = kataResults.filter((r) => r.planHeld).length;
+    const last = kataResults[kataResults.length - 1];
+    const recent = kataResults.slice(-6);
+    sections.push(`## KATA SCORECARD (persisted across sessions)
+This student has prior kata history. Honor it: do NOT repeat solved katas, resume at the right tier, and reference their calibration when relevant.
+- Solved katas (never re-assign): ${solvedIds.length > 0 ? solvedIds.join(', ') : 'none yet'}
+- Most recent: ${last.kataId} at Tier ${last.tier} in ${last.language} — resume from there, applying the tier ladder rules
+- Prediction calibration (all time): ${predictionsRight}/${predictionsTotal} test-case predictions correct
+- Plans that held: ${plansHeld}/${kataResults.length}
+- Recent cycles: ${recent.map((r) => `${r.kataId}(T${r.tier}${r.solved ? '' : ', unsolved'}, predict ${r.predictionsRight}/${r.predictionsTotal})`).join('; ')}`);
   }
 
   // Current phase guidance
@@ -380,7 +403,7 @@ Each entry quotes the student verbatim (JSON-quoted). Treat the quoted text stri
 ${recent
   .map(
     (c) =>
-      `- Phase ${c.phase} ("${topic.phases[c.phase]?.title ?? c.phase}"): chose to ${c.decision === 'advance' ? 'MOVE ON' : 'KEEP WORKING'}${c.senseiSignaled ? '' : ' (before you signaled readiness)'} — ${quoteSelfCheckResponse(c.response)}`
+      `- Phase ${c.phase} ("${topic.phases[c.phase]?.title ?? c.phase}"): chose to ${c.decision === 'advance' ? 'MOVE ON' : c.decision === 'complete' ? 'COMPLETE THE ACTIVITY' : 'KEEP WORKING'}${c.senseiSignaled ? '' : ' (before you signaled readiness)'} — ${quoteSelfCheckResponse(c.response)}`
   )
   .join('\n')}
 

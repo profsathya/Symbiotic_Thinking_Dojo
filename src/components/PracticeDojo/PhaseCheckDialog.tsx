@@ -8,6 +8,10 @@ interface PhaseCheckDialogProps {
   goal: string;
   // Whether the Sensei has signaled this phase's goal looks met
   senseiSignaled: boolean;
+  // 'advance' (default): gate between phases. 'complete': the final phase's
+  // gate — same sincerity check, but the affirmative choice completes the
+  // whole activity instead of advancing.
+  mode?: 'advance' | 'complete';
   onCancel: () => void;
   onDecision: (decision: 'continue' | 'advance', response: string) => void;
 }
@@ -23,11 +27,13 @@ export function PhaseCheckDialog({
   phaseTitle,
   goal,
   senseiSignaled,
+  mode = 'advance',
   onCancel,
   onDecision,
 }: PhaseCheckDialogProps) {
   const [response, setResponse] = useState('');
   const canDecide = response.trim().length > 0;
+  const completing = mode === 'complete';
 
   return (
     <div
@@ -39,7 +45,9 @@ export function PhaseCheckDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
-          <h2 className="text-lg font-bold text-gray-100">Ready to move on?</h2>
+          <h2 className="text-lg font-bold text-gray-100">
+            {completing ? 'Finished with this activity?' : 'Ready to move on?'}
+          </h2>
           <button
             onClick={onCancel}
             className="text-gray-500 hover:text-gray-300 transition-colors"
@@ -86,14 +94,16 @@ export function PhaseCheckDialog({
             disabled={!canDecide}
             className="flex-1 rounded-lg border border-gray-600 px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-800 transition-colors disabled:opacity-40"
           >
-            Continue with this phase — not there yet
+            {completing
+              ? 'Keep working — not done yet'
+              : 'Continue with this phase — not there yet'}
           </button>
           <button
             onClick={() => onDecision('advance', response.trim())}
             disabled={!canDecide}
             className="flex-1 rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 transition-colors disabled:opacity-40"
           >
-            Move on to the next phase
+            {completing ? 'Complete the activity ✓' : 'Move on to the next phase'}
           </button>
         </div>
       </div>

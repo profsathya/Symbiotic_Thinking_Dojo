@@ -75,7 +75,7 @@ export default function Home() {
 
   // Compute Practice Dojo context if in Practice Dojo mode
   // Note: We destructure specific fields to avoid re-computing when unrelated state changes (like savedMessages)
-  const { isActive, topicId, pathway, currentPhase: currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, phaseSelfChecks, senseiSignaledPhases, interactionCount } = practiceDojoState.state;
+  const { isActive, topicId, pathway, currentPhase: currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, phaseSelfChecks, senseiSignaledPhases, kataResults, interactionCount } = practiceDojoState.state;
 
   const practiceDojoContext = useMemo((): PracticeDojoContext | null => {
     // Only compute context when session is actively running
@@ -98,12 +98,13 @@ export default function Home() {
       userChoices,
       checkpointStatuses,
       phaseSelfChecks,
+      kataResults,
       interactionCount,
     };
     // Note: We use topicConfig.getTopicWithCustomizations specifically to avoid
     // re-running when unrelated topicConfig properties change
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, topicId, pathway, currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, phaseSelfChecks, interactionCount, topicConfig.getTopicWithCustomizations]);
+  }, [isActive, topicId, pathway, currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, phaseSelfChecks, kataResults, interactionCount, topicConfig.getTopicWithCustomizations]);
 
   const {
     messages,
@@ -112,10 +113,8 @@ export default function Home() {
     quotaRetryTime,
     balance,
     dikw,
-    isGuidedPractice,
     sendMessage,
     resetChat,
-    startGuidedPractice,
     startPracticeDojo,
     importSession,
     getSerializedMessages,
@@ -138,10 +137,18 @@ export default function Home() {
       if (!topicId) return;
       practiceDojoState.markSenseiSignaled(currentPhaseIndex);
     },
+    onKataResult: (result) => {
+      // Code Kata Dojo scorecard entry. Same guard as above: only record
+      // while a dojo session is actively running.
+      if (!isActive || !topicId) return;
+      practiceDojoState.recordKataResult(result);
+    },
   });
 
   // "Ready to move on?" self-check dialog (Practice Dojo phase gate)
   const [phaseCheckOpen, setPhaseCheckOpen] = useState(false);
+  // Shown once after the final phase's gate completes an activity
+  const [completedTopicNotice, setCompletedTopicNotice] = useState(false);
 
   // Handle hydration
   useEffect(() => {
@@ -244,6 +251,9 @@ export default function Home() {
 
     // Track Practice Dojo started
     stats.trackPracticeDojoStarted(topicId, pathway);
+
+    // A new activity supersedes any lingering completion banner
+    setCompletedTopicNotice(false);
 
     // Start the Practice Dojo session
     practiceDojoState.startSession(topicId, pathway);
@@ -389,6 +399,32 @@ export default function Home() {
     }, 100);
   }, [practiceDojoState, resetChat, messages.length, getSerializedMessages, stats, dikw, activePartners, activeConstruct]);
 
+  // Complete the activity from the final phase's self-check gate. Mirrors
+  // handleExitPracticeDojo, but records the topic as completed and clears the
+  // session instead of parking it for resume.
+  const handleCompleteActivity = useCallback(() => {
+    if (!topicId) return;
+    isExitingPracticeDojoRef.current = true;
+
+    if (messages.length > 1) {
+      stats.trackSessionEnd({
+        messageCount: messages.length,
+        dikwState: dikw,
+        partnersUsed: activePartners,
+        construct: activeConstruct,
+      });
+    }
+
+    practiceDojoState.clearSavedMessages();
+    practiceDojoState.markTopicCompleted(topicId);
+    resetChat();
+    setCompletedTopicNotice(true);
+
+    setTimeout(() => {
+      isExitingPracticeDojoRef.current = false;
+    }, 100);
+  }, [topicId, practiceDojoState, resetChat, messages.length, stats, dikw, activePartners, activeConstruct]);
+
   // Wrap sendMessage to track interactions in Practice Dojo mode
   const handleSendMessage = useCallback((message: string) => {
     // Increment interaction count when in Practice Dojo mode
@@ -466,13 +502,8 @@ export default function Home() {
             completedPhases={practiceDojoState.state.completedPhases}
             onExit={handleExitPracticeDojo}
             senseiReady={senseiSignaledPhases.includes(currentPhaseIndex)}
-            onRequestPhaseCheck={
-              // Only when a next phase exists — final phases end with their
-              // own hand-off deliverables, not a transition.
-              currentPhaseIndex + 1 < currentTopic.phases.length
-                ? () => setPhaseCheckOpen(true)
-                : undefined
-            }
+            finalPhase={currentPhaseIndex + 1 >= currentTopic.phases.length}
+            onRequestPhaseCheck={() => setPhaseCheckOpen(true)}
           />
         )}
         {isInPracticeDojo && currentTopic && phaseCheckOpen && practiceDojoContext && (
@@ -484,24 +515,49 @@ export default function Home() {
               practiceDojoContext.currentPhase.purpose
             }
             senseiSignaled={senseiSignaledPhases.includes(currentPhaseIndex)}
+            mode={
+              currentPhaseIndex + 1 >= currentTopic.phases.length
+                ? 'complete'
+                : 'advance'
+            }
             onCancel={() => setPhaseCheckOpen(false)}
             onDecision={(decision, response) => {
+              const isFinalPhase =
+                currentPhaseIndex + 1 >= currentTopic.phases.length;
               practiceDojoState.recordPhaseSelfCheck({
                 phase: currentPhaseIndex,
                 goal:
                   practiceDojoContext.currentPhase.studentGoal ??
                   practiceDojoContext.currentPhase.purpose,
                 response,
-                decision,
+                decision: decision === 'advance' && isFinalPhase ? 'complete' : decision,
                 senseiSignaled: senseiSignaledPhases.includes(currentPhaseIndex),
                 at: new Date().toISOString(),
               });
               if (decision === 'advance') {
-                practiceDojoState.advancePhase();
+                if (isFinalPhase) {
+                  handleCompleteActivity();
+                } else {
+                  practiceDojoState.advancePhase();
+                }
               }
               setPhaseCheckOpen(false);
             }}
           />
+        )}
+        {completedTopicNotice && (
+          <div className="bg-emerald-900/30 border-b border-emerald-800/50 px-4 py-2 text-sm text-emerald-200 flex items-center justify-between gap-4">
+            <span>
+              🎉 Activity complete — nice work. It&apos;s now marked as done in
+              the Practice Dojo, and you can revisit it any time.
+            </span>
+            <button
+              onClick={() => setCompletedTopicNotice(false)}
+              className="text-emerald-300 hover:text-emerald-100 text-xs px-2 py-1 rounded border border-emerald-700/50 hover:bg-emerald-800/30"
+            >
+              Dismiss
+            </button>
+          </div>
         )}
 
         <ChatContainer

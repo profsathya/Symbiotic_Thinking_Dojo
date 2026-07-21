@@ -129,6 +129,12 @@ export const BALANCE_MARKER_REGEX = /\[BALANCE:\s*([+-]?\d+)\]/;
 // advance. Stripped before display; never advances state by itself.
 export const NEXT_PHASE_MARKER_REGEX = /\[NEXT_PHASE\]/g;
 
+// Code Kata Dojo result marker - the model emits one of these at the end of
+// a completed kata cycle so the app can persist the scorecard across
+// sessions. Format: [KATA_RESULT: {"kataId":"str-2a", ...}] on its own line.
+// Stripped before display.
+export const KATA_RESULT_MARKER_REGEX = /\[KATA_RESULT:\s*(\{[^\]]*\})\]/g;
+
 // DIKW Pyramid types
 // Data → Information → Knowledge → Wisdom
 export type DIKWLevel = 'data' | 'information' | 'knowledge' | 'wisdom';
