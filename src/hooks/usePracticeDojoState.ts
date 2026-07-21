@@ -7,6 +7,7 @@ import {
   Pathway,
   CheckpointStatus,
   PhaseSelfCheck,
+  KataResult,
   SerializedMessage,
 } from '@/lib/practice-dojo/types';
 
@@ -42,6 +43,9 @@ interface UsePracticeDojoStateReturn {
   // Sensei's [NEXT_PHASE] emission only marks a phase as signaled.
   recordPhaseSelfCheck: (check: PhaseSelfCheck) => void;
   markSenseiSignaled: (phase: number) => void;
+
+  // Code Kata Dojo scorecard (persists across sessions and completion)
+  recordKataResult: (result: KataResult) => void;
 
   // User choices
   setUserChoice: (key: string, value: string) => void;
@@ -156,6 +160,7 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     setState(current => ({
       ...INITIAL_PRACTICE_DOJO_STATE,
       completedTopics: current.completedTopics, // Keep completed topics
+      kataResults: current.kataResults, // Scorecard survives session resets
       lastUpdated: new Date().toISOString(),
     }));
   }, []);
@@ -231,6 +236,18 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     setState(current => ({
       ...current,
       phaseSelfChecks: [...current.phaseSelfChecks, check],
+      lastUpdated: new Date().toISOString(),
+    }));
+  }, []);
+
+  // Append a kata cycle's outcome (reported via the [KATA_RESULT] marker).
+  // Deliberately NOT cleared by startSession/markTopicCompleted — the
+  // scorecard is the student's cross-session record of tier, solved katas,
+  // and prediction calibration.
+  const recordKataResult = useCallback((result: KataResult) => {
+    setState(current => ({
+      ...current,
+      kataResults: [...current.kataResults, result],
       lastUpdated: new Date().toISOString(),
     }));
   }, []);
@@ -329,6 +346,7 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     setCheckpointStatus,
     recordPhaseSelfCheck,
     markSenseiSignaled,
+    recordKataResult,
     setUserChoice,
     markTopicCompleted,
     isTopicCompleted,

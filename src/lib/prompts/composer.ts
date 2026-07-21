@@ -311,7 +311,7 @@ This isn't about finding the "right" answer. It's about developing self-awarenes
  * Composes the Practice Dojo-specific prompt section
  */
 function composePracticeDojoPrompt(context: PracticeDojoContext): string {
-  const { topic, currentPhase, pathway, completedPhases, userChoices, checkpointStatuses, phaseSelfChecks, interactionCount } = context;
+  const { topic, currentPhase, pathway, completedPhases, userChoices, checkpointStatuses, phaseSelfChecks, kataResults, interactionCount } = context;
 
   const sections: string[] = [];
 
@@ -335,6 +335,25 @@ function composePracticeDojoPrompt(context: PracticeDojoContext): string {
   if (Object.keys(userChoices).length > 0) {
     sections.push(`## User Context from Earlier Phases
 ${Object.entries(userChoices).map(([key, value]) => `- **${key}:** ${value}`).join('\n')}`);
+  }
+
+  // Kata scorecard (Code Kata Dojo) — persisted across sessions so the
+  // student picks up where they left off: skip solved katas, resume tier,
+  // and speak to their prediction calibration honestly.
+  if (kataResults.length > 0) {
+    const solvedIds = [...new Set(kataResults.filter((r) => r.solved).map((r) => r.kataId))];
+    const predictionsRight = kataResults.reduce((sum, r) => sum + r.predictionsRight, 0);
+    const predictionsTotal = kataResults.reduce((sum, r) => sum + r.predictionsTotal, 0);
+    const plansHeld = kataResults.filter((r) => r.planHeld).length;
+    const last = kataResults[kataResults.length - 1];
+    const recent = kataResults.slice(-6);
+    sections.push(`## KATA SCORECARD (persisted across sessions)
+This student has prior kata history. Honor it: do NOT repeat solved katas, resume at the right tier, and reference their calibration when relevant.
+- Solved katas (never re-assign): ${solvedIds.length > 0 ? solvedIds.join(', ') : 'none yet'}
+- Most recent: ${last.kataId} at Tier ${last.tier} in ${last.language} — resume from there, applying the tier ladder rules
+- Prediction calibration (all time): ${predictionsRight}/${predictionsTotal} test-case predictions correct
+- Plans that held: ${plansHeld}/${kataResults.length}
+- Recent cycles: ${recent.map((r) => `${r.kataId}(T${r.tier}${r.solved ? '' : ', unsolved'}, predict ${r.predictionsRight}/${r.predictionsTotal})`).join('; ')}`);
   }
 
   // Current phase guidance

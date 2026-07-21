@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { composeSystemPrompt } from '@/lib/prompts/composer';
 import { DojoConfig } from '@/lib/types';
-import { PracticeDojoContext, TopicConfig, PhaseSelfCheck } from '@/lib/practice-dojo/types';
+import { PracticeDojoContext, TopicConfig, PhaseSelfCheck, KataResult } from '@/lib/practice-dojo/types';
 
 const config: DojoConfig = {
   dojoPrompt: 'DOJO-PROMPT',
@@ -30,7 +30,10 @@ const topic: TopicConfig = {
   ],
 };
 
-function makeContext(phaseSelfChecks: PhaseSelfCheck[]): PracticeDojoContext {
+function makeContext(
+  phaseSelfChecks: PhaseSelfCheck[],
+  kataResults: KataResult[] = []
+): PracticeDojoContext {
   return {
     topic,
     currentPhase: topic.phases[2],
@@ -39,13 +42,14 @@ function makeContext(phaseSelfChecks: PhaseSelfCheck[]): PracticeDojoContext {
     userChoices: {},
     checkpointStatuses: {},
     phaseSelfChecks,
+    kataResults,
     interactionCount: 6,
   };
 }
 
-function compose(phaseSelfChecks: PhaseSelfCheck[] = []): string {
+function compose(phaseSelfChecks: PhaseSelfCheck[] = [], kataResults: KataResult[] = []): string {
   return composeSystemPrompt(config, 'learn', [], {
-    practiceDojoContext: makeContext(phaseSelfChecks),
+    practiceDojoContext: makeContext(phaseSelfChecks, kataResults),
   });
 }
 
@@ -116,5 +120,40 @@ describe('self-check quoting (untrusted student input)', () => {
   it('notes when the student moved on before the sensei signaled', () => {
     const prompt = compose([{ ...base, senseiSignaled: false, response: 'early mover' }]);
     expect(prompt).toContain('before you signaled readiness');
+  });
+});
+
+describe('kata scorecard section', () => {
+  const result: KataResult = {
+    kataId: 'war-1a',
+    tier: 1,
+    language: 'java',
+    pattern: 'guard clause',
+    predictionsRight: 2,
+    predictionsTotal: 2,
+    planHeld: true,
+    solved: true,
+    at: '2026-07-20T00:00:00.000Z',
+  };
+
+  it('is omitted when there is no kata history', () => {
+    expect(compose()).not.toContain('KATA SCORECARD');
+  });
+
+  it('lists solved katas, calibration, and the most recent cycle', () => {
+    const prompt = compose([], [
+      result,
+      { ...result, kataId: 'str-2a', tier: 2, predictionsRight: 1, solved: false },
+    ]);
+    expect(prompt).toContain('KATA SCORECARD');
+    expect(prompt).toContain('war-1a');
+    expect(prompt).toContain('Most recent: str-2a at Tier 2 in java');
+    expect(prompt).toContain('3/4 test-case predictions correct');
+    expect(prompt).toContain('do NOT repeat solved katas');
+  });
+
+  it('does not list unsolved katas as solved', () => {
+    const prompt = compose([], [{ ...result, solved: false }]);
+    expect(prompt).toContain('Solved katas (never re-assign): none yet');
   });
 });
