@@ -15,6 +15,8 @@ interface ChatContainerProps {
   balance: BalanceState;
   headerContent?: ReactNode;
   onVisualInteraction?: (action: string, data: Record<string, string>) => void;
+  // Best-effort default language for the composer's code-block button.
+  defaultCodeLanguage?: string;
 }
 
 
@@ -46,6 +48,7 @@ export function ChatContainer({
   balance,
   headerContent,
   onVisualInteraction,
+  defaultCodeLanguage,
 }: ChatContainerProps) {
   const overlayOpacity = getOverlayOpacity(balance);
   const isConsuming = balance.score < 0 && balance.history.length >= 2;
@@ -92,7 +95,7 @@ export function ChatContainer({
 
       {/* Input */}
       <div className="relative z-10">
-        <ChatInput onSend={onSendMessage} isLoading={isLoading} />
+        <ChatInput onSend={onSendMessage} isLoading={isLoading} defaultCodeLanguage={defaultCodeLanguage} />
       </div>
     </div>
   );

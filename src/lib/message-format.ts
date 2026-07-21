@@ -68,6 +68,55 @@ export function filenameFor(language: CodeLanguage, rawLanguage: string): string
   }
 }
 
+export interface CodeInsertion {
+  text: string;
+  caretStart: number;
+  caretEnd: number;
+}
+
+/**
+ * Compute the result of the "insert code block" action on the composer's
+ * current value. Pure, so it's unit-testable without a DOM:
+ *  - a selection is wrapped in a fence (caret selects the wrapped code)
+ *  - otherwise, non-empty unfenced content is wrapped whole
+ *  - otherwise (empty, or already contains a fence) a scaffold is inserted
+ *    at the caret, with the caret left on the empty line inside it
+ */
+export function buildCodeInsertion(
+  value: string,
+  selStart: number,
+  selEnd: number,
+  lang: string
+): CodeInsertion {
+  const open = '```' + lang + '\n';
+  const close = '\n```';
+
+  if (selEnd > selStart) {
+    const before = value.slice(0, selStart);
+    const selected = value.slice(selStart, selEnd);
+    const after = value.slice(selEnd);
+    const caretStart = before.length + open.length;
+    return {
+      text: before + open + selected + close + after,
+      caretStart,
+      caretEnd: caretStart + selected.length,
+    };
+  }
+
+  if (value.trim().length > 0 && !value.includes('```')) {
+    return {
+      text: open + value + close,
+      caretStart: open.length,
+      caretEnd: open.length + value.length,
+    };
+  }
+
+  const before = value.slice(0, selStart);
+  const after = value.slice(selStart);
+  const caret = before.length + open.length;
+  return { text: before + open + close + after, caretStart: caret, caretEnd: caret };
+}
+
 /** The label shown on the IDE tab / header. */
 export function languageLabel(language: CodeLanguage, rawLanguage: string): string {
   switch (language) {
