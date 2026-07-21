@@ -499,6 +499,20 @@ export function createPracticeDojoWelcome(topic: TopicConfig, pathway: string): 
   const pathwayConfig = topic.pathways.find(p => p.id === pathway);
   const pathwayName = pathwayConfig?.title || pathway;
 
+  // Code Kata Dojo: the welcome owns the language question (Phase 1's first
+  // move), so the student's very first click lands directly in setup.
+  if (topic.topicId === 'intro-programming') {
+    return `**Sensei:** Welcome to the Code Kata Dojo! 🥋
+
+Short coding katas — small functions with visible test tables — themed to what you're actually into. We train the code AND the thinking habits behind it: connect, plan, predict, verify, name the pattern. Your tier and scorecard are saved, so every visit picks up where the last one ended.
+
+First choice:
+
+\`\`\`dojo-visual
+{"type": "selection-cards", "prompt": "Which language do you want to practice in?", "options": [{"id": "java", "icon": "☕", "title": "Java", "description": "The default here — and the CS-course standard"}, {"id": "python", "icon": "🐍", "title": "Python", "description": "Compact, readable syntax"}, {"id": "javascript", "icon": "🌐", "title": "JavaScript", "description": "The language of the web"}]}
+\`\`\``;
+  }
+
   // For Symbiotic Thinking topic, start with the thought experiment + initial reaction cards
   if (topic.topicId === 'symbiotic-thinking') {
     return `**Sensei:** Welcome to the Practice Dojo! 🥋
