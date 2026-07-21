@@ -2,6 +2,8 @@
 
 import { Message, Speaker } from '@/lib/types';
 import { parseDojoVisuals, DojoVisualRenderer } from '@/components/PracticeDojo';
+import { splitMessageContent } from '@/lib/message-format';
+import { CodeBlock } from './CodeBlock';
 
 // Hidden watermark message that gets copied when students copy-paste to other LLMs
 const THINKING_WATERMARK = `
@@ -107,11 +109,7 @@ export function MessageBubble({ message, onVisualInteraction }: MessageBubblePro
             // Render parsed content with visual components
             contentParts.map((part, index) => {
               if (part.type === 'text') {
-                return (
-                  <div key={index} className="whitespace-pre-wrap">
-                    {formatMessageContent(part.content)}
-                  </div>
-                );
+                return <div key={index}>{renderRichText(part.content)}</div>;
               } else {
                 return (
                   <DojoVisualRenderer
@@ -123,10 +121,8 @@ export function MessageBubble({ message, onVisualInteraction }: MessageBubblePro
               }
             })
           ) : (
-            // User messages - just format text
-            <div className="whitespace-pre-wrap">
-              {formatMessageContent(message.content)}
-            </div>
+            // User messages - format text (code fences still become IDE panes)
+            <div>{renderRichText(message.content)}</div>
           )}
           {/* Hidden watermark for assistant messages - copied when text is selected */}
           {!isUser && <HiddenWatermark />}
@@ -141,10 +137,34 @@ export function MessageBubble({ message, onVisualInteraction }: MessageBubblePro
   );
 }
 
-// Basic markdown-like formatting
-function formatMessageContent(content: string): React.ReactNode {
-  // Split by bold markers
-  const parts = content.split(/(\*\*[^*]+\*\*)/g);
+// Renders a text run: fenced code blocks become IDE-styled panes, everything
+// else is prose (with bold + inline code). Prose keeps its original line
+// breaks via `whitespace-pre-wrap`; code panes manage their own whitespace.
+function renderRichText(content: string): React.ReactNode {
+  const segments = splitMessageContent(content);
+
+  return segments.map((segment, index) => {
+    if (segment.type === 'code') {
+      return (
+        <CodeBlock
+          key={index}
+          code={segment.code}
+          language={segment.language}
+          rawLanguage={segment.rawLanguage}
+        />
+      );
+    }
+    return (
+      <div key={index} className="whitespace-pre-wrap">
+        {formatProse(segment.text)}
+      </div>
+    );
+  });
+}
+
+// Inline markdown-ish formatting: **bold** and `inline code`.
+function formatProse(content: string): React.ReactNode {
+  const parts = content.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
 
   return parts.map((part, index) => {
     if (part.startsWith('**') && part.endsWith('**')) {
@@ -152,6 +172,16 @@ function formatMessageContent(content: string): React.ReactNode {
         <strong key={index} className="font-semibold text-gray-100">
           {part.slice(2, -2)}
         </strong>
+      );
+    }
+    if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
+      return (
+        <code
+          key={index}
+          className="rounded bg-gray-800 px-1 py-0.5 font-mono text-[0.85em] text-emerald-200"
+        >
+          {part.slice(1, -1)}
+        </code>
       );
     }
     return part;
