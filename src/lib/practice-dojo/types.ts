@@ -146,6 +146,25 @@ export interface PhaseSelfCheck {
   at: string;
 }
 
+// One entry per completed kata cycle in the Code Kata Dojo, reported by the
+// model via the [KATA_RESULT: {...}] marker and persisted ACROSS sessions so
+// a student picks up where they left off (tier, solved katas, calibration).
+export interface KataResult {
+  kataId: string;
+  tier: number;
+  language: string;
+  // The reusable move this kata practices (from the bank's pattern tag)
+  pattern: string;
+  // Predict-then-run: how many of the student's test-case predictions about
+  // their OWN code were right — the objectively verifiable metacognitive score
+  predictionsRight: number;
+  predictionsTotal: number;
+  // Whether the final code matched the plan the student stated up front
+  planHeld: boolean;
+  solved: boolean;
+  at: string;
+}
+
 // Practice Dojo local state (persisted to localStorage)
 export interface PracticeDojoState {
   // Whether session is currently active (vs just having resumable data)
@@ -176,6 +195,11 @@ export interface PracticeDojoState {
 
   // Completed topics
   completedTopics: string[];
+
+  // Code Kata Dojo scorecard — persists across sessions AND across topic
+  // completion, so returning students resume their tier and calibration.
+  // Only ever reset by an explicit full reset.
+  kataResults: KataResult[];
 
   // Saved messages for resume (serialized)
   savedMessages: SerializedMessage[] | null;
@@ -208,6 +232,7 @@ export const INITIAL_PRACTICE_DOJO_STATE: PracticeDojoState = {
   phaseSelfChecks: [],
   senseiSignaledPhases: [],
   completedTopics: [],
+  kataResults: [],
   savedMessages: null,
   lastUpdated: new Date().toISOString(),
   sessionStarted: null,
@@ -224,6 +249,9 @@ export interface PracticeDojoContext {
   // Self-checks so far — lets the Sensei open a new phase by addressing a
   // gap the student admitted when they chose to move on
   phaseSelfChecks: PhaseSelfCheck[];
+  // Kata scorecard history (Code Kata Dojo) — lets the Sensei resume tier,
+  // skip solved katas, and speak to the student's prediction calibration
+  kataResults: KataResult[];
   // Interaction count for progressive scaffolding
   interactionCount: number;
 }
