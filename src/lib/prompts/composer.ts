@@ -339,8 +339,12 @@ ${Object.entries(userChoices).map(([key, value]) => `- **${key}:** ${value}`).jo
 
   // Kata scorecard (Code Kata Dojo) — persisted across sessions so the
   // student picks up where they left off: skip solved katas, resume tier,
-  // and speak to their prediction calibration honestly.
-  if (kataResults.length > 0) {
+  // and speak to their prediction calibration honestly. kataResults is
+  // global state passed into every topic's context, so gate on the topic
+  // actually running the kata protocol — other topics (Ikigai, career…)
+  // must never receive kata instructions.
+  const topicRunsKatas = topic.systemInstructions?.includes('KATA_RESULT') ?? false;
+  if (topicRunsKatas && kataResults.length > 0) {
     const solvedIds = [...new Set(kataResults.filter((r) => r.solved).map((r) => r.kataId))];
     const predictionsRight = kataResults.reduce((sum, r) => sum + r.predictionsRight, 0);
     const predictionsTotal = kataResults.reduce((sum, r) => sum + r.predictionsTotal, 0);

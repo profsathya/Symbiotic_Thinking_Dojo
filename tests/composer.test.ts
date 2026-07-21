@@ -136,12 +136,31 @@ describe('kata scorecard section', () => {
     at: '2026-07-20T00:00:00.000Z',
   };
 
+  // The scorecard section only belongs to topics that run the kata protocol
+  // (their instructions mention KATA_RESULT); build one that does.
+  const kataTopic: TopicConfig = {
+    ...topic,
+    systemInstructions: 'TOPIC-INSTRUCTIONS with the KATA_RESULT protocol',
+  };
+
+  function composeForKataTopic(kataResults: KataResult[]): string {
+    return composeSystemPrompt(config, 'learn', [], {
+      practiceDojoContext: { ...makeContext([], kataResults), topic: kataTopic },
+    });
+  }
+
   it('is omitted when there is no kata history', () => {
-    expect(compose()).not.toContain('KATA SCORECARD');
+    expect(composeForKataTopic([])).not.toContain('KATA SCORECARD');
+  });
+
+  it('is omitted for topics that do not run the kata protocol, even with history', () => {
+    // kataResults is global state — an Ikigai or career session must never
+    // receive kata instructions.
+    expect(compose([], [result])).not.toContain('KATA SCORECARD');
   });
 
   it('lists solved katas, calibration, and the most recent cycle', () => {
-    const prompt = compose([], [
+    const prompt = composeForKataTopic([
       result,
       { ...result, kataId: 'str-2a', tier: 2, predictionsRight: 1, solved: false },
     ]);
@@ -153,7 +172,7 @@ describe('kata scorecard section', () => {
   });
 
   it('does not list unsolved katas as solved', () => {
-    const prompt = compose([], [{ ...result, solved: false }]);
+    const prompt = composeForKataTopic([{ ...result, solved: false }]);
     expect(prompt).toContain('Solved katas (never re-assign): none yet');
   });
 });
