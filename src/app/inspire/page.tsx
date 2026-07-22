@@ -24,9 +24,6 @@ import { urlHasKey, validKeyFromUrl, stripKeyFromUrl } from '@/lib/url-key';
  * visitor's run never touches a real student's saved Dojo progress.
  */
 const LAST_PHASE = INSPIRE_DEMO_TOPIC.phases.length - 1;
-// The three doors — picking one (at the welcome, or "try another door" at the
-// close) restarts the inquiry from Phase 1.
-const DOOR_IDS = ['sharpen', 'steelman', 'home'];
 
 export default function InspirePage() {
   const { config } = useDojoConfig();
@@ -36,6 +33,10 @@ export default function InspirePage() {
   const [userChoices, setUserChoices] = useState<Record<string, string>>({});
   const [interactionCount, setInteractionCount] = useState(0);
   const [keyDraft, setKeyDraft] = useState('');
+  // The model emitted [NEXT_PHASE] — a readiness SIGNAL, not a transition.
+  // Per the repo convention the app never advances on it; instead we surface
+  // a Continue control and the visitor taps to move on.
+  const [senseiReady, setSenseiReady] = useState(false);
 
   // Client-only flag (idiomatic hydration hook): false on the server and on
   // the first client render, true afterwards — with no setState-in-effect and
@@ -88,10 +89,10 @@ export default function InspirePage() {
     provider,
     practiceDojoContext,
     onPhaseComplete: () => {
-      // Standalone demo: auto-advance on the model's [NEXT_PHASE] signal for a
-      // seamless flow (no side panel, no "Ready to move on?" button). Capped
-      // at the final phase.
-      setCurrentPhase((p) => Math.min(p + 1, LAST_PHASE));
+      // [NEXT_PHASE] is a readiness signal — surface the Continue control and
+      // let the visitor decide. The button render is gated on the phase, so
+      // it's harmless to set this on the final phase.
+      setSenseiReady(true);
     },
   });
 
@@ -107,34 +108,48 @@ export default function InspirePage() {
   const handleSend = useCallback(
     (message: string) => {
       setInteractionCount((c) => c + 1);
+      // A new turn re-derives readiness from the model's next reply.
+      setSenseiReady(false);
       sendMessage(message);
     },
     [sendMessage]
   );
 
-  const handleVisualInteraction = useCallback(
-    (action: string, data: Record<string, string>) => {
-      if (action === 'select' && data.optionTitle) {
-        if (data.optionId) {
-          setUserChoices((c) => ({ ...c, [data.optionId]: data.optionTitle }));
-          // Picking a door (first time, or "try another door" at the close)
-          // restarts the inquiry from Phase 1 so the whole arc runs again.
-          if (DOOR_IDS.includes(data.optionId)) {
-            setCurrentPhase(1);
-          }
-        }
-        handleSend(`I choose: ${data.optionTitle}`);
-      }
-    },
-    [handleSend]
-  );
-
+  // Full, clean restart: reset phase/choices and re-seed the door picker. Also
+  // used by "Try another door" so the fresh door pick is sent under Phase 1's
+  // routing prompt, never the stale closing-phase context.
   const handleRestart = useCallback(() => {
     setCurrentPhase(1);
     setUserChoices({});
     setInteractionCount(0);
+    setSenseiReady(false);
     startPracticeDojo(INSPIRE_DEMO_TOPIC, 'guided');
   }, [startPracticeDojo]);
+
+  const handleVisualInteraction = useCallback(
+    (action: string, data: Record<string, string>) => {
+      if (action === 'select' && data.optionTitle) {
+        // "Try another door" at the close = a clean slate (resets phase and
+        // re-shows the door picker), which also sidesteps sending the new
+        // door choice under the Phase-4 prompt.
+        if (data.optionId === 'another') {
+          handleRestart();
+          return;
+        }
+        if (data.optionId) {
+          setUserChoices((c) => ({ ...c, [data.optionId]: data.optionTitle }));
+        }
+        handleSend(`I choose: ${data.optionTitle}`);
+      }
+    },
+    [handleSend, handleRestart]
+  );
+
+  // Student-owned advance: the visitor taps Continue after the Sensei signals.
+  const handleContinue = useCallback(() => {
+    setSenseiReady(false);
+    setCurrentPhase((p) => Math.min(p + 1, LAST_PHASE));
+  }, []);
 
   const handleKeySubmit = () => {
     const key = keyDraft.trim();
@@ -231,6 +246,22 @@ export default function InspirePage() {
         isLoading={isLoading}
         onVisualInteraction={handleVisualInteraction}
       />
+
+      {/* Student-owned advance: appears only when the Sensei has signalled the
+          step's move looks done. The visitor decides when to move on. */}
+      {senseiReady && currentPhase < LAST_PHASE && (
+        <div className="shrink-0 border-t border-emerald-800/40 bg-emerald-900/15 px-4 py-2">
+          <button
+            onClick={handleContinue}
+            className="w-full rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-600"
+          >
+            Continue →
+          </button>
+          <p className="mt-1 text-center text-[11px] text-gray-500">
+            Take your time — keep replying above, or move on when you&apos;re ready.
+          </p>
+        </div>
+      )}
 
       {/* Composer, pinned to the bottom above the home indicator */}
       <div className="shrink-0" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
