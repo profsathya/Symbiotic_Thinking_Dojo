@@ -95,7 +95,7 @@ export function MessageBubble({ message, onVisualInteraction }: MessageBubblePro
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[80%] rounded-lg p-4 border ${style.bg} ${style.border}`}
+        className={`max-w-[92%] sm:max-w-[80%] rounded-lg p-4 border ${style.bg} ${style.border}`}
       >
         {/* Speaker label */}
         <div className="flex items-center gap-2 mb-2">
