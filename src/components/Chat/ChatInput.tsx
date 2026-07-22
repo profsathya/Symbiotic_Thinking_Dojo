@@ -133,8 +133,10 @@ export function ChatInput({
         </div>
       )}
 
-      <div className="flex gap-3 items-end">
-        <div className="flex-1 relative">
+      {minimal ? (
+        // Minimal/mobile: a full-width textbox with the Send as a compact icon
+        // button inside its right edge — symmetric gaps, edge-to-edge input.
+        <div className="relative">
           <textarea
             ref={textareaRef}
             value={value}
@@ -143,32 +145,64 @@ export function ChatInput({
             placeholder={placeholder}
             disabled={isLoading}
             rows={1}
-            className={`w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 ${
+            className={`w-full py-3 pl-4 pr-14 bg-gray-800 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 ${
               isMonospace ? 'font-mono text-[13px]' : ''
             }`}
           />
-        </div>
-        <button
-          onClick={handleSubmit}
-          disabled={!value.trim() || isLoading}
-          className="px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
-        >
-          <span>Send</span>
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+          <button
+            onClick={handleSubmit}
+            disabled={!value.trim() || isLoading}
+            aria-label="Send"
+            className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-700"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+              />
+            </svg>
+          </button>
+        </div>
+      ) : (
+        <div className="flex gap-3 items-end">
+          <div className="flex-1 relative">
+            <textarea
+              ref={textareaRef}
+              value={value}
+              onChange={e => setValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+              disabled={isLoading}
+              rows={1}
+              className={`w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-gray-200 placeholder-gray-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 ${
+                isMonospace ? 'font-mono text-[13px]' : ''
+              }`}
             />
-          </svg>
-        </button>
-      </div>
+          </div>
+          <button
+            onClick={handleSubmit}
+            disabled={!value.trim() || isLoading}
+            className="px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
+          >
+            <span>Send</span>
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+              />
+            </svg>
+          </button>
+        </div>
+      )}
       <p className="mt-2 text-xs text-gray-500">
         {minimal ? (
           'Press Enter to send, Shift+Enter for a new line'
