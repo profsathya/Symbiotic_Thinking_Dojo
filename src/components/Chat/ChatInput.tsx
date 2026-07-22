@@ -21,6 +21,9 @@ interface ChatInputProps {
   // Best-effort default for the code-block language (e.g. the dojo's chosen
   // language). The student can still switch it in the composer.
   defaultCodeLanguage?: string;
+  // Minimal mode for standalone/mobile surfaces (e.g. the INSPIRE demo):
+  // hides the code toolbar and the partner-mention hint for a clean chat.
+  minimal?: boolean;
 }
 
 export function ChatInput({
@@ -28,6 +31,7 @@ export function ChatInput({
   isLoading,
   placeholder = 'Share your challenge or question...',
   defaultCodeLanguage,
+  minimal = false,
 }: ChatInputProps) {
   const [value, setValue] = useState('');
   const [codeLang, setCodeLang] = useState<CodeLang>(() => toCodeLang(defaultCodeLanguage));
@@ -100,32 +104,34 @@ export function ChatInput({
 
   return (
     <div className="border-t border-gray-800 p-4">
-      {/* Composer toolbar */}
-      <div className="mb-2 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={handleInsertCode}
-          disabled={isLoading}
-          title="Wrap your text in a code block so it renders as an editor"
-          className="flex items-center gap-1.5 rounded-md border border-gray-700 bg-gray-800 px-2 py-1 text-xs font-medium text-gray-300 transition-colors hover:bg-gray-700 disabled:opacity-50"
-        >
-          <span className="font-mono text-gray-400">&lt;/&gt;</span>
-          Code
-        </button>
-        <select
-          value={codeLang}
-          onChange={(e) => setCodeLang(e.target.value as CodeLang)}
-          disabled={isLoading}
-          aria-label="Code block language"
-          className="rounded-md border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
-        >
-          {CODE_LANGS.map((lang) => (
-            <option key={lang.id} value={lang.id}>
-              {lang.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* Composer toolbar (hidden in minimal mode) */}
+      {!minimal && (
+        <div className="mb-2 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleInsertCode}
+            disabled={isLoading}
+            title="Wrap your text in a code block so it renders as an editor"
+            className="flex items-center gap-1.5 rounded-md border border-gray-700 bg-gray-800 px-2 py-1 text-xs font-medium text-gray-300 transition-colors hover:bg-gray-700 disabled:opacity-50"
+          >
+            <span className="font-mono text-gray-400">&lt;/&gt;</span>
+            Code
+          </button>
+          <select
+            value={codeLang}
+            onChange={(e) => setCodeLang(e.target.value as CodeLang)}
+            disabled={isLoading}
+            aria-label="Code block language"
+            className="rounded-md border border-gray-700 bg-gray-800 px-2 py-1 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+          >
+            {CODE_LANGS.map((lang) => (
+              <option key={lang.id} value={lang.id}>
+                {lang.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="flex gap-3 items-end">
         <div className="flex-1 relative">
@@ -164,7 +170,11 @@ export function ChatInput({
         </button>
       </div>
       <p className="mt-2 text-xs text-gray-500">
-        Press Enter to send, Shift+Enter for new line • <span className="font-mono">&lt;/&gt;</span> Code wraps your text as an editor block • Use @framer, @auditor, @connector, @challenger, @reflector, or @advocate to invoke partners
+        {minimal ? (
+          'Press Enter to send, Shift+Enter for a new line'
+        ) : (
+          <>Press Enter to send, Shift+Enter for new line • <span className="font-mono">&lt;/&gt;</span> Code wraps your text as an editor block • Use @framer, @auditor, @connector, @challenger, @reflector, or @advocate to invoke partners</>
+        )}
       </p>
     </div>
   );
