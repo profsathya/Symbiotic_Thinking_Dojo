@@ -8,7 +8,7 @@ import { useApiKey } from '@/hooks/useApiKey';
 import { MessageList } from '@/components/Chat/MessageList';
 import { ChatInput } from '@/components/Chat/ChatInput';
 import { INSPIRE_DEMO_TOPIC } from '@/lib/practice-dojo/topics';
-import { PracticeDojoContext, Pathway } from '@/lib/practice-dojo/types';
+import { PracticeDojoContext, Pathway, SerializedMessage } from '@/lib/practice-dojo/types';
 import { isCtiEnabled } from '@/lib/providers';
 import { urlHasKey, validKeyFromUrl, stripKeyFromUrl } from '@/lib/url-key';
 
@@ -18,25 +18,67 @@ import { urlHasKey, validKeyFromUrl, stripKeyFromUrl } from '@/lib/url-key';
  * status), this route is JUST the conversation: full-screen, safe-area
  * aware, seamless on a phone. Lives on its own page like Architect Studio.
  *
- * Phase progression is auto-advanced on the model's [NEXT_PHASE] signal so
- * the 2-minute demo flows with no side UI or buttons. Session state is local
- * to this page (not the persisted usePracticeDojoState), so a conference
- * visitor's run never touches a real student's saved Dojo progress.
+ * [NEXT_PHASE] is a readiness signal; the visitor taps Continue to advance.
+ * Session state persists under this page's OWN localStorage key (never the
+ * shared usePracticeDojoState), so it survives a refresh yet can't touch a
+ * real student's saved Dojo progress.
  */
 const LAST_PHASE = INSPIRE_DEMO_TOPIC.phases.length - 1;
+
+// Phases 0–1 (welcome + "open the inquiry") are simple warm-up, so run them
+// on the faster model for a snappy first impression; from Phase 2 ("the
+// push") on, switch to the deeper model where the coaching nuance matters.
+const FAST_UNTIL_PHASE = 1;
+
+// Isolated persistence — a dedicated key so it never collides with the main
+// Dojo's 'practiceDojo' state.
+const INSPIRE_STORAGE_KEY = 'inspireDemo';
+
+interface InspireSaved {
+  messages: SerializedMessage[];
+  currentPhase: number;
+  userChoices: Record<string, string>;
+  interactionCount: number;
+  senseiReady: boolean;
+}
+
+function loadInspire(): InspireSaved | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(INSPIRE_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as InspireSaved) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveInspire(state: InspireSaved): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(INSPIRE_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Storage full/unavailable — the in-memory session still works.
+  }
+}
 
 export default function InspirePage() {
   const { config } = useDojoConfig();
   const { apiKey, isKeySet, provider, setProvider, setKeyForProvider } = useApiKey();
 
-  const [currentPhase, setCurrentPhase] = useState(1); // engine starts on phase 1
-  const [userChoices, setUserChoices] = useState<Record<string, string>>({});
-  const [interactionCount, setInteractionCount] = useState(0);
+  // Snapshot of any saved session, read once so refresh restores where the
+  // visitor left off. Only affects the (mounted-gated) client render.
+  const [initialSaved] = useState<InspireSaved | null>(loadInspire);
+
+  const [currentPhase, setCurrentPhase] = useState(initialSaved?.currentPhase ?? 1);
+  const [userChoices, setUserChoices] = useState<Record<string, string>>(
+    initialSaved?.userChoices ?? {}
+  );
+  const [interactionCount, setInteractionCount] = useState(initialSaved?.interactionCount ?? 0);
   const [keyDraft, setKeyDraft] = useState('');
   // The model emitted [NEXT_PHASE] — a readiness SIGNAL, not a transition.
   // Per the repo convention the app never advances on it; instead we surface
   // a Continue control and the visitor taps to move on.
-  const [senseiReady, setSenseiReady] = useState(false);
+  const [senseiReady, setSenseiReady] = useState(initialSaved?.senseiReady ?? false);
 
   // Client-only flag (idiomatic hydration hook): false on the server and on
   // the first client render, true afterwards — with no setState-in-effect and
@@ -81,29 +123,51 @@ export default function InspirePage() {
     };
   }, [currentPhase, userChoices, interactionCount]);
 
-  const { messages, isLoading, error, sendMessage, startPracticeDojo } = useChat({
-    config,
-    activeConstruct: 'learn',
-    activePartners: [],
-    apiKey,
-    provider,
-    practiceDojoContext,
-    onPhaseComplete: () => {
-      // [NEXT_PHASE] is a readiness signal — surface the Continue control and
-      // let the visitor decide. The button render is gated on the phase, so
-      // it's harmless to set this on the final phase.
-      setSenseiReady(true);
-    },
-  });
+  const { messages, isLoading, error, sendMessage, startPracticeDojo, getSerializedMessages, restoreMessages } =
+    useChat({
+      config,
+      activeConstruct: 'learn',
+      activePartners: [],
+      apiKey,
+      provider,
+      practiceDojoContext,
+      // Faster model during the warm-up phases, deeper model once the real
+      // thinking (the "push") begins.
+      requestType: currentPhase <= FAST_UNTIL_PHASE ? 'extraction' : 'reasoning',
+      onPhaseComplete: () => {
+        // [NEXT_PHASE] is a readiness signal — surface the Continue control and
+        // let the visitor decide. The button render is gated on the phase, so
+        // it's harmless to set this on the final phase.
+        setSenseiReady(true);
+      },
+    });
 
-  // Seed the welcome (door picker) once on mount. This only sets local chat
-  // messages — no API call — so it's safe before a key is entered.
+  // On mount: restore a saved conversation if there is one, else seed the
+  // welcome (door picker). Both only set local chat messages — no API call —
+  // so it's safe before a key is entered.
   const startedRef = useRef(false);
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
-    startPracticeDojo(INSPIRE_DEMO_TOPIC, 'guided');
-  }, [startPracticeDojo]);
+    if (initialSaved?.messages?.length) {
+      restoreMessages(initialSaved.messages);
+    } else {
+      startPracticeDojo(INSPIRE_DEMO_TOPIC, 'guided');
+    }
+  }, [initialSaved, restoreMessages, startPracticeDojo]);
+
+  // Persist the session (isolated key) so a refresh resumes it. This only
+  // writes to localStorage — no setState — and runs after hydration.
+  useEffect(() => {
+    if (!mounted || !startedRef.current) return;
+    saveInspire({
+      messages: getSerializedMessages(),
+      currentPhase,
+      userChoices,
+      interactionCount,
+      senseiReady,
+    });
+  }, [mounted, messages, currentPhase, userChoices, interactionCount, senseiReady, getSerializedMessages]);
 
   const handleSend = useCallback(
     (message: string) => {

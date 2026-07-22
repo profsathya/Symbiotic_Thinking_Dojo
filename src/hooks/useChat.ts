@@ -40,6 +40,10 @@ interface UseChatOptions {
   // Called for each valid [KATA_RESULT: {...}] marker in a message (Code
   // Kata Dojo). The consumer persists the result to the scorecard.
   onKataResult?: (result: KataResult) => void;
+  // CTI only: model tier for the NEXT message ('reasoning' → Sonnet, default;
+  // 'extraction' → Haiku, faster). Read at send time so a consumer can vary
+  // it per message (e.g. faster early, deeper later).
+  requestType?: 'reasoning' | 'extraction';
 }
 
 interface UseChatReturn {
@@ -186,7 +190,7 @@ function stripKataResultMarkers(content: string): string {
   return content.replace(KATA_RESULT_MARKER_REGEX, '').trim();
 }
 
-export function useChat({ config, activeConstruct, activePartners, apiKey, provider, practiceDojoContext, onPhaseComplete, onKataResult }: UseChatOptions): UseChatReturn {
+export function useChat({ config, activeConstruct, activePartners, apiKey, provider, practiceDojoContext, onPhaseComplete, onKataResult, requestType }: UseChatOptions): UseChatReturn {
   const [isGuidedPractice, setIsGuidedPractice] = useState(false);
   const [isImportedSession, setIsImportedSession] = useState(false);
 
@@ -284,6 +288,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, provi
         modelName: getDefaultModel(provider),
         systemPrompt,
         messages: apiMessages,
+        requestType,
         signal: abortControllerRef.current.signal,
         onChunk: (chunk) => {
           accumulatedContent += chunk;
@@ -380,7 +385,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, provi
     } finally {
       setIsLoading(false);
     }
-  }, [messages, config, activeConstruct, activePartners, apiKey, provider, isLoading, isGuidedPractice, practiceDojoContext, consecutiveTextOnlyResponses, onPhaseComplete, onKataResult]);
+  }, [messages, config, activeConstruct, activePartners, apiKey, provider, isLoading, isGuidedPractice, practiceDojoContext, consecutiveTextOnlyResponses, onPhaseComplete, onKataResult, requestType]);
 
   const resetChat = useCallback(() => {
     // Cancel any existing request
