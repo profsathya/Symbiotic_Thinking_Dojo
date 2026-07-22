@@ -8,12 +8,14 @@ import { IKIGAI_TOPIC } from './ikigai';
 import { CAREER_KNOW_YOURSELF_TOPIC } from './career-know-yourself';
 import { CAREER_KNOW_MARKET_TOPIC } from './career-know-market';
 import { MAP_CURIOSITY_TOPIC } from './map-curiosity';
+import { INSPIRE_DEMO_TOPIC } from './inspire-demo';
 
 // All available topics
 export const ALL_TOPICS: TopicConfig[] = [
   SYMBIOTIC_THINKING_TOPIC,
   IKIGAI_TOPIC,
   MAP_CURIOSITY_TOPIC,
+  INSPIRE_DEMO_TOPIC,
   CST395_TOPIC,
   CST349_TOPIC,
   INTRODUCTORY_PROGRAMMING_TOPIC,
@@ -48,6 +50,7 @@ export const TOPIC_SLUGS: Record<string, string> = {
   'cst395-s2': 'cst395-s2-learn-solve',
   'cst395-s3': 'cst395-s3-problem-stake',
   'intro-programming': 'intro-programming',
+  'inspire': 'inspire-demo',
 };
 
 export function getTopicBySlug(slug: string): TopicConfig | undefined {
@@ -110,3 +113,4 @@ export { CST395_S3_PROBLEM_STAKE_TOPIC } from './cst395-s3-problem-stake';
 export { CAREER_KNOW_YOURSELF_TOPIC } from './career-know-yourself';
 export { CAREER_KNOW_MARKET_TOPIC } from './career-know-market';
 export { MAP_CURIOSITY_TOPIC } from './map-curiosity';
+export { INSPIRE_DEMO_TOPIC } from './inspire-demo';

@@ -513,6 +513,18 @@ First choice:
 \`\`\``;
   }
 
+  // INSPIRE demo: the welcome owns the three-door picker. The visitor's first
+  // click is the door id (sharpen / steelman / home), which Phase 1 routes on.
+  if (topic.topicId === 'inspire-demo') {
+    return `**Sensei:** Welcome. 🧭 Two minutes, and a small promise: I won't answer for you — I'll help you think.
+
+Pick a door.
+
+\`\`\`dojo-visual
+{"type": "selection-cards", "prompt": "What do you want to think through?", "options": [{"id": "sharpen", "icon": "\u{1F50E}", "title": "Sharpen your question", "description": "Turn the question you came with into one worth answering"}, {"id": "steelman", "icon": "⚖️", "title": "Steelman the other side", "description": "Take a belief you hold and argue the strongest case against it"}, {"id": "home", "icon": "\u{1F3DB}️", "title": "Bring an idea home", "description": "Turn an idea from the conference into a small experiment you could run"}]}
+\`\`\``;
+  }
+
   // For Symbiotic Thinking topic, start with the thought experiment + initial reaction cards
   if (topic.topicId === 'symbiotic-thinking') {
     return `**Sensei:** Welcome to the Practice Dojo! 🥋
