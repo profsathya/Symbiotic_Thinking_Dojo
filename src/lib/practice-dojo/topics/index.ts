@@ -65,6 +65,10 @@ export function getTopicBySlug(slug: string): TopicConfig | undefined {
 // everything — chat topics and activities alike.
 export const ACTIVITY_ROUTES: Record<string, string> = {
   'architect': '/architect',
+  // The INSPIRE demo has its own mobile-first chat surface at /inspire
+  // (the full three-column Dojo doesn't render well on a phone), so
+  // /?topic=inspire redirects there after any #key= is persisted.
+  'inspire': '/inspire',
 };
 
 // Get topics organized by category for display
