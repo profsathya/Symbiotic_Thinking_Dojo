@@ -39,7 +39,7 @@ const TOPIC_NAMES: Record<string, string> = {
 };
 
 export function StatsModal({ isOpen, onClose }: StatsModalProps) {
-  const { stats, isLoading, error, isEnabled, fetchStats } = useStats();
+  const { stats, isLoading, error, isEnabled, fetchStats, consent, setConsent } = useStats();
   const [days, setDays] = useState(30);
 
   useEffect(() => {
@@ -68,6 +68,30 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4">
+          {/* Your sharing choice — changeable any time; stored in this browser */}
+          {isEnabled && (
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-700 bg-gray-800/60 p-3">
+              <div className="text-sm text-gray-300">
+                Share your anonymous usage stats:{' '}
+                <span className={consent === 'granted' ? 'font-semibold text-emerald-400' : 'font-semibold text-gray-400'}>
+                  {consent === 'granted' ? 'On' : 'Off'}
+                </span>
+                <span className="ml-2 text-xs text-gray-500">
+                  (counts only — never conversations, names, or keys)
+                </span>
+              </div>
+              <button
+                onClick={() => setConsent(consent === 'granted' ? 'denied' : 'granted')}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  consent === 'granted'
+                    ? 'border border-gray-600 text-gray-300 hover:bg-gray-700'
+                    : 'bg-emerald-700 text-white hover:bg-emerald-600'
+                }`}
+              >
+                {consent === 'granted' ? 'Stop sharing' : 'Start sharing'}
+              </button>
+            </div>
+          )}
           {!isEnabled ? (
             <div className="text-center py-8">
               <p className="text-gray-400 mb-4">Stats tracking is not configured for this instance.</p>
