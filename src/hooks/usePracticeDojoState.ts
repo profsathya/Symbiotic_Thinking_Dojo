@@ -10,6 +10,7 @@ import {
   KataResult,
   SerializedMessage,
 } from '@/lib/practice-dojo/types';
+import { mergeKataResults } from '@/lib/practice-dojo/belt-record';
 
 const STORAGE_KEY = 'practiceDojo';
 
@@ -46,6 +47,8 @@ interface UsePracticeDojoStateReturn {
 
   // Code Kata Dojo scorecard (persists across sessions and completion)
   recordKataResult: (result: KataResult) => void;
+  // Cross-device restore: merge results from an imported Belt Record JSON
+  importKataResults: (imported: KataResult[]) => void;
 
   // User choices
   setUserChoice: (key: string, value: string) => void;
@@ -252,6 +255,16 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     }));
   }, []);
 
+  // Merge results from an imported Belt Record (deduped on kataId+at) —
+  // the cross-device restore path.
+  const importKataResults = useCallback((imported: KataResult[]) => {
+    setState(current => ({
+      ...current,
+      kataResults: mergeKataResults(current.kataResults, imported),
+      lastUpdated: new Date().toISOString(),
+    }));
+  }, []);
+
   // The model emitted [NEXT_PHASE] for this phase — record the signal so the
   // UI can highlight the button. Idempotent; never advances the phase.
   const markSenseiSignaled = useCallback((phase: number) => {
@@ -347,6 +360,7 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     recordPhaseSelfCheck,
     markSenseiSignaled,
     recordKataResult,
+    importKataResults,
     setUserChoice,
     markTopicCompleted,
     isTopicCompleted,
