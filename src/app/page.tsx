@@ -23,6 +23,7 @@ import { TelemetryConsentBanner } from '@/components/TelemetryConsentBanner';
 import { BudgetIndicator } from '@/components/BudgetIndicator';
 import { ImportedSession } from '@/lib/export';
 import { ACTIVITY_ROUTES, getTopicById, getTopicBySlug } from '@/lib/practice-dojo/topics';
+import { getKataById } from '@/lib/practice-dojo/kata-bank';
 import { PracticeDojoContext, Pathway } from '@/lib/practice-dojo/types';
 import { isCtiEnabled } from '@/lib/providers/types';
 import { urlHasKey, validKeyFromUrl, stripKeyFromUrl } from '@/lib/url-key';
@@ -142,9 +143,13 @@ export default function Home() {
       // while a dojo session is actively running.
       if (!isActive || !topicId) return;
       practiceDojoState.recordKataResult(result);
-      // Passing a belt test earns the belt — surface the award banner.
-      if (result.beltTest && result.solved && result.belt) {
-        setBeltAwardNotice(result.belt);
+      // Passing a belt test earns the belt — but verify against the BANK
+      // (like earnedBelts does), never the marker's own beltTest flag, so a
+      // stray flag on an ordinary kata can't trigger a celebration the belt
+      // strip won't back up.
+      const bankKata = getKataById(result.kataId);
+      if (result.solved && bankKata?.beltTest) {
+        setBeltAwardNotice(bankKata.belt);
       }
     },
   });

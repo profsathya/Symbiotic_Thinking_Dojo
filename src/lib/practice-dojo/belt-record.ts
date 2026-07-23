@@ -161,10 +161,24 @@ export function beltRecordToMarkdown(record: BeltRecord): string {
   return lines.join('\n');
 }
 
+// Imported strings are untrusted: they get persisted and later spliced into
+// the KATA SCORECARD section of the system prompt, so flatten whitespace
+// (no smuggled headings/newlines) and cap length. Legit exports are already
+// flat and short, so sanitizing is a no-op for them — and therefore does not
+// disturb their checksum.
+function cleanImportedString(raw: unknown, maxLen: number): string | undefined {
+  if (typeof raw !== 'string') return undefined;
+  const flattened = raw.replace(/\s+/g, ' ').trim();
+  if (flattened.length === 0) return undefined;
+  return flattened.length > maxLen ? flattened.slice(0, maxLen) : flattened;
+}
+
 /**
- * Parse an exported Belt Record JSON for import/restore. Returns the results
- * plus whether the embedded checksum still matches (a mismatch is surfaced
- * as a warning, never a hard block — the record may simply predate a change).
+ * Parse an exported Belt Record JSON for import/restore. All string fields
+ * are sanitized (flattened, capped; belt/language whitelisted) because they
+ * end up inside the system prompt. Returns the results plus whether the
+ * embedded checksum still matches (a mismatch is surfaced as a warning,
+ * never a hard block — the record may simply predate a change).
  */
 export function parseBeltRecordJson(
   text: string
@@ -174,27 +188,27 @@ export function parseBeltRecordJson(
     if (!Array.isArray(parsed.results)) return null;
     const results: KataResult[] = [];
     for (const raw of parsed.results) {
-      if (
-        typeof raw?.kataId === 'string' &&
-        typeof raw?.solved === 'boolean' &&
-        typeof raw?.at === 'string'
-      ) {
-        results.push({
-          kataId: raw.kataId,
-          tier: typeof raw.tier === 'number' ? raw.tier : 1,
-          language: typeof raw.language === 'string' ? raw.language : 'java',
-          pattern: typeof raw.pattern === 'string' ? raw.pattern : '',
-          predictionsRight: typeof raw.predictionsRight === 'number' ? raw.predictionsRight : 0,
-          predictionsTotal: typeof raw.predictionsTotal === 'number' ? raw.predictionsTotal : 0,
-          planHeld: raw.planHeld === true,
-          solved: raw.solved,
-          at: raw.at,
-          belt: typeof raw.belt === 'string' ? raw.belt : undefined,
-          beltTest: raw.beltTest === true ? true : undefined,
-          edgeFound: raw.edgeFound === true ? true : undefined,
-          defended: raw.defended === true ? true : undefined,
-        });
-      }
+      const kataId = cleanImportedString(raw?.kataId, 40);
+      const at = cleanImportedString(raw?.at, 40);
+      if (!kataId || !at || typeof raw?.solved !== 'boolean') continue;
+
+      const language = cleanImportedString(raw.language, 20);
+      const belt = cleanImportedString(raw.belt, 10);
+      results.push({
+        kataId,
+        tier: typeof raw.tier === 'number' ? raw.tier : 1,
+        language: language === 'python' || language === 'javascript' || language === 'java' ? language : 'java',
+        pattern: cleanImportedString(raw.pattern, 80) ?? '',
+        predictionsRight: typeof raw.predictionsRight === 'number' ? raw.predictionsRight : 0,
+        predictionsTotal: typeof raw.predictionsTotal === 'number' ? raw.predictionsTotal : 0,
+        planHeld: raw.planHeld === true,
+        solved: raw.solved,
+        at,
+        belt: belt && (BELT_ORDER as string[]).includes(belt) ? belt : undefined,
+        beltTest: raw.beltTest === true ? true : undefined,
+        edgeFound: raw.edgeFound === true ? true : undefined,
+        defended: raw.defended === true ? true : undefined,
+      });
     }
     if (results.length === 0) return null;
     const checksumOk =
