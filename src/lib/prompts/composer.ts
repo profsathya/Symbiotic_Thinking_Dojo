@@ -2,6 +2,7 @@ import { DojoConfig, Construct, SparringPartner } from '../types';
 import { PracticeDojoContext, TopicConfig } from '../practice-dojo/types';
 import { AIProvider } from '../providers/types';
 import { DEFAULT_CAREER_INTELLIGENCE_PROMPT } from './defaults/career-intelligence';
+import { earnedBelts, BELT_INFO } from '../practice-dojo/belt-record';
 
 export interface ComposeOptions {
   isGuidedPractice?: boolean;
@@ -349,14 +350,18 @@ ${Object.entries(userChoices).map(([key, value]) => `- **${key}:** ${value}`).jo
     const predictionsRight = kataResults.reduce((sum, r) => sum + r.predictionsRight, 0);
     const predictionsTotal = kataResults.reduce((sum, r) => sum + r.predictionsTotal, 0);
     const plansHeld = kataResults.filter((r) => r.planHeld).length;
+    const edgesFound = kataResults.filter((r) => r.edgeFound).length;
+    const defended = kataResults.filter((r) => r.defended).length;
+    const belts = earnedBelts(kataResults);
     const last = kataResults[kataResults.length - 1];
     const recent = kataResults.slice(-6);
     sections.push(`## KATA SCORECARD (persisted across sessions)
-This student has prior kata history. Honor it: do NOT repeat solved katas, resume at the right tier, and reference their calibration when relevant.
+This student has prior kata history. Honor it: do NOT repeat solved katas, resume at the right belt and tier, and reference their calibration when relevant.
+- Belts earned: ${belts.length > 0 ? belts.map((b) => `${BELT_INFO[b.belt].emoji} ${b.belt}`).join(', ') : 'none yet'}
 - Solved katas (never re-assign): ${solvedIds.length > 0 ? solvedIds.join(', ') : 'none yet'}
-- Most recent: ${last.kataId} at Tier ${last.tier} in ${last.language} — resume from there, applying the tier ladder rules
+- Most recent: ${last.kataId}${last.belt ? ` (${last.belt} belt)` : ''} at Tier ${last.tier} in ${last.language} — resume from there, applying the ladder rules
 - Prediction calibration (all time): ${predictionsRight}/${predictionsTotal} test-case predictions correct
-- Plans that held: ${plansHeld}/${kataResults.length}
+- Plans that held: ${plansHeld}/${kataResults.length} · Edges found: ${edgesFound} · Decisions defended: ${defended}
 - Recent cycles: ${recent.map((r) => `${r.kataId}(T${r.tier}${r.solved ? '' : ', unsolved'}, predict ${r.predictionsRight}/${r.predictionsTotal})`).join('; ')}`);
   }
 
@@ -504,7 +509,9 @@ export function createPracticeDojoWelcome(topic: TopicConfig, pathway: string): 
   if (topic.topicId === 'intro-programming') {
     return `**Sensei:** Welcome to the Code Kata Dojo! 🥋
 
-Short coding katas — small functions with visible test tables — themed to what you're actually into. We train the code AND the thinking habits behind it: connect, plan, predict, verify, name the pattern. Your tier and scorecard are saved, so every visit picks up where the last one ended.
+**Your job here, every kata:** one small piece of code. You connect it to what you know, plan it, write it, predict your own test results, defend one choice, and hunt one edge case. I referee and coach — I never write it for you.
+
+You'll climb **belts** that follow your course — ⬜ Foundations → 🟨 Logical operators → 🟧 Ifs → 🟩 Strings → 🟦 Maps → ⬛ OOP. Your belts and scorecard are saved, so every visit picks up where the last one ended (and you can download your Belt Record to submit or back up).
 
 First choice:
 

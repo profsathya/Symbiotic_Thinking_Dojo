@@ -163,6 +163,17 @@ export interface KataResult {
   planHeld: boolean;
   solved: boolean;
   at: string;
+  // ---- Belt-system fields (v2; optional so pre-belt records stay valid) ----
+  // Which belt (milestone) the kata belongs to
+  belt?: string;
+  // Whether this kata was a belt test (passing one earns the belt)
+  beltTest?: boolean;
+  // Edge Hunt: the student proposed a genuine edge case before the hidden
+  // tests were revealed
+  edgeFound?: boolean;
+  // Defend: the student defended a challenged decision by referencing
+  // behavior or a test case (not "it just works")
+  defended?: boolean;
 }
 
 // Practice Dojo local state (persisted to localStorage)

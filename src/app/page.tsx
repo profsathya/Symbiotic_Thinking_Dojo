@@ -15,7 +15,7 @@ import { ConfigPanel } from '@/components/ConfigPanel';
 import { HelpButtons, HelpModal } from '@/components/HelpPanel';
 import { ExportButton } from '@/components/ExportButton';
 import { ApiKeyModal } from '@/components/ApiKeyModal';
-import { TopicSelectionModal, TopicEditor, ProgressIndicator } from '@/components/PracticeDojo';
+import { TopicSelectionModal, TopicEditor, ProgressIndicator, BeltStrip } from '@/components/PracticeDojo';
 import { PhaseCheckDialog } from '@/components/PracticeDojo/PhaseCheckDialog';
 import { TourOverlay, TourPrompt } from '@/components/Tour';
 import { StatsModal } from '@/components/StatsModal';
@@ -142,6 +142,10 @@ export default function Home() {
       // while a dojo session is actively running.
       if (!isActive || !topicId) return;
       practiceDojoState.recordKataResult(result);
+      // Passing a belt test earns the belt — surface the award banner.
+      if (result.beltTest && result.solved && result.belt) {
+        setBeltAwardNotice(result.belt);
+      }
     },
   });
 
@@ -149,6 +153,8 @@ export default function Home() {
   const [phaseCheckOpen, setPhaseCheckOpen] = useState(false);
   // Shown once after the final phase's gate completes an activity
   const [completedTopicNotice, setCompletedTopicNotice] = useState(false);
+  // Set to the belt id when a belt test is passed (Code Kata Dojo)
+  const [beltAwardNotice, setBeltAwardNotice] = useState<string | null>(null);
 
   // Handle hydration
   useEffect(() => {
@@ -505,6 +511,27 @@ export default function Home() {
             finalPhase={currentPhaseIndex + 1 >= currentTopic.phases.length}
             onRequestPhaseCheck={() => setPhaseCheckOpen(true)}
           />
+        )}
+        {/* Belt strip (Code Kata Dojo): earned belts + Belt Record download/import */}
+        {isInPracticeDojo && topicId === 'intro-programming' && (
+          <BeltStrip
+            kataResults={kataResults}
+            onImport={practiceDojoState.importKataResults}
+          />
+        )}
+        {beltAwardNotice && (
+          <div className="bg-amber-900/30 border-b border-amber-700/50 px-4 py-2 text-sm text-amber-100 flex items-center justify-between gap-4">
+            <span>
+              🎉 <strong>Belt earned!</strong> You passed the {beltAwardNotice} belt test — it&apos;s
+              on your belt strip now, and your Belt Record download includes it.
+            </span>
+            <button
+              onClick={() => setBeltAwardNotice(null)}
+              className="text-amber-300 hover:text-amber-100 text-xs px-2 py-1 rounded border border-amber-700/50 hover:bg-amber-800/30"
+            >
+              Dismiss
+            </button>
+          </div>
         )}
         {isInPracticeDojo && currentTopic && phaseCheckOpen && practiceDojoContext && (
           <PhaseCheckDialog

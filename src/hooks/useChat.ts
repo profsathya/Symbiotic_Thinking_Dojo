@@ -172,6 +172,11 @@ function parseKataResults(content: string): KataResult[] {
           planHeld: typeof raw.planHeld === 'boolean' ? raw.planHeld : false,
           solved: raw.solved,
           at: new Date().toISOString(),
+          // Belt-system fields (v2) — optional, defaulted for older topics
+          belt: typeof raw.belt === 'string' ? raw.belt : undefined,
+          beltTest: raw.beltTest === true ? true : undefined,
+          edgeFound: raw.edgeFound === true ? true : undefined,
+          defended: raw.defended === true ? true : undefined,
         });
       }
     } catch {
