@@ -101,6 +101,32 @@ describe('Project Interview Dojo', () => {
   it('final phase never signals a next phase', () => {
     expect(topic.phases[topic.phases.length - 1].contentGuidance).toContain('never emit');
   });
+
+  // Live-test fixes (2026-07-24 field trial)
+  it('enforces voice label discipline and bans stage directions', () => {
+    expect(topic.systemInstructions).toContain('LABEL DISCIPLINE');
+    expect(topic.systemInstructions).toContain('FIRST token of the message');
+    expect(topic.systemInstructions).toContain('Never emit a label with no content after it');
+    expect(topic.systemInstructions).toContain('No stage directions');
+  });
+
+  it('folds stray partner mentions into the current round instead of switching modes', () => {
+    expect(topic.systemInstructions).toContain('STRAY @MENTIONS');
+    expect(topic.systemInstructions).toContain('never switch modes');
+  });
+
+  it('round 2 catches up a skipped 60-second version without scolding', () => {
+    const round2 = topic.phases[2].contentGuidance;
+    expect(round2).toContain('WITHOUT a typed 60-second version');
+    expect(round2).toContain('rough is fine');
+    expect(round2).toContain('no scolding');
+  });
+
+  it('names the real "Save Session" button, never a nonexistent Export one', () => {
+    const allText = topic.systemInstructions + topic.phases.map((p) => p.contentGuidance).join('');
+    expect(allText).toContain('"Save Session"');
+    expect(allText).not.toMatch(/EXPORT the session|export button/);
+  });
 });
 
 describe('NEXT_PHASE marker regex', () => {
