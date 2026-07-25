@@ -457,6 +457,10 @@ export default function Home() {
   const pendingAdvanceMessageRef = useRef<string | null>(null);
   useEffect(() => {
     if (pendingAdvanceMessageRef.current === null) return;
+    // If a response is still streaming, sendMessage would silently drop the
+    // opener (it early-returns on isLoading). Hold the pending message and
+    // let this effect retry — it re-runs when isLoading flips back to false.
+    if (isLoading) return;
     const text = pendingAdvanceMessageRef.current;
     pendingAdvanceMessageRef.current = null;
     // Timer callback keeps the state updates out of the effect body.
