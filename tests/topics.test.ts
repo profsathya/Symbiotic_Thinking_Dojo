@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ALL_TOPICS, ENABLED_TOPICS, getTopicById, getTopicBySlug, TOPIC_SLUGS } from '@/lib/practice-dojo/topics';
+import { createPracticeDojoWelcome } from '@/lib/prompts/composer';
 import { NEXT_PHASE_MARKER_REGEX } from '@/lib/types';
 
 describe('topic invariants', () => {
@@ -58,6 +59,47 @@ describe('topic invariants', () => {
       expect(topic.enabled).toBe(true);
       expect(ALL_TOPICS).toContain(topic);
     }
+  });
+});
+
+describe('Project Interview Dojo', () => {
+  const topic = getTopicById('project-interview')!;
+
+  it('is registered, enabled, and reachable at ?topic=interview', () => {
+    expect(topic).toBeDefined();
+    expect(topic.enabled).toBe(true);
+    expect(getTopicBySlug('interview')?.topicId).toBe('project-interview');
+  });
+
+  it('has the five rounds plus the welcome placeholder', () => {
+    expect(topic.phases.length).toBe(6);
+    expect(topic.phases[4].isArrivalMilestone).toBe(true);
+  });
+
+  it('carries the round-4 role-switch and re-orientation protocols', () => {
+    expect(topic.systemInstructions).toContain('ROUND 4 ROLE-SWITCH PROTOCOL');
+    expect(topic.systemInstructions).toContain('RE-ORIENTATION');
+    expect(topic.systemInstructions).toContain('CORNER COACH');
+    // Unassisted answering is the rep
+    expect(topic.systemInstructions).toContain('Give the CANDIDATE nothing during the interview');
+  });
+
+  it('trains the honest "I don\'t know yet" and the committed addition', () => {
+    const round2 = topic.phases[2].contentGuidance;
+    expect(round2).toContain("I don't know yet — here's how I'd find out");
+    expect(round2).toContain('ONE concrete addition');
+    expect(round2).toContain('FIRST MOVE');
+  });
+
+  it('welcome states the frame and asks for the project', () => {
+    const welcome = createPracticeDojoWelcome(topic, 'guided');
+    expect(welcome).toContain('what you did and why, in your own words');
+    expect(welcome).toContain('tell me about your project');
+    expect(welcome).not.toContain('What drew you to this topic');
+  });
+
+  it('final phase never signals a next phase', () => {
+    expect(topic.phases[topic.phases.length - 1].contentGuidance).toContain('never emit');
   });
 });
 

@@ -520,6 +520,18 @@ First choice:
 \`\`\``;
   }
 
+  // Project Interview Dojo: the welcome states the interview frame plainly
+  // and asks for the project — the student's first answer opens Round 1.
+  if (topic.topicId === 'project-interview') {
+    return `**Sensei:** Welcome to the Project Interview Dojo. 🎤
+
+Here's the whole idea, plainly: in any interview — a showcase, a college conversation, a job interview — what the person across from you most wants is to hear **what you did and why, in your own words**. Today you practice exactly that, from **both sides of the table**: you'll frame your story, survive a real interview on it, then interview a partner on theirs.
+
+Nobody grades you here. You make every call, and you keep the transcript.
+
+Let's start with the raw material: **tell me about your project.** What is it, in a sentence or two — however it comes out?`;
+  }
+
   // INSPIRE demo: the welcome owns the three-door picker. The visitor's first
   // click is the door id (sharpen / steelman / home), which Phase 1 routes on.
   if (topic.topicId === 'inspire-demo') {
