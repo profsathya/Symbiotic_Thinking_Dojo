@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useSyncExternalStore } from 'react';
 import { DIKWState, DIKWLevel } from '@/lib/types';
 
 // Configure the stats API URL - can be overridden via environment variable
@@ -27,6 +27,32 @@ function readStoredConsent(): TelemetryConsent {
 // respects a consent change made in another tab or earlier in the session.
 function hasConsent(): boolean {
   return readStoredConsent() === 'granted';
+}
+
+// Consent is a SHARED store, not per-hook state: useStats() is instantiated
+// in several components (the page's banner, the Stats modal, …), and they
+// must never diverge — otherwise "Start sharing" in the modal leaves the
+// page's banner up, and dismissing it overwrites the choice just made.
+// Every instance subscribes here; writeStoredConsent notifies them all.
+const consentListeners = new Set<() => void>();
+
+function subscribeConsent(listener: () => void): () => void {
+  consentListeners.add(listener);
+  // Also follow changes made in other tabs
+  window.addEventListener('storage', listener);
+  return () => {
+    consentListeners.delete(listener);
+    window.removeEventListener('storage', listener);
+  };
+}
+
+function writeStoredConsent(value: 'granted' | 'denied'): void {
+  try {
+    localStorage.setItem(CONSENT_STORAGE_KEY, value);
+  } catch {
+    // Storage unavailable — nothing is sent without stored consent anyway.
+  }
+  consentListeners.forEach((listener) => listener());
 }
 
 // Convert DIKWState to numeric scores (track how much time spent at each level)
@@ -110,17 +136,17 @@ export function useStats() {
   // Whether the stats API is configured at all (build-time constant)
   const isEnabled = !!STATS_API_URL;
 
-  // Consent state mirrors localStorage; null = not asked yet. Lazy
-  // initializer so the stored answer is picked up without an effect.
-  const [consent, setConsentState] = useState<TelemetryConsent>(() => readStoredConsent());
+  // Consent mirrors localStorage through the shared store above, so EVERY
+  // useStats() instance (banner, modal, …) sees the same value the moment
+  // any of them changes it. null = not asked yet.
+  const consent = useSyncExternalStore<TelemetryConsent>(
+    subscribeConsent,
+    readStoredConsent,
+    () => null
+  );
 
   const setConsent = useCallback((value: 'granted' | 'denied') => {
-    try {
-      localStorage.setItem(CONSENT_STORAGE_KEY, value);
-    } catch {
-      // Storage unavailable — the in-memory state still governs this session.
-    }
-    setConsentState(value);
+    writeStoredConsent(value);
   }, []);
 
   // Track an event
