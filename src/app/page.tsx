@@ -447,6 +447,26 @@ export default function Home() {
     sendMessage(message);
   }, [isInPracticeDojo, practiceDojoState, sendMessage, stats, dikw.current, activePartners]);
 
+  // After the student advances at the self-check gate, immediately open the
+  // new phase with a model turn: their gate response becomes the next user
+  // message ("[moving on] …"), sent through the normal path so the model
+  // both opens the round in the right voice AND sees what they said at the
+  // gate (including any admitted gap). Sent post-commit from this effect so
+  // the system prompt composes under the NEW phase — sending inside the
+  // click handler would use the pre-advance context.
+  const pendingAdvanceMessageRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (pendingAdvanceMessageRef.current === null) return;
+    // If a response is still streaming, sendMessage would silently drop the
+    // opener (it early-returns on isLoading). Hold the pending message and
+    // let this effect retry — it re-runs when isLoading flips back to false.
+    if (isLoading) return;
+    const text = pendingAdvanceMessageRef.current;
+    pendingAdvanceMessageRef.current = null;
+    // Timer callback keeps the state updates out of the effect body.
+    setTimeout(() => handleSendMessage(text), 0);
+  });
+
   // Handle visual component interactions (e.g., clicking selection cards)
   const handleVisualInteraction = useCallback((action: string, data: Record<string, string>) => {
     if (action === 'select' && data.optionTitle) {
@@ -570,6 +590,10 @@ export default function Home() {
                 if (isFinalPhase) {
                   handleCompleteActivity();
                 } else {
+                  // Queue the gate response as the next user message — the
+                  // effect above sends it once the new phase has committed,
+                  // so the model opens the round instead of sitting silent.
+                  pendingAdvanceMessageRef.current = `[moving on] ${response}`;
                   practiceDojoState.advancePhase();
                 }
               }
