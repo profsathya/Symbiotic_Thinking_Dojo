@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:live-curiosity": "node scripts/map-curiosity-transcript.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.0",

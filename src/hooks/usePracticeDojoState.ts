@@ -8,9 +8,11 @@ import {
   CheckpointStatus,
   PhaseSelfCheck,
   KataResult,
+  CuriosityRecord,
   SerializedMessage,
 } from '@/lib/practice-dojo/types';
 import { mergeKataResults } from '@/lib/practice-dojo/belt-record';
+import { mergeRecords } from '@/lib/practice-dojo/curiosity-record';
 
 const STORAGE_KEY = 'practiceDojo';
 
@@ -49,6 +51,9 @@ interface UsePracticeDojoStateReturn {
   recordKataResult: (result: KataResult) => void;
   // Cross-device restore: merge results from an imported Belt Record JSON
   importKataResults: (imported: KataResult[]) => void;
+
+  // Map Your Curiosity end-of-session record (internal to the instructor)
+  recordCuriosityRecord: (record: CuriosityRecord) => void;
 
   // User choices
   setUserChoice: (key: string, value: string) => void;
@@ -164,6 +169,7 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
       ...INITIAL_PRACTICE_DOJO_STATE,
       completedTopics: current.completedTopics, // Keep completed topics
       kataResults: current.kataResults, // Scorecard survives session resets
+      curiosityRecords: current.curiosityRecords, // Records survive until exported
       lastUpdated: new Date().toISOString(),
     }));
   }, []);
@@ -265,6 +271,20 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     }));
   }, []);
 
+  // Append a Map Your Curiosity end-of-session record (reported via the
+  // [CURIOSITY_RECORD] marker). Like the kata scorecard, this is deliberately
+  // NOT cleared by startSession/markTopicCompleted — a student's run-1 record
+  // must survive until it is exported, and the week 6–8 revisit appends to it
+  // rather than replacing it. Deduped on (topicId, at) so a re-parsed message
+  // cannot double-record.
+  const recordCuriosityRecord = useCallback((record: CuriosityRecord) => {
+    setState(current => ({
+      ...current,
+      curiosityRecords: mergeRecords(current.curiosityRecords, [record]),
+      lastUpdated: new Date().toISOString(),
+    }));
+  }, []);
+
   // The model emitted [NEXT_PHASE] for this phase — record the signal so the
   // UI can highlight the button. Idempotent; never advances the phase.
   const markSenseiSignaled = useCallback((phase: number) => {
@@ -361,6 +381,7 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     markSenseiSignaled,
     recordKataResult,
     importKataResults,
+    recordCuriosityRecord,
     setUserChoice,
     markTopicCompleted,
     isTopicCompleted,

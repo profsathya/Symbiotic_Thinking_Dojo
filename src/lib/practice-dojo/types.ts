@@ -1,5 +1,9 @@
 // Practice Dojo Types
 
+import type { CuriosityRecord } from './curiosity-record';
+
+export type { CuriosityRecord };
+
 // Pathway options for topic engagement
 export type Pathway = 'guided' | 'quick' | 'test';
 
@@ -212,6 +216,12 @@ export interface PracticeDojoState {
   // Only ever reset by an explicit full reset.
   kataResults: KataResult[];
 
+  // Map Your Curiosity end-of-session records, reported by the model via the
+  // [CURIOSITY_RECORD: {...}] marker. Internal to the instructor — never
+  // rendered in the conversation. Persists across sessions (and across the
+  // week 6–8 revisit run) so a student's runs export together.
+  curiosityRecords: CuriosityRecord[];
+
   // Saved messages for resume (serialized)
   savedMessages: SerializedMessage[] | null;
 
@@ -244,6 +254,7 @@ export const INITIAL_PRACTICE_DOJO_STATE: PracticeDojoState = {
   senseiSignaledPhases: [],
   completedTopics: [],
   kataResults: [],
+  curiosityRecords: [],
   savedMessages: null,
   lastUpdated: new Date().toISOString(),
   sessionStarted: null,

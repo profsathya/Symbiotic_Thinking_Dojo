@@ -3,6 +3,10 @@ import { PracticeDojoContext, TopicConfig } from '../practice-dojo/types';
 import { AIProvider } from '../providers/types';
 import { DEFAULT_CAREER_INTELLIGENCE_PROMPT } from './defaults/career-intelligence';
 import { earnedBelts, BELT_INFO } from '../practice-dojo/belt-record';
+import {
+  OPENING_FRAME,
+  OPENING_QUESTION,
+} from '../practice-dojo/topics/map-curiosity-stages';
 
 export interface ComposeOptions {
   isGuidedPractice?: boolean;
@@ -742,31 +746,15 @@ Drop **3–5 real job postings** that interest you here. Roles you'd actually wa
 \`\`\``;
   }
 
-  // Map Your Curiosity: open with the free-time selection cards
+  // Map Your Curiosity: the Stage 1 frame and opening question are said word
+  // for word. They are delivered HERE rather than by a model turn because the
+  // engine always starts a session at phase 1 — and because verbatim text
+  // should not be left to the model to reproduce. Both strings come from the
+  // stage module, so there is no second copy to drift.
   if (topic.topicId === 'map-curiosity') {
-    return `**Sensei:** Welcome. 💡
+    return `**Sensei:** ${OPENING_FRAME}
 
-Four quick steps to notice something you're curious about, name it, and connect it to what you're working on. About 15 minutes — stay longer if it pulls you in.
-
-So: when you have free time, what do you find yourself doing?
-
-\`\`\`dojo-visual
-{
-  "type": "selection-cards",
-  "prompt": "Pick whichever feels most you — or pick \\"Something else\\" and tell me.",
-  "options": [
-    {"id": "make", "icon": "🎨", "title": "Make things", "description": "Art, music, writing, crafts, cooking"},
-    {"id": "build", "icon": "🔧", "title": "Build or fix things", "description": "Lego, models, repair stuff, DIY projects"},
-    {"id": "play", "icon": "🎮", "title": "Play games", "description": "Video games, board games, sports"},
-    {"id": "watch", "icon": "🎬", "title": "Watch things", "description": "Videos, shows, documentaries, livestreams"},
-    {"id": "read", "icon": "📖", "title": "Read", "description": "Books, comics, articles, fanfic"},
-    {"id": "observe", "icon": "🌿", "title": "Notice the world", "description": "People-watch, nature, animals, the sky"},
-    {"id": "talk", "icon": "💬", "title": "Talk with people", "description": "Friends, online communities, debates"},
-    {"id": "tinker", "icon": "💻", "title": "Tinker with tech", "description": "Computers, phones, apps, gadgets"},
-    {"id": "other", "icon": "✨", "title": "Something else", "description": "Tell me what it is"}
-  ]
-}
-\`\`\``;
+${OPENING_QUESTION}`;
   }
 
   // Generic welcome for other topics

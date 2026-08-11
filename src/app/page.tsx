@@ -15,7 +15,7 @@ import { ConfigPanel } from '@/components/ConfigPanel';
 import { HelpButtons, HelpModal } from '@/components/HelpPanel';
 import { ExportButton } from '@/components/ExportButton';
 import { ApiKeyModal } from '@/components/ApiKeyModal';
-import { TopicSelectionModal, TopicEditor, ProgressIndicator, BeltStrip } from '@/components/PracticeDojo';
+import { TopicSelectionModal, TopicEditor, ProgressIndicator, BeltStrip, CuriosityRecordBar } from '@/components/PracticeDojo';
 import { PhaseCheckDialog } from '@/components/PracticeDojo/PhaseCheckDialog';
 import { TourOverlay, TourPrompt } from '@/components/Tour';
 import { StatsModal } from '@/components/StatsModal';
@@ -24,6 +24,7 @@ import { BudgetIndicator } from '@/components/BudgetIndicator';
 import { ImportedSession } from '@/lib/export';
 import { ACTIVITY_ROUTES, getTopicById, getTopicBySlug } from '@/lib/practice-dojo/topics';
 import { getKataById } from '@/lib/practice-dojo/kata-bank';
+import { syncRecord } from '@/lib/practice-dojo/curiosity-record';
 import { PracticeDojoContext, Pathway } from '@/lib/practice-dojo/types';
 import { isCtiEnabled } from '@/lib/providers/types';
 import { urlHasKey, validKeyFromUrl, stripKeyFromUrl } from '@/lib/url-key';
@@ -76,7 +77,7 @@ export default function Home() {
 
   // Compute Practice Dojo context if in Practice Dojo mode
   // Note: We destructure specific fields to avoid re-computing when unrelated state changes (like savedMessages)
-  const { isActive, topicId, pathway, currentPhase: currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, phaseSelfChecks, senseiSignaledPhases, kataResults, interactionCount } = practiceDojoState.state;
+  const { isActive, topicId, pathway, currentPhase: currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, phaseSelfChecks, senseiSignaledPhases, kataResults, curiosityRecords, interactionCount } = practiceDojoState.state;
 
   const practiceDojoContext = useMemo((): PracticeDojoContext | null => {
     // Only compute context when session is actively running
@@ -151,6 +152,15 @@ export default function Home() {
       if (result.solved && bankKata?.beltTest) {
         setBeltAwardNotice(bankKata.belt);
       }
+    },
+    onCuriosityRecord: (record) => {
+      // Map Your Curiosity end-of-session record. Same guard as above: only
+      // record while a dojo session is actively running. Nothing is shown to
+      // the student — the marker was already stripped from the message.
+      if (!isActive || !topicId) return;
+      practiceDojoState.recordCuriosityRecord(record);
+      // No-op unless NEXT_PUBLIC_CURIOSITY_RECORD_SYNC is on (default off).
+      void syncRecord(record);
     },
   });
 
@@ -543,6 +553,11 @@ export default function Home() {
             kataResults={kataResults}
             onImport={practiceDojoState.importKataResults}
           />
+        )}
+        {/* Map Your Curiosity: the manual export path, shown only once a
+            session has produced a record. Never displays its contents. */}
+        {isInPracticeDojo && topicId === 'map-curiosity' && (
+          <CuriosityRecordBar records={curiosityRecords} />
         )}
         {beltAwardNotice && (
           <div className="bg-amber-900/30 border-b border-amber-700/50 px-4 py-2 text-sm text-amber-100 flex items-center justify-between gap-4">

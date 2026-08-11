@@ -23,7 +23,8 @@ import { streamChat, getDefaultModel, QuotaExceededError } from '@/lib/providers
 import { AIProvider } from '@/lib/providers/types';
 import { parseMentions } from '@/lib/mentions';
 import { ImportedSession } from '@/lib/export';
-import { PracticeDojoContext, TopicConfig, Pathway, SerializedMessage, KataResult } from '@/lib/practice-dojo/types';
+import { PracticeDojoContext, TopicConfig, Pathway, SerializedMessage, KataResult, CuriosityRecord } from '@/lib/practice-dojo/types';
+import { parseCuriosityRecords, stripCuriosityRecordMarkers } from '@/lib/practice-dojo/curiosity-record';
 
 interface UseChatOptions {
   config: DojoConfig;
@@ -40,6 +41,10 @@ interface UseChatOptions {
   // Called for each valid [KATA_RESULT: {...}] marker in a message (Code
   // Kata Dojo). The consumer persists the result to the scorecard.
   onKataResult?: (result: KataResult) => void;
+  // Called for each valid [CURIOSITY_RECORD: {...}] marker in a message (Map
+  // Your Curiosity). The consumer persists the record for instructor export.
+  // The marker is stripped before display, so the student never sees it.
+  onCuriosityRecord?: (record: CuriosityRecord) => void;
 }
 
 interface UseChatReturn {
@@ -191,7 +196,7 @@ function stripKataResultMarkers(content: string): string {
   return content.replace(KATA_RESULT_MARKER_REGEX, '').trim();
 }
 
-export function useChat({ config, activeConstruct, activePartners, apiKey, provider, practiceDojoContext, onPhaseComplete, onKataResult }: UseChatOptions): UseChatReturn {
+export function useChat({ config, activeConstruct, activePartners, apiKey, provider, practiceDojoContext, onPhaseComplete, onKataResult, onCuriosityRecord }: UseChatOptions): UseChatReturn {
   const [isGuidedPractice, setIsGuidedPractice] = useState(false);
   const [isImportedSession, setIsImportedSession] = useState(false);
 
@@ -297,6 +302,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, provi
           displayContent = stripDIKWMarker(displayContent);
           displayContent = stripNextPhaseMarker(displayContent);
           displayContent = stripKataResultMarkers(displayContent);
+          displayContent = stripCuriosityRecordMarkers(displayContent);
           setMessages(current =>
             current.map(msg =>
               msg.id === assistantMessageId
@@ -331,11 +337,23 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, provi
             }
           }
 
+          // Parse the end-of-session conversation record (Map Your Curiosity).
+          // Internal to the instructor — stripped below so it never renders.
+          if (onCuriosityRecord && practiceDojoContext) {
+            for (const record of parseCuriosityRecords(
+              accumulatedContent,
+              practiceDojoContext.topic.topicId
+            )) {
+              onCuriosityRecord(record);
+            }
+          }
+
           // Strip markers from final content
           let cleanContent = stripBalanceMarker(accumulatedContent);
           cleanContent = stripDIKWMarker(cleanContent);
           cleanContent = stripNextPhaseMarker(cleanContent);
           cleanContent = stripKataResultMarkers(cleanContent);
+          cleanContent = stripCuriosityRecordMarkers(cleanContent);
 
           // Track consecutive text-only responses for interactive element encouragement
           if (hasInteractiveElements(cleanContent)) {
@@ -385,7 +403,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, provi
     } finally {
       setIsLoading(false);
     }
-  }, [messages, config, activeConstruct, activePartners, apiKey, provider, isLoading, isGuidedPractice, practiceDojoContext, consecutiveTextOnlyResponses, onPhaseComplete, onKataResult]);
+  }, [messages, config, activeConstruct, activePartners, apiKey, provider, isLoading, isGuidedPractice, practiceDojoContext, consecutiveTextOnlyResponses, onPhaseComplete, onKataResult, onCuriosityRecord]);
 
   const resetChat = useCallback(() => {
     // Cancel any existing request
