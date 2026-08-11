@@ -176,6 +176,60 @@ export interface KataResult {
   defended?: boolean;
 }
 
+// One conversation's record from "What Are My Priorities?", reported by the
+// model via the [PRIORITIES_RECORD: {...}] marker at the close and persisted
+// to the browser. Never sent anywhere on its own — the student downloads it
+// (Markdown for themselves, JSON for handing in) if they choose to.
+export interface TimePictureEntry {
+  // The student's own name for the category (the six, plus any they added)
+  category: string;
+  // Their opening guess, before types-and-sources made anything concrete
+  first_estimate_pct: number | null;
+  // Where they landed after. null means they never revised this one — the
+  // first estimate is deliberately NOT copied here, because "didn't revise"
+  // is itself the signal.
+  revised_pct: number | null;
+  // Their word for how good this part of the day is, not the Sensei's
+  quality_rating: string;
+  // The concrete things they named: apps, shows, sources, kinds of meals
+  sources_named: string[];
+}
+
+export interface PrioritiesRecord {
+  activity: 'what-are-my-priorities';
+  time_picture: TimePictureEntry[];
+  mind_nutrition: {
+    sources: string[];
+    student_read_on_quality: string;
+  };
+  // named is true only when the STUDENT put the calibration gap into words
+  self_named_gap: {
+    named: boolean | null;
+    student_words: string;
+  };
+  try: {
+    named: boolean | null;
+    student_words: string;
+    // Where the try would show up in course behavior if it happened — what
+    // makes a later revisit checkable
+    observable_as: string;
+  };
+  // Prose observations, never scores. Limited to the two qualities this
+  // activity reads. Written to survive being read by the student.
+  evidence_notes: {
+    self_knowledge: string;
+    self_regulation: string;
+  };
+  flags: {
+    declined_try: boolean;
+    // True only when the student themselves opened up about a physical habit
+    // and reflected on it. Not a concern rating, not a referral.
+    physical_habit_flag: boolean;
+  };
+  // Stamped locally when the marker is parsed, never taken from the model
+  at: string;
+}
+
 // Practice Dojo local state (persisted to localStorage)
 export interface PracticeDojoState {
   // Whether session is currently active (vs just having resumable data)
@@ -212,6 +266,11 @@ export interface PracticeDojoState {
   // Only ever reset by an explicit full reset.
   kataResults: KataResult[];
 
+  // "What Are My Priorities?" conversation records — one per completed
+  // conversation. Kept across sessions and topic completion so a student who
+  // comes back still has the record they can download.
+  prioritiesRecords: PrioritiesRecord[];
+
   // Saved messages for resume (serialized)
   savedMessages: SerializedMessage[] | null;
 
@@ -244,6 +303,7 @@ export const INITIAL_PRACTICE_DOJO_STATE: PracticeDojoState = {
   senseiSignaledPhases: [],
   completedTopics: [],
   kataResults: [],
+  prioritiesRecords: [],
   savedMessages: null,
   lastUpdated: new Date().toISOString(),
   sessionStarted: null,

@@ -15,7 +15,7 @@ import { ConfigPanel } from '@/components/ConfigPanel';
 import { HelpButtons, HelpModal } from '@/components/HelpPanel';
 import { ExportButton } from '@/components/ExportButton';
 import { ApiKeyModal } from '@/components/ApiKeyModal';
-import { TopicSelectionModal, TopicEditor, ProgressIndicator, BeltStrip } from '@/components/PracticeDojo';
+import { TopicSelectionModal, TopicEditor, ProgressIndicator, BeltStrip, RecordStrip } from '@/components/PracticeDojo';
 import { PhaseCheckDialog } from '@/components/PracticeDojo/PhaseCheckDialog';
 import { TourOverlay, TourPrompt } from '@/components/Tour';
 import { StatsModal } from '@/components/StatsModal';
@@ -76,7 +76,7 @@ export default function Home() {
 
   // Compute Practice Dojo context if in Practice Dojo mode
   // Note: We destructure specific fields to avoid re-computing when unrelated state changes (like savedMessages)
-  const { isActive, topicId, pathway, currentPhase: currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, phaseSelfChecks, senseiSignaledPhases, kataResults, interactionCount } = practiceDojoState.state;
+  const { isActive, topicId, pathway, currentPhase: currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, phaseSelfChecks, senseiSignaledPhases, kataResults, prioritiesRecords, interactionCount } = practiceDojoState.state;
 
   const practiceDojoContext = useMemo((): PracticeDojoContext | null => {
     // Only compute context when session is actively running
@@ -106,6 +106,17 @@ export default function Home() {
     // re-running when unrelated topicConfig properties change
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, topicId, pathway, currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, phaseSelfChecks, kataResults, interactionCount, topicConfig.getTopicWithCustomizations]);
+
+  // The "What Are My Priorities?" record from THIS conversation, once the
+  // Sensei has closed it out. Older records stay in state — a student can
+  // still have last month's — but the strip only offers the one on screen.
+  const sessionStarted = practiceDojoState.state.sessionStarted;
+  const currentPrioritiesRecord = useMemo(() => {
+    const fromThisSession = (prioritiesRecords ?? []).filter(
+      (record) => !sessionStarted || record.at >= sessionStarted
+    );
+    return fromThisSession.length > 0 ? fromThisSession[fromThisSession.length - 1] : null;
+  }, [prioritiesRecords, sessionStarted]);
 
   const {
     messages,
@@ -137,6 +148,13 @@ export default function Home() {
       if (!isActive) return;
       if (!topicId) return;
       practiceDojoState.markSenseiSignaled(currentPhaseIndex);
+    },
+    onPrioritiesRecord: (record) => {
+      // What Are My Priorities? closed out and reported its record. Same
+      // guard as above: only persist while a dojo session is running, so a
+      // literal marker in an ordinary chat can't write to saved state.
+      if (!isActive || !topicId) return;
+      practiceDojoState.recordPrioritiesRecord(record);
     },
     onKataResult: (result) => {
       // Code Kata Dojo scorecard entry. Same guard as above: only record
@@ -536,6 +554,11 @@ export default function Home() {
             finalPhase={currentPhaseIndex + 1 >= currentTopic.phases.length}
             onRequestPhaseCheck={() => setPhaseCheckOpen(true)}
           />
+        )}
+        {/* Record strip (What Are My Priorities?): where the conversation
+            record lives, and the two downloads. Shows no findings. */}
+        {isInPracticeDojo && topicId === 'what-are-my-priorities' && (
+          <RecordStrip record={currentPrioritiesRecord} />
         )}
         {/* Belt strip (Code Kata Dojo): earned belts + Belt Record download/import */}
         {isInPracticeDojo && topicId === 'intro-programming' && (

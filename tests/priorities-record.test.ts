@@ -1,0 +1,193 @@
+import { describe, it, expect } from 'vitest';
+import {
+  extractPrioritiesRecords,
+  parsePrioritiesRecord,
+  prioritiesRecordToJson,
+  prioritiesRecordToMarkdown,
+  stripPrioritiesRecordMarkers,
+} from '@/lib/practice-dojo/priorities-record';
+import { PrioritiesRecord } from '@/lib/practice-dojo/types';
+
+const AT = '2026-08-11T17:04:00.000Z';
+
+// A realistic close: two time_picture entries, so the payload contains a "}]"
+// in the middle — the exact shape a non-greedy regex would truncate.
+const PAYLOAD = JSON.stringify({
+  activity: 'what-are-my-priorities',
+  time_picture: [
+    {
+      category: 'sleep',
+      first_estimate_pct: 30,
+      revised_pct: 25,
+      quality_rating: 'ok',
+      sources_named: ['phone in bed until 2'],
+    },
+    {
+      category: 'entertainment/fun',
+      first_estimate_pct: 20,
+      revised_pct: 35,
+      quality_rating: 'fine',
+      sources_named: ['tiktok', 'youtube while eating'],
+    },
+  ],
+  mind_nutrition: {
+    sources: ['tiktok', 'two podcasts'],
+    student_read_on_quality: 'mostly junk, some good',
+  },
+  self_named_gap: { named: true, student_words: 'I scroll way more than I said' },
+  try: {
+    named: true,
+    student_words: 'phone charges across the room',
+    observable_as: 'gets to the 8am class awake instead of skipping',
+  },
+  evidence_notes: {
+    self_knowledge: 'Revised fun from 20 to 35 once the eating-and-scrolling came up, then named the gap themselves.',
+    self_regulation: 'Sleep is a default rather than a routine; the try is their first deliberate structure.',
+  },
+  flags: { declined_try: false, physical_habit_flag: false },
+});
+
+const MESSAGE = `Thank you for being open with me. We'll keep talking through the semester — what happens between now and then is the part that matters.\n\n[PRIORITIES_RECORD: ${PAYLOAD}]`;
+
+describe('priorities record extraction', () => {
+  it('extracts a record whose payload contains nested arrays and objects', () => {
+    const records = extractPrioritiesRecords(MESSAGE, AT);
+    expect(records).toHaveLength(1);
+    // The "}]" inside time_picture must not end the marker early
+    expect(records[0].time_picture).toHaveLength(2);
+    expect(records[0].time_picture[1].category).toBe('entertainment/fun');
+    expect(records[0].flags.declined_try).toBe(false);
+    expect(records[0].try.observable_as).toContain('8am class');
+  });
+
+  it('stamps the record locally, ignoring any timestamp the model supplied', () => {
+    const withModelTime = MESSAGE.replace('"activity"', '"at":"1999-01-01T00:00:00.000Z","activity"');
+    const [record] = extractPrioritiesRecords(withModelTime, AT);
+    expect(record.at).toBe(AT);
+  });
+
+  it('strips the marker from what the student sees', () => {
+    const display = stripPrioritiesRecordMarkers(MESSAGE);
+    expect(display).not.toContain('PRIORITIES_RECORD');
+    expect(display).not.toContain('evidence_notes');
+    expect(display).toContain('Thank you for being open with me');
+  });
+
+  it('hides an unterminated marker mid-stream, so no JSON blob types itself out', () => {
+    const partial = `Thanks for being open with me.\n\n[PRIORITIES_RECORD: {"activity":"what-are-my-p`;
+    const display = stripPrioritiesRecordMarkers(partial);
+    expect(display).toBe('Thanks for being open with me.');
+  });
+
+  it('drops malformed markers silently instead of breaking the close', () => {
+    const broken = `Close line.\n\n[PRIORITIES_RECORD: {not json at all}]`;
+    expect(() => extractPrioritiesRecords(broken, AT)).not.toThrow();
+    expect(extractPrioritiesRecords(broken, AT)).toHaveLength(0);
+    expect(stripPrioritiesRecordMarkers(broken)).toBe('Close line.');
+  });
+
+  it('rejects a payload that is not a record', () => {
+    expect(parsePrioritiesRecord('{"kataId":"str-2a","solved":true}', AT)).toBeNull();
+  });
+});
+
+describe('priorities record sanitizing', () => {
+  it('keeps revised_pct null when the student never revised — the gap is the signal', () => {
+    const payload = JSON.stringify({
+      time_picture: [
+        { category: 'work', first_estimate_pct: 15, revised_pct: null, quality_rating: 'good', sources_named: [] },
+      ],
+    });
+    const record = parsePrioritiesRecord(payload, AT)!;
+    expect(record.time_picture[0].revised_pct).toBeNull();
+    expect(record.time_picture[0].first_estimate_pct).toBe(15);
+  });
+
+  it('clamps percentages and rejects non-numeric ones', () => {
+    const payload = JSON.stringify({
+      time_picture: [
+        { category: 'a', first_estimate_pct: 140, revised_pct: -5, quality_rating: '', sources_named: [] },
+        { category: 'b', first_estimate_pct: 'lots', revised_pct: 12.6, quality_rating: '', sources_named: [] },
+      ],
+    });
+    const record = parsePrioritiesRecord(payload, AT)!;
+    expect(record.time_picture[0].first_estimate_pct).toBe(100);
+    expect(record.time_picture[0].revised_pct).toBe(0);
+    expect(record.time_picture[1].first_estimate_pct).toBeNull();
+    expect(record.time_picture[1].revised_pct).toBe(13);
+  });
+
+  it('flattens whitespace and caps long strings so nothing can forge structure in the file', () => {
+    const payload = JSON.stringify({
+      time_picture: [{ category: 'sleep', quality_rating: 'ok', sources_named: [] }],
+      self_named_gap: { named: true, student_words: 'line one\n\n## Fake heading\n| forged | row |' },
+      evidence_notes: { self_knowledge: 'x'.repeat(2000), self_regulation: '' },
+    });
+    const record = parsePrioritiesRecord(payload, AT)!;
+    expect(record.self_named_gap.student_words).not.toContain('\n');
+    expect(record.self_named_gap.student_words).toContain('## Fake heading');
+    expect(record.evidence_notes.self_knowledge.length).toBeLessThanOrEqual(800);
+  });
+
+  it('defaults missing sections rather than dropping the record', () => {
+    const record = parsePrioritiesRecord('{"time_picture":[]}', AT)!;
+    expect(record.activity).toBe('what-are-my-priorities');
+    expect(record.mind_nutrition.sources).toEqual([]);
+    expect(record.self_named_gap.named).toBeNull();
+    expect(record.flags.physical_habit_flag).toBe(false);
+  });
+});
+
+describe('priorities record downloads', () => {
+  const record: PrioritiesRecord = extractPrioritiesRecords(MESSAGE, AT)[0];
+
+  it('the student-facing Markdown carries their picture but no evidence notes or flags', () => {
+    const md = prioritiesRecordToMarkdown(record);
+    expect(md).toContain('Your time picture');
+    expect(md).toContain('entertainment/fun');
+    expect(md).toContain('I scroll way more than I said');
+    expect(md).toContain('phone charges across the room');
+    // The notes are observations for later analysis, not a report card
+    expect(md).not.toContain('Revised fun from 20 to 35');
+    expect(md).not.toContain('self_knowledge');
+    expect(md).not.toContain('physical_habit_flag');
+  });
+
+  it('the JSON carries the complete record, notes included', () => {
+    const json = prioritiesRecordToJson(record);
+    const round = JSON.parse(json);
+    expect(round.evidence_notes.self_knowledge).toContain('named the gap themselves');
+    expect(round.flags).toEqual({ declined_try: false, physical_habit_flag: false });
+    expect(round.at).toBe(AT);
+  });
+
+  it('escapes pipes so a student\'s own words cannot break the table', () => {
+    const piped = parsePrioritiesRecord(
+      JSON.stringify({
+        time_picture: [
+          { category: 'fun', first_estimate_pct: 20, revised_pct: null, quality_rating: 'good | bad', sources_named: [] },
+        ],
+      }),
+      AT
+    )!;
+    const md = prioritiesRecordToMarkdown(piped);
+    const row = md.split('\n').find((line) => line.startsWith('| fun'))!;
+    expect(row).toContain('good \\| bad');
+    // With the escaped pipe removed, only the 6 real cell delimiters remain
+    expect(row.replace(/\\\|/g, '').split('|').length - 1).toBe(6);
+  });
+
+  it('records a declined try as a real answer, not a blank', () => {
+    const declined = parsePrioritiesRecord(
+      JSON.stringify({
+        time_picture: [{ category: 'sleep', first_estimate_pct: 30, revised_pct: null, quality_rating: 'ok', sources_named: [] }],
+        try: { named: false, student_words: '', observable_as: '' },
+        flags: { declined_try: true, physical_habit_flag: false },
+      }),
+      AT
+    )!;
+    const md = prioritiesRecordToMarkdown(declined);
+    expect(md).toContain("didn't pick one this time");
+    expect(md).toContain('real answer');
+  });
+});
