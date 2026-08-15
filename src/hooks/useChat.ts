@@ -23,7 +23,11 @@ import { streamChat, getDefaultModel, QuotaExceededError } from '@/lib/providers
 import { AIProvider } from '@/lib/providers/types';
 import { parseMentions } from '@/lib/mentions';
 import { ImportedSession } from '@/lib/export';
-import { PracticeDojoContext, TopicConfig, Pathway, SerializedMessage, KataResult } from '@/lib/practice-dojo/types';
+import { PracticeDojoContext, TopicConfig, Pathway, SerializedMessage, KataResult, PrioritiesRecord } from '@/lib/practice-dojo/types';
+import {
+  extractPrioritiesRecords,
+  stripPrioritiesRecordMarkers,
+} from '@/lib/practice-dojo/priorities-record';
 
 interface UseChatOptions {
   config: DojoConfig;
@@ -40,6 +44,9 @@ interface UseChatOptions {
   // Called for each valid [KATA_RESULT: {...}] marker in a message (Code
   // Kata Dojo). The consumer persists the result to the scorecard.
   onKataResult?: (result: KataResult) => void;
+  // Called for each valid [PRIORITIES_RECORD: {...}] marker in a message
+  // (What Are My Priorities?). The consumer persists the conversation record.
+  onPrioritiesRecord?: (record: PrioritiesRecord) => void;
 }
 
 interface UseChatReturn {
@@ -191,7 +198,7 @@ function stripKataResultMarkers(content: string): string {
   return content.replace(KATA_RESULT_MARKER_REGEX, '').trim();
 }
 
-export function useChat({ config, activeConstruct, activePartners, apiKey, provider, practiceDojoContext, onPhaseComplete, onKataResult }: UseChatOptions): UseChatReturn {
+export function useChat({ config, activeConstruct, activePartners, apiKey, provider, practiceDojoContext, onPhaseComplete, onKataResult, onPrioritiesRecord }: UseChatOptions): UseChatReturn {
   const [isGuidedPractice, setIsGuidedPractice] = useState(false);
   const [isImportedSession, setIsImportedSession] = useState(false);
 
@@ -297,6 +304,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, provi
           displayContent = stripDIKWMarker(displayContent);
           displayContent = stripNextPhaseMarker(displayContent);
           displayContent = stripKataResultMarkers(displayContent);
+          displayContent = stripPrioritiesRecordMarkers(displayContent);
           setMessages(current =>
             current.map(msg =>
               msg.id === assistantMessageId
@@ -331,11 +339,21 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, provi
             }
           }
 
+          // Parse the conversation record (What Are My Priorities?). Stamped
+          // here, locally — the model never supplies its own timestamp.
+          if (onPrioritiesRecord) {
+            const at = new Date().toISOString();
+            for (const record of extractPrioritiesRecords(accumulatedContent, at)) {
+              onPrioritiesRecord(record);
+            }
+          }
+
           // Strip markers from final content
           let cleanContent = stripBalanceMarker(accumulatedContent);
           cleanContent = stripDIKWMarker(cleanContent);
           cleanContent = stripNextPhaseMarker(cleanContent);
           cleanContent = stripKataResultMarkers(cleanContent);
+          cleanContent = stripPrioritiesRecordMarkers(cleanContent);
 
           // Track consecutive text-only responses for interactive element encouragement
           if (hasInteractiveElements(cleanContent)) {
@@ -385,7 +403,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, provi
     } finally {
       setIsLoading(false);
     }
-  }, [messages, config, activeConstruct, activePartners, apiKey, provider, isLoading, isGuidedPractice, practiceDojoContext, consecutiveTextOnlyResponses, onPhaseComplete, onKataResult]);
+  }, [messages, config, activeConstruct, activePartners, apiKey, provider, isLoading, isGuidedPractice, practiceDojoContext, consecutiveTextOnlyResponses, onPhaseComplete, onKataResult, onPrioritiesRecord]);
 
   const resetChat = useCallback(() => {
     // Cancel any existing request
