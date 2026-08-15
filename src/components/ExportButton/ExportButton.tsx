@@ -6,6 +6,7 @@ import {
   exportSessionAsJSON,
   exportSessionAsMarkdown,
   downloadFile,
+  copyToClipboard,
   generateFilename,
 } from '@/lib/export';
 
@@ -27,7 +28,8 @@ export function ExportButton({
   disabled = false,
 }: ExportButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [showHint, setShowHint] = useState(false);
+  // Message shown in the success toast — varies by action (download vs copy)
+  const [hint, setHint] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close menu when clicking outside
@@ -44,11 +46,22 @@ export function ExportButton({
 
   const [error, setError] = useState<string | null>(null);
 
+  const showSuccess = (message: string) => {
+    console.log('[Export] Setting hint:', message);
+    setHint(message);
+    setTimeout(() => setHint(null), 5000);
+  };
+
+  const showError = (message: string) => {
+    setError(message);
+    setTimeout(() => setError(null), 5000);
+  };
+
   const handleExportMarkdown = () => {
     console.log('[Export] Starting Markdown export...');
     console.log('[Export] Messages count:', messages.length);
     setError(null);
-    setShowHint(false);
+    setHint(null);
 
     try {
       const content = exportSessionAsMarkdown(messages, construct, activePartners, balance, dikw);
@@ -59,18 +72,14 @@ export function ExportButton({
       console.log('[Export] Download initiated, success:', success);
       setIsOpen(false);
       if (success) {
-        console.log('[Export] Setting showHint to true');
-        setShowHint(true);
-        setTimeout(() => setShowHint(false), 5000);
+        showSuccess('Session saved to your downloads');
       } else {
-        setError('Download failed. Check browser console for details.');
-        setTimeout(() => setError(null), 5000);
+        showError('Download failed. Check browser console for details.');
       }
     } catch (err) {
       console.error('[Export] Error during export:', err);
       setIsOpen(false);
-      setError('Export failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
-      setTimeout(() => setError(null), 5000);
+      showError('Export failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
   };
 
@@ -78,7 +87,7 @@ export function ExportButton({
     console.log('[Export] Starting JSON export...');
     console.log('[Export] Messages count:', messages.length);
     setError(null);
-    setShowHint(false);
+    setHint(null);
 
     try {
       const content = exportSessionAsJSON(messages, construct, activePartners, balance, dikw);
@@ -89,18 +98,38 @@ export function ExportButton({
       console.log('[Export] Download initiated, success:', success);
       setIsOpen(false);
       if (success) {
-        console.log('[Export] Setting showHint to true');
-        setShowHint(true);
-        setTimeout(() => setShowHint(false), 5000);
+        showSuccess('Session saved to your downloads');
       } else {
-        setError('Download failed. Check browser console for details.');
-        setTimeout(() => setError(null), 5000);
+        showError('Download failed. Check browser console for details.');
       }
     } catch (err) {
       console.error('[Export] Error during export:', err);
       setIsOpen(false);
-      setError('Export failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
-      setTimeout(() => setError(null), 5000);
+      showError('Export failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
+  };
+
+  const handleCopyMarkdown = async () => {
+    console.log('[Export] Starting clipboard copy...');
+    console.log('[Export] Messages count:', messages.length);
+    setError(null);
+    setHint(null);
+
+    try {
+      const content = exportSessionAsMarkdown(messages, construct, activePartners, balance, dikw);
+      console.log('[Export] Content length:', content.length);
+      const success = await copyToClipboard(content);
+      console.log('[Export] Copy finished, success:', success);
+      setIsOpen(false);
+      if (success) {
+        showSuccess('Session copied to your clipboard');
+      } else {
+        showError('Copy failed. Try saving as Markdown instead.');
+      }
+    } catch (err) {
+      console.error('[Export] Error during copy:', err);
+      setIsOpen(false);
+      showError('Copy failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
   };
 
@@ -129,7 +158,7 @@ export function ExportButton({
       {isOpen && (
         <div className="absolute right-0 mt-1 w-56 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 overflow-hidden">
           <div className="p-2 border-b border-gray-700">
-            <p className="text-xs text-gray-400">Export your session to save locally</p>
+            <p className="text-xs text-gray-400">Save your session as a file, or copy it as text</p>
           </div>
 
           <div className="p-1">
@@ -158,6 +187,19 @@ export function ExportButton({
                 <div className="text-xs text-gray-400">Full data for importing later</div>
               </div>
             </button>
+
+            <button
+              onClick={handleCopyMarkdown}
+              className="w-full px-3 py-2 text-left text-sm text-gray-200 hover:bg-gray-700/50 rounded-md flex items-start gap-3 transition-colors"
+            >
+              <svg className="w-4 h-4 mt-0.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <div>
+                <div className="font-medium">Copy to clipboard</div>
+                <div className="text-xs text-gray-400">Markdown text to paste straight into your notes</div>
+              </div>
+            </button>
           </div>
 
           <div className="p-2 border-t border-gray-700 bg-gray-800/50">
@@ -169,9 +211,9 @@ export function ExportButton({
       )}
 
       {/* Success hint after export - positioned below the button */}
-      {showHint && (
+      {hint && (
         <div className="absolute right-0 top-full mt-1 px-3 py-2 bg-green-900/90 border border-green-700 rounded-lg text-xs text-green-200 whitespace-nowrap z-[100] shadow-lg animate-pulse">
-          ✓ Session saved to your downloads
+          ✓ {hint}
         </div>
       )}
 

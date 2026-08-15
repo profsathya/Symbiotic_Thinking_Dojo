@@ -8,14 +8,19 @@ import { IKIGAI_TOPIC } from './ikigai';
 import { CAREER_KNOW_YOURSELF_TOPIC } from './career-know-yourself';
 import { CAREER_KNOW_MARKET_TOPIC } from './career-know-market';
 import { MAP_CURIOSITY_TOPIC } from './map-curiosity';
+import { WHAT_ARE_MY_PRIORITIES_TOPIC } from './what-are-my-priorities';
 import { INSPIRE_DEMO_TOPIC } from './inspire-demo';
+import { PROJECT_INTERVIEW_TOPIC } from './project-interview';
 
 // All available topics
 export const ALL_TOPICS: TopicConfig[] = [
+  // The opener: most fall courses start their semester here.
+  WHAT_ARE_MY_PRIORITIES_TOPIC,
   SYMBIOTIC_THINKING_TOPIC,
   IKIGAI_TOPIC,
   MAP_CURIOSITY_TOPIC,
   INSPIRE_DEMO_TOPIC,
+  PROJECT_INTERVIEW_TOPIC,
   CST395_TOPIC,
   CST349_TOPIC,
   INTRODUCTORY_PROGRAMMING_TOPIC,
@@ -40,6 +45,7 @@ export function getTopicById(topicId: string): TopicConfig | undefined {
 
 // URL slug → topicId mapping for direct URL routing
 export const TOPIC_SLUGS: Record<string, string> = {
+  'what-are-my-priorities': 'what-are-my-priorities',
   'know-yourself': 'career-know-yourself',
   'know-market': 'career-know-market',
   'symbiotic-thinking': 'symbiotic-thinking',
@@ -51,6 +57,7 @@ export const TOPIC_SLUGS: Record<string, string> = {
   'cst395-s3': 'cst395-s3-problem-stake',
   'intro-programming': 'intro-programming',
   'inspire': 'inspire-demo',
+  'interview': 'project-interview',
 };
 
 export function getTopicBySlug(slug: string): TopicConfig | undefined {
@@ -117,4 +124,6 @@ export { CST395_S3_PROBLEM_STAKE_TOPIC } from './cst395-s3-problem-stake';
 export { CAREER_KNOW_YOURSELF_TOPIC } from './career-know-yourself';
 export { CAREER_KNOW_MARKET_TOPIC } from './career-know-market';
 export { MAP_CURIOSITY_TOPIC } from './map-curiosity';
+export { WHAT_ARE_MY_PRIORITIES_TOPIC } from './what-are-my-priorities';
 export { INSPIRE_DEMO_TOPIC } from './inspire-demo';
+export { PROJECT_INTERVIEW_TOPIC } from './project-interview';

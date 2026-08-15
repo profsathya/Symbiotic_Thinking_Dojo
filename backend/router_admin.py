@@ -6,9 +6,6 @@ from pydantic import BaseModel, Field
 import database
 from config import ADMIN_API_KEY, DATABASE_TYPE, DATABASE_PATH, DATABASE_URL, get_admin_api_key
 
-router = APIRouter()
-
-
 # Authentication
 async def verify_admin(x_admin_key: Optional[str] = Header(None)) -> None:
     """Verify admin API key from X-Admin-Key header."""
@@ -32,6 +29,12 @@ async def verify_admin(x_admin_key: Optional[str] = Header(None)) -> None:
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid admin API key"
     )
+
+
+# Every route on this router requires a valid X-Admin-Key. Declaring the
+# dependency at the router level means a newly added admin route is
+# authenticated by default rather than by remembering to opt in.
+router = APIRouter(dependencies=[Depends(verify_admin)])
 
 
 # Pydantic models
@@ -58,11 +61,11 @@ class KeyResponse(BaseModel):
     created_at: str
     expires_at: Optional[str]
     last_used_at: Optional[str]
-    notes: Optional[str]
-    openai_key: Optional[str]
-    anthropic_key: Optional[str]
-    google_key: Optional[str]
-    github_key: Optional[str]
+    notes: Optional[str] = None
+    openai_key: Optional[str] = None
+    anthropic_key: Optional[str] = None
+    google_key: Optional[str] = None
+    github_key: Optional[str] = None
 
 
 class BulkCreateRequest(BaseModel):
@@ -283,7 +286,7 @@ async def export_usage():
     return {"data": results}
 
 
-@router.get("/api/admin/database", dependencies=[Depends(verify_admin)])
+@router.get("/api/admin/database")
 async def get_database_info():
     """Get database configuration information."""
     return {
@@ -293,7 +296,7 @@ async def get_database_info():
     }
 
 
-@router.get("/api/admin/config", dependencies=[Depends(verify_admin)])
+@router.get("/api/admin/config")
 async def get_config_info():
     """Get admin configuration information (without sensitive data)."""
     admin_key = get_admin_api_key()
@@ -305,7 +308,7 @@ async def get_config_info():
     }
 
 
-@router.get("/api/admin/config/key", dependencies=[Depends(verify_admin)])
+@router.get("/api/admin/config/key")
 async def get_admin_key():
     """Get the admin API key (for display purposes)."""
     return {
@@ -318,7 +321,7 @@ class UpdateAdminKeyRequest(BaseModel):
     label: Optional[str] = None
 
 
-@router.post("/api/admin/config/key", dependencies=[Depends(verify_admin)])
+@router.post("/api/admin/config/key")
 async def update_admin_key(request: UpdateAdminKeyRequest):
     """Update the admin API key (stored in database)."""
     database.set_admin_setting("admin_api_key", request.new_key)
@@ -331,7 +334,7 @@ class UpdateAdminKeyLabelRequest(BaseModel):
     label: str
 
 
-@router.post("/api/admin/config/key/label", dependencies=[Depends(verify_admin)])
+@router.post("/api/admin/config/key/label")
 async def update_admin_key_label(request: UpdateAdminKeyLabelRequest):
     """Update the admin API key label (stored in database)."""
     database.set_admin_setting("admin_api_key_label", request.label)
@@ -344,7 +347,7 @@ class DatabaseConfigRequest(BaseModel):
     database_url: Optional[str] = None
 
 
-@router.get("/api/admin/database/config", dependencies=[Depends(verify_admin)])
+@router.get("/api/admin/database/config")
 async def get_database_config():
     """Get database configuration from settings or environment."""
     db_type = database.get_admin_setting("database_type") or DATABASE_TYPE
@@ -358,7 +361,7 @@ async def get_database_config():
     }
 
 
-@router.post("/api/admin/database/config", dependencies=[Depends(verify_admin)])
+@router.post("/api/admin/database/config")
 async def update_database_config(request: DatabaseConfigRequest):
     """Update database configuration (stored in database, requires server restart)."""
     database.set_admin_setting("database_type", request.database_type)
@@ -380,7 +383,7 @@ class AdminKeyCreateRequest(BaseModel):
     notes: Optional[str] = None
 
 
-@router.post("/api/admin/keys/admin", dependencies=[Depends(verify_admin)])
+@router.post("/api/admin/keys/admin")
 async def create_admin_key(request: AdminKeyCreateRequest):
     """Create a new admin key."""
     import uuid
@@ -389,7 +392,7 @@ async def create_admin_key(request: AdminKeyCreateRequest):
     return {"success": True, "id": key_id, "message": "Admin key created successfully"}
 
 
-@router.get("/api/admin/keys/admin", dependencies=[Depends(verify_admin)])
+@router.get("/api/admin/keys/admin")
 async def list_admin_keys():
     """List all admin keys."""
     keys = database.get_admin_keys()
@@ -407,28 +410,28 @@ async def list_admin_keys():
     ]
 
 
-@router.delete("/api/admin/keys/admin/{key_id}", dependencies=[Depends(verify_admin)])
+@router.delete("/api/admin/keys/admin/{key_id}")
 async def delete_admin_key(key_id: str):
     """Delete an admin key."""
     database.delete_admin_key(key_id)
     return {"success": True, "message": "Admin key deleted successfully"}
 
 
-@router.post("/api/admin/keys/admin/{key_id}/activate", dependencies=[Depends(verify_admin)])
+@router.post("/api/admin/keys/admin/{key_id}/activate")
 async def activate_admin_key(key_id: str):
     """Activate an admin key."""
     database.set_admin_key_active(key_id, True)
     return {"success": True, "message": "Admin key activated successfully"}
 
 
-@router.post("/api/admin/keys/admin/{key_id}/deactivate", dependencies=[Depends(verify_admin)])
+@router.post("/api/admin/keys/admin/{key_id}/deactivate")
 async def deactivate_admin_key(key_id: str):
     """Deactivate an admin key."""
     database.set_admin_key_active(key_id, False)
     return {"success": True, "message": "Admin key deactivated successfully"}
 
 
-@router.post("/api/admin/keys/admin/{key_id}/label", dependencies=[Depends(verify_admin)])
+@router.post("/api/admin/keys/admin/{key_id}/label")
 async def update_admin_key_label_endpoint(key_id: str, request: UpdateAdminKeyLabelRequest):
     """Update the label for an admin key."""
     database.update_admin_key_label(key_id, request.label)

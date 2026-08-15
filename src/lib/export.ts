@@ -236,6 +236,46 @@ export function downloadFile(content: string, filename: string, mimeType: string
 }
 
 /**
+ * Copy text to the clipboard
+ * Note: Falls back to a hidden textarea + execCommand for browsers that block
+ * the async Clipboard API (insecure contexts, older Safari)
+ */
+export async function copyToClipboard(content: string): Promise<boolean> {
+  console.log('[copyToClipboard] Copying content, length:', content.length);
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(content);
+      console.log('[copyToClipboard] Clipboard API write succeeded');
+      return true;
+    }
+    console.log('[copyToClipboard] Clipboard API unavailable, trying fallback...');
+  } catch (error) {
+    console.error('[copyToClipboard] Clipboard API failed, trying fallback:', error);
+  }
+
+  try {
+    const textarea = document.createElement('textarea');
+    textarea.value = content;
+    textarea.setAttribute('readonly', '');
+    // Keep it off-screen but focusable so the selection still works
+    textarea.style.position = 'fixed';
+    textarea.style.top = '0';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    const copied = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    console.log('[copyToClipboard] Fallback copy result:', copied);
+    return copied;
+  } catch (fallbackError) {
+    console.error('[copyToClipboard] Fallback copy also failed:', fallbackError);
+    return false;
+  }
+}
+
+/**
  * Generate a filename based on date and construct
  */
 export function generateFilename(construct: Construct, extension: 'json' | 'md'): string {

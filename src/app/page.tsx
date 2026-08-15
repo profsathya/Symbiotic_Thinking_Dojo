@@ -15,7 +15,8 @@ import { ConfigPanel } from '@/components/ConfigPanel';
 import { HelpButtons, HelpModal } from '@/components/HelpPanel';
 import { ExportButton } from '@/components/ExportButton';
 import { ApiKeyModal } from '@/components/ApiKeyModal';
-import { TopicSelectionModal, TopicEditor, ProgressIndicator } from '@/components/PracticeDojo';
+import { TopicSelectionModal, TopicEditor, ProgressIndicator, BeltStrip, RecordStrip } from '@/components/PracticeDojo';
+import { recordForStrip } from '@/lib/practice-dojo/priorities-record';
 import { PhaseCheckDialog } from '@/components/PracticeDojo/PhaseCheckDialog';
 import { TourOverlay, TourPrompt } from '@/components/Tour';
 import { StatsModal } from '@/components/StatsModal';
@@ -23,6 +24,7 @@ import { TelemetryConsentBanner } from '@/components/TelemetryConsentBanner';
 import { BudgetIndicator } from '@/components/BudgetIndicator';
 import { ImportedSession } from '@/lib/export';
 import { ACTIVITY_ROUTES, getTopicById, getTopicBySlug } from '@/lib/practice-dojo/topics';
+import { getKataById } from '@/lib/practice-dojo/kata-bank';
 import { PracticeDojoContext, Pathway } from '@/lib/practice-dojo/types';
 import { isCtiEnabled } from '@/lib/providers/types';
 import { urlHasKey, validKeyFromUrl, stripKeyFromUrl } from '@/lib/url-key';
@@ -75,7 +77,7 @@ export default function Home() {
 
   // Compute Practice Dojo context if in Practice Dojo mode
   // Note: We destructure specific fields to avoid re-computing when unrelated state changes (like savedMessages)
-  const { isActive, topicId, pathway, currentPhase: currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, phaseSelfChecks, senseiSignaledPhases, kataResults, interactionCount } = practiceDojoState.state;
+  const { isActive, topicId, pathway, currentPhase: currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, phaseSelfChecks, senseiSignaledPhases, kataResults, prioritiesRecords, interactionCount } = practiceDojoState.state;
 
   const practiceDojoContext = useMemo((): PracticeDojoContext | null => {
     // Only compute context when session is actively running
@@ -105,6 +107,16 @@ export default function Home() {
     // re-running when unrelated topicConfig properties change
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, topicId, pathway, currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, phaseSelfChecks, kataResults, interactionCount, topicConfig.getTopicWithCustomizations]);
+
+  // The "What Are My Priorities?" record the download strip offers: this
+  // conversation's once the Sensei closes it out, otherwise the newest one
+  // still in the browser (see recordForStrip — a record must not be stranded
+  // by pressing the completion button).
+  const sessionStarted = practiceDojoState.state.sessionStarted;
+  const prioritiesStripRecord = useMemo(
+    () => recordForStrip(prioritiesRecords, sessionStarted),
+    [prioritiesRecords, sessionStarted]
+  );
 
   const {
     messages,
@@ -137,18 +149,38 @@ export default function Home() {
       if (!topicId) return;
       practiceDojoState.markSenseiSignaled(currentPhaseIndex);
     },
+    onPrioritiesRecord: (record) => {
+      // What Are My Priorities? closed out and reported its record. Same
+      // guard as above: only persist while a dojo session is running, so a
+      // literal marker in an ordinary chat can't write to saved state.
+      if (!isActive || !topicId) return;
+      practiceDojoState.recordPrioritiesRecord(record);
+    },
     onKataResult: (result) => {
       // Code Kata Dojo scorecard entry. Same guard as above: only record
       // while a dojo session is actively running.
       if (!isActive || !topicId) return;
       practiceDojoState.recordKataResult(result);
+      // Passing a belt test earns the belt — but verify against the BANK
+      // (like earnedBelts does), never the marker's own beltTest flag, so a
+      // stray flag on an ordinary kata can't trigger a celebration the belt
+      // strip won't back up.
+      const bankKata = getKataById(result.kataId);
+      if (result.solved && bankKata?.beltTest) {
+        setBeltAwardNotice(bankKata.belt);
+      }
     },
   });
 
   // "Ready to move on?" self-check dialog (Practice Dojo phase gate)
   const [phaseCheckOpen, setPhaseCheckOpen] = useState(false);
   // Shown once after the final phase's gate completes an activity
-  const [completedTopicNotice, setCompletedTopicNotice] = useState(false);
+  // Holds the topicId that just completed (not just a flag): markTopicCompleted
+  // clears topicId, and the record strip needs to know which activity finished
+  // so it can stay reachable through the completion notice.
+  const [completedTopicNotice, setCompletedTopicNotice] = useState<string | null>(null);
+  // Set to the belt id when a belt test is passed (Code Kata Dojo)
+  const [beltAwardNotice, setBeltAwardNotice] = useState<string | null>(null);
 
   // Handle hydration
   useEffect(() => {
@@ -253,7 +285,7 @@ export default function Home() {
     stats.trackPracticeDojoStarted(topicId, pathway);
 
     // A new activity supersedes any lingering completion banner
-    setCompletedTopicNotice(false);
+    setCompletedTopicNotice(null);
 
     // Start the Practice Dojo session
     practiceDojoState.startSession(topicId, pathway);
@@ -418,7 +450,7 @@ export default function Home() {
     practiceDojoState.clearSavedMessages();
     practiceDojoState.markTopicCompleted(topicId);
     resetChat();
-    setCompletedTopicNotice(true);
+    setCompletedTopicNotice(topicId);
 
     setTimeout(() => {
       isExitingPracticeDojoRef.current = false;
@@ -435,6 +467,26 @@ export default function Home() {
     stats.trackInteraction(dikw.current, activePartners[0]);
     sendMessage(message);
   }, [isInPracticeDojo, practiceDojoState, sendMessage, stats, dikw.current, activePartners]);
+
+  // After the student advances at the self-check gate, immediately open the
+  // new phase with a model turn: their gate response becomes the next user
+  // message ("[moving on] …"), sent through the normal path so the model
+  // both opens the round in the right voice AND sees what they said at the
+  // gate (including any admitted gap). Sent post-commit from this effect so
+  // the system prompt composes under the NEW phase — sending inside the
+  // click handler would use the pre-advance context.
+  const pendingAdvanceMessageRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (pendingAdvanceMessageRef.current === null) return;
+    // If a response is still streaming, sendMessage would silently drop the
+    // opener (it early-returns on isLoading). Hold the pending message and
+    // let this effect retry — it re-runs when isLoading flips back to false.
+    if (isLoading) return;
+    const text = pendingAdvanceMessageRef.current;
+    pendingAdvanceMessageRef.current = null;
+    // Timer callback keeps the state updates out of the effect body.
+    setTimeout(() => handleSendMessage(text), 0);
+  });
 
   // Handle visual component interactions (e.g., clicking selection cards)
   const handleVisualInteraction = useCallback((action: string, data: Record<string, string>) => {
@@ -506,6 +558,36 @@ export default function Home() {
             onRequestPhaseCheck={() => setPhaseCheckOpen(true)}
           />
         )}
+        {/* Record strip (What Are My Priorities?): where the conversation
+            record lives, and the two downloads. Shows no findings. */}
+        {((isInPracticeDojo && topicId === 'what-are-my-priorities') ||
+          completedTopicNotice === 'what-are-my-priorities') && (
+          <RecordStrip
+            record={prioritiesStripRecord?.record ?? null}
+            fromThisSession={prioritiesStripRecord?.fromThisSession ?? true}
+          />
+        )}
+        {/* Belt strip (Code Kata Dojo): earned belts + Belt Record download/import */}
+        {isInPracticeDojo && topicId === 'intro-programming' && (
+          <BeltStrip
+            kataResults={kataResults}
+            onImport={practiceDojoState.importKataResults}
+          />
+        )}
+        {beltAwardNotice && (
+          <div className="bg-amber-900/30 border-b border-amber-700/50 px-4 py-2 text-sm text-amber-100 flex items-center justify-between gap-4">
+            <span>
+              🎉 <strong>Belt earned!</strong> You passed the {beltAwardNotice} belt test — it&apos;s
+              on your belt strip now, and your Belt Record download includes it.
+            </span>
+            <button
+              onClick={() => setBeltAwardNotice(null)}
+              className="text-amber-300 hover:text-amber-100 text-xs px-2 py-1 rounded border border-amber-700/50 hover:bg-amber-800/30"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
         {isInPracticeDojo && currentTopic && phaseCheckOpen && practiceDojoContext && (
           <PhaseCheckDialog
             key={currentPhaseIndex}
@@ -538,6 +620,10 @@ export default function Home() {
                 if (isFinalPhase) {
                   handleCompleteActivity();
                 } else {
+                  // Queue the gate response as the next user message — the
+                  // effect above sends it once the new phase has committed,
+                  // so the model opens the round instead of sitting silent.
+                  pendingAdvanceMessageRef.current = `[moving on] ${response}`;
                   practiceDojoState.advancePhase();
                 }
               }
@@ -552,7 +638,7 @@ export default function Home() {
               the Practice Dojo, and you can revisit it any time.
             </span>
             <button
-              onClick={() => setCompletedTopicNotice(false)}
+              onClick={() => setCompletedTopicNotice(null)}
               className="text-emerald-300 hover:text-emerald-100 text-xs px-2 py-1 rounded border border-emerald-700/50 hover:bg-emerald-800/30"
             >
               Dismiss

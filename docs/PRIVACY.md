@@ -34,8 +34,14 @@ from the address bar so it doesn't linger in history or screenshots.
 - The Dojo never sends usage statistics unless you explicitly choose
   "Share anonymous stats" when asked (the answer is stored as
   `dojo-telemetry-consent` in your browser).
-- Declining — or never answering — sends nothing and changes nothing about
-  how the app works.
+- The ask happens at most once per browser: Yes, No, and dismissing the
+  banner (✕) are all remembered. Dismissing counts as no.
+- You can change your answer any time under Help → Usage Statistics
+  ("Start sharing" / "Stop sharing").
+- Declining — or never having been asked — sends nothing and changes
+  nothing about how the app works.
+- The answer is stored per browser and per site address, so a different
+  device, browser profile, or domain will ask once again.
 - Deployments with no stats endpoint configured send nothing regardless.
 
 ## What the Dojo never does

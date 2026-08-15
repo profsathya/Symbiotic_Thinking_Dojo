@@ -23,7 +23,11 @@ import { streamChat, getDefaultModel, QuotaExceededError } from '@/lib/providers
 import { AIProvider } from '@/lib/providers/types';
 import { parseMentions } from '@/lib/mentions';
 import { ImportedSession } from '@/lib/export';
-import { PracticeDojoContext, TopicConfig, Pathway, SerializedMessage, KataResult } from '@/lib/practice-dojo/types';
+import { PracticeDojoContext, TopicConfig, Pathway, SerializedMessage, KataResult, PrioritiesRecord } from '@/lib/practice-dojo/types';
+import {
+  extractPrioritiesRecords,
+  stripPrioritiesRecordMarkers,
+} from '@/lib/practice-dojo/priorities-record';
 
 interface UseChatOptions {
   config: DojoConfig;
@@ -40,6 +44,9 @@ interface UseChatOptions {
   // Called for each valid [KATA_RESULT: {...}] marker in a message (Code
   // Kata Dojo). The consumer persists the result to the scorecard.
   onKataResult?: (result: KataResult) => void;
+  // Called for each valid [PRIORITIES_RECORD: {...}] marker in a message
+  // (What Are My Priorities?). The consumer persists the conversation record.
+  onPrioritiesRecord?: (record: PrioritiesRecord) => void;
   // CTI only: model tier for the NEXT message ('reasoning' → Sonnet, default;
   // 'extraction' → Haiku, faster). Read at send time so a consumer can vary
   // it per message (e.g. faster early, deeper later).
@@ -176,6 +183,11 @@ function parseKataResults(content: string): KataResult[] {
           planHeld: typeof raw.planHeld === 'boolean' ? raw.planHeld : false,
           solved: raw.solved,
           at: new Date().toISOString(),
+          // Belt-system fields (v2) — optional, defaulted for older topics
+          belt: typeof raw.belt === 'string' ? raw.belt : undefined,
+          beltTest: raw.beltTest === true ? true : undefined,
+          edgeFound: raw.edgeFound === true ? true : undefined,
+          defended: raw.defended === true ? true : undefined,
         });
       }
     } catch {
@@ -190,7 +202,7 @@ function stripKataResultMarkers(content: string): string {
   return content.replace(KATA_RESULT_MARKER_REGEX, '').trim();
 }
 
-export function useChat({ config, activeConstruct, activePartners, apiKey, provider, practiceDojoContext, onPhaseComplete, onKataResult, requestType }: UseChatOptions): UseChatReturn {
+export function useChat({ config, activeConstruct, activePartners, apiKey, provider, practiceDojoContext, onPhaseComplete, onKataResult, onPrioritiesRecord, requestType }: UseChatOptions): UseChatReturn {
   const [isGuidedPractice, setIsGuidedPractice] = useState(false);
   const [isImportedSession, setIsImportedSession] = useState(false);
 
@@ -297,6 +309,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, provi
           displayContent = stripDIKWMarker(displayContent);
           displayContent = stripNextPhaseMarker(displayContent);
           displayContent = stripKataResultMarkers(displayContent);
+          displayContent = stripPrioritiesRecordMarkers(displayContent);
           setMessages(current =>
             current.map(msg =>
               msg.id === assistantMessageId
@@ -331,11 +344,21 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, provi
             }
           }
 
+          // Parse the conversation record (What Are My Priorities?). Stamped
+          // here, locally — the model never supplies its own timestamp.
+          if (onPrioritiesRecord) {
+            const at = new Date().toISOString();
+            for (const record of extractPrioritiesRecords(accumulatedContent, at)) {
+              onPrioritiesRecord(record);
+            }
+          }
+
           // Strip markers from final content
           let cleanContent = stripBalanceMarker(accumulatedContent);
           cleanContent = stripDIKWMarker(cleanContent);
           cleanContent = stripNextPhaseMarker(cleanContent);
           cleanContent = stripKataResultMarkers(cleanContent);
+          cleanContent = stripPrioritiesRecordMarkers(cleanContent);
 
           // Track consecutive text-only responses for interactive element encouragement
           if (hasInteractiveElements(cleanContent)) {
@@ -385,7 +408,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, provi
     } finally {
       setIsLoading(false);
     }
-  }, [messages, config, activeConstruct, activePartners, apiKey, provider, isLoading, isGuidedPractice, practiceDojoContext, consecutiveTextOnlyResponses, onPhaseComplete, onKataResult, requestType]);
+  }, [messages, config, activeConstruct, activePartners, apiKey, provider, isLoading, isGuidedPractice, practiceDojoContext, consecutiveTextOnlyResponses, onPhaseComplete, onKataResult, onPrioritiesRecord, requestType]);
 
   const resetChat = useCallback(() => {
     // Cancel any existing request

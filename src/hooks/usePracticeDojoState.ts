@@ -8,8 +8,10 @@ import {
   CheckpointStatus,
   PhaseSelfCheck,
   KataResult,
+  PrioritiesRecord,
   SerializedMessage,
 } from '@/lib/practice-dojo/types';
+import { mergeKataResults } from '@/lib/practice-dojo/belt-record';
 
 const STORAGE_KEY = 'practiceDojo';
 
@@ -46,6 +48,11 @@ interface UsePracticeDojoStateReturn {
 
   // Code Kata Dojo scorecard (persists across sessions and completion)
   recordKataResult: (result: KataResult) => void;
+  // Cross-device restore: merge results from an imported Belt Record JSON
+  importKataResults: (imported: KataResult[]) => void;
+
+  // What Are My Priorities? — one record per completed conversation
+  recordPrioritiesRecord: (record: PrioritiesRecord) => void;
 
   // User choices
   setUserChoice: (key: string, value: string) => void;
@@ -161,6 +168,7 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
       ...INITIAL_PRACTICE_DOJO_STATE,
       completedTopics: current.completedTopics, // Keep completed topics
       kataResults: current.kataResults, // Scorecard survives session resets
+      prioritiesRecords: current.prioritiesRecords ?? [], // …so does a conversation record the student can still download
       lastUpdated: new Date().toISOString(),
     }));
   }, []);
@@ -248,6 +256,29 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     setState(current => ({
       ...current,
       kataResults: [...current.kataResults, result],
+      lastUpdated: new Date().toISOString(),
+    }));
+  }, []);
+
+  // Append a conversation record (reported via the [PRIORITIES_RECORD]
+  // marker at the close of What Are My Priorities?). Like the kata scorecard,
+  // it is deliberately NOT cleared by startSession/markTopicCompleted: the
+  // student can still download a record from a conversation they finished
+  // weeks ago.
+  const recordPrioritiesRecord = useCallback((record: PrioritiesRecord) => {
+    setState(current => ({
+      ...current,
+      prioritiesRecords: [...(current.prioritiesRecords ?? []), record],
+      lastUpdated: new Date().toISOString(),
+    }));
+  }, []);
+
+  // Merge results from an imported Belt Record (deduped on kataId+at) —
+  // the cross-device restore path.
+  const importKataResults = useCallback((imported: KataResult[]) => {
+    setState(current => ({
+      ...current,
+      kataResults: mergeKataResults(current.kataResults, imported),
       lastUpdated: new Date().toISOString(),
     }));
   }, []);
@@ -347,6 +378,8 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     recordPhaseSelfCheck,
     markSenseiSignaled,
     recordKataResult,
+    importKataResults,
+    recordPrioritiesRecord,
     setUserChoice,
     markTopicCompleted,
     isTopicCompleted,

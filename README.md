@@ -109,6 +109,7 @@ Structured learning experiences with phased progression and interactive visual e
 
 | Topic | Category | Description |
 |-------|----------|-------------|
+| **What Are My Priorities?** | Foundations | Look honestly at where your 24 hours go — and at what your mind is being fed |
 | **Symbiotic Thinking** | Foundations | Learn the core philosophy and frameworks |
 | **Ikigai Discovery** | Foundations | Explore your purpose through guided self-reflection |
 | **CST 395 - Software Engineering** | Course | Course overview and key concepts |

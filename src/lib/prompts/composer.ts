@@ -2,6 +2,7 @@ import { DojoConfig, Construct, SparringPartner } from '../types';
 import { PracticeDojoContext, TopicConfig } from '../practice-dojo/types';
 import { AIProvider } from '../providers/types';
 import { DEFAULT_CAREER_INTELLIGENCE_PROMPT } from './defaults/career-intelligence';
+import { earnedBelts, BELT_INFO } from '../practice-dojo/belt-record';
 
 export interface ComposeOptions {
   isGuidedPractice?: boolean;
@@ -349,14 +350,18 @@ ${Object.entries(userChoices).map(([key, value]) => `- **${key}:** ${value}`).jo
     const predictionsRight = kataResults.reduce((sum, r) => sum + r.predictionsRight, 0);
     const predictionsTotal = kataResults.reduce((sum, r) => sum + r.predictionsTotal, 0);
     const plansHeld = kataResults.filter((r) => r.planHeld).length;
+    const edgesFound = kataResults.filter((r) => r.edgeFound).length;
+    const defended = kataResults.filter((r) => r.defended).length;
+    const belts = earnedBelts(kataResults);
     const last = kataResults[kataResults.length - 1];
     const recent = kataResults.slice(-6);
     sections.push(`## KATA SCORECARD (persisted across sessions)
-This student has prior kata history. Honor it: do NOT repeat solved katas, resume at the right tier, and reference their calibration when relevant.
+This student has prior kata history. Honor it: do NOT repeat solved katas, resume at the right belt and tier, and reference their calibration when relevant.
+- Belts earned: ${belts.length > 0 ? belts.map((b) => `${BELT_INFO[b.belt].emoji} ${b.belt}`).join(', ') : 'none yet'}
 - Solved katas (never re-assign): ${solvedIds.length > 0 ? solvedIds.join(', ') : 'none yet'}
-- Most recent: ${last.kataId} at Tier ${last.tier} in ${last.language} — resume from there, applying the tier ladder rules
+- Most recent: ${last.kataId}${last.belt ? ` (${last.belt} belt)` : ''} at Tier ${last.tier} in ${last.language} — resume from there, applying the ladder rules
 - Prediction calibration (all time): ${predictionsRight}/${predictionsTotal} test-case predictions correct
-- Plans that held: ${plansHeld}/${kataResults.length}
+- Plans that held: ${plansHeld}/${kataResults.length} · Edges found: ${edgesFound} · Decisions defended: ${defended}
 - Recent cycles: ${recent.map((r) => `${r.kataId}(T${r.tier}${r.solved ? '' : ', unsolved'}, predict ${r.predictionsRight}/${r.predictionsTotal})`).join('; ')}`);
   }
 
@@ -504,13 +509,27 @@ export function createPracticeDojoWelcome(topic: TopicConfig, pathway: string): 
   if (topic.topicId === 'intro-programming') {
     return `**Sensei:** Welcome to the Code Kata Dojo! 🥋
 
-Short coding katas — small functions with visible test tables — themed to what you're actually into. We train the code AND the thinking habits behind it: connect, plan, predict, verify, name the pattern. Your tier and scorecard are saved, so every visit picks up where the last one ended.
+**Your job here, every kata:** one small piece of code. You connect it to what you know, plan it, write it, predict your own test results, defend one choice, and hunt one edge case. I referee and coach — I never write it for you.
+
+You'll climb **belts** that follow your course — ⬜ Foundations → 🟨 Logical operators → 🟧 Ifs → 🟩 Strings → 🟦 Maps → ⬛ OOP. Your belts and scorecard are saved, so every visit picks up where the last one ended (and you can download your Belt Record to submit or back up).
 
 First choice:
 
 \`\`\`dojo-visual
 {"type": "selection-cards", "prompt": "Which language do you want to practice in?", "options": [{"id": "java", "icon": "☕", "title": "Java", "description": "The default here — and the CS-course standard"}, {"id": "python", "icon": "🐍", "title": "Python", "description": "Compact, readable syntax"}, {"id": "javascript", "icon": "🌐", "title": "JavaScript", "description": "The language of the web"}]}
 \`\`\``;
+  }
+
+  // Project Interview Dojo: the welcome states the interview frame plainly
+  // and asks for the project — the student's first answer opens Round 1.
+  if (topic.topicId === 'project-interview') {
+    return `**Sensei:** Welcome to the Project Interview Dojo. 🎤
+
+Here's the whole idea, plainly: in any interview — a showcase, a college conversation, a job interview — what the person across from you most wants is to hear **what you did and why, in your own words**. Today you practice exactly that, from **both sides of the table**: you'll frame your story, survive a real interview on it, then interview a partner on theirs.
+
+Nobody grades you here. You make every call, and you keep the transcript.
+
+Let's start with the raw material: **tell me about your project.** What is it, in a sentence or two — however it comes out?`;
   }
 
   // INSPIRE demo: the welcome owns the three-door picker. The visitor's first
@@ -721,6 +740,22 @@ Drop **3–5 real job postings** that interest you here. Roles you'd actually wa
   "content": "Real postings are the market saying — in its own words — what it wants. We start from evidence, not from what we assume the market wants."
 }
 \`\`\``;
+  }
+
+  // What Are My Priorities?: the welcome owns the whole opening — purpose,
+  // the honesty condition, and the six-category question — so the student's
+  // very first message is their own time picture. The last line (rough
+  // numbers / name your own category) is the only addition to Sathya's
+  // wording; it exists because students force-fit commutes, jobs, and
+  // caregiving into the six when nothing invites them not to.
+  if (topic.topicId === 'what-are-my-priorities') {
+    return `**Sensei:** Welcome. ⏳
+
+Before we get into the course, I want to spend a few minutes helping you understand your own priorities. There are no right or wrong answers, and this isn't about grading you. My role is to be a mirror and ask you questions so you can see your own picture more clearly. One thing to know going in: this will only be helpful if we look carefully and honestly at our time — the more real you are, the more you get out of it.
+
+Most people spend their time in a 24-hour period on: **sleeping, nutrition for the body, work, learning, nutrition for the mind, and entertainment/fun.** How would you break down your percentages? And how would you rate the quality of each?
+
+Rough numbers are fine. And if something big in your day doesn't fit those six, name it and we'll add it.`;
   }
 
   // Map Your Curiosity: open with the free-time selection cards
