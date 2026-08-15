@@ -16,6 +16,7 @@ import { HelpButtons, HelpModal } from '@/components/HelpPanel';
 import { ExportButton } from '@/components/ExportButton';
 import { ApiKeyModal } from '@/components/ApiKeyModal';
 import { TopicSelectionModal, TopicEditor, ProgressIndicator, BeltStrip, RecordStrip } from '@/components/PracticeDojo';
+import { recordForStrip } from '@/lib/practice-dojo/priorities-record';
 import { PhaseCheckDialog } from '@/components/PracticeDojo/PhaseCheckDialog';
 import { TourOverlay, TourPrompt } from '@/components/Tour';
 import { StatsModal } from '@/components/StatsModal';
@@ -107,16 +108,15 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, topicId, pathway, currentPhaseIndex, completedPhases, userChoices, checkpointStatuses, phaseSelfChecks, kataResults, interactionCount, topicConfig.getTopicWithCustomizations]);
 
-  // The "What Are My Priorities?" record from THIS conversation, once the
-  // Sensei has closed it out. Older records stay in state — a student can
-  // still have last month's — but the strip only offers the one on screen.
+  // The "What Are My Priorities?" record the download strip offers: this
+  // conversation's once the Sensei closes it out, otherwise the newest one
+  // still in the browser (see recordForStrip — a record must not be stranded
+  // by pressing the completion button).
   const sessionStarted = practiceDojoState.state.sessionStarted;
-  const currentPrioritiesRecord = useMemo(() => {
-    const fromThisSession = (prioritiesRecords ?? []).filter(
-      (record) => !sessionStarted || record.at >= sessionStarted
-    );
-    return fromThisSession.length > 0 ? fromThisSession[fromThisSession.length - 1] : null;
-  }, [prioritiesRecords, sessionStarted]);
+  const prioritiesStripRecord = useMemo(
+    () => recordForStrip(prioritiesRecords, sessionStarted),
+    [prioritiesRecords, sessionStarted]
+  );
 
   const {
     messages,
@@ -175,7 +175,10 @@ export default function Home() {
   // "Ready to move on?" self-check dialog (Practice Dojo phase gate)
   const [phaseCheckOpen, setPhaseCheckOpen] = useState(false);
   // Shown once after the final phase's gate completes an activity
-  const [completedTopicNotice, setCompletedTopicNotice] = useState(false);
+  // Holds the topicId that just completed (not just a flag): markTopicCompleted
+  // clears topicId, and the record strip needs to know which activity finished
+  // so it can stay reachable through the completion notice.
+  const [completedTopicNotice, setCompletedTopicNotice] = useState<string | null>(null);
   // Set to the belt id when a belt test is passed (Code Kata Dojo)
   const [beltAwardNotice, setBeltAwardNotice] = useState<string | null>(null);
 
@@ -282,7 +285,7 @@ export default function Home() {
     stats.trackPracticeDojoStarted(topicId, pathway);
 
     // A new activity supersedes any lingering completion banner
-    setCompletedTopicNotice(false);
+    setCompletedTopicNotice(null);
 
     // Start the Practice Dojo session
     practiceDojoState.startSession(topicId, pathway);
@@ -447,7 +450,7 @@ export default function Home() {
     practiceDojoState.clearSavedMessages();
     practiceDojoState.markTopicCompleted(topicId);
     resetChat();
-    setCompletedTopicNotice(true);
+    setCompletedTopicNotice(topicId);
 
     setTimeout(() => {
       isExitingPracticeDojoRef.current = false;
@@ -557,8 +560,12 @@ export default function Home() {
         )}
         {/* Record strip (What Are My Priorities?): where the conversation
             record lives, and the two downloads. Shows no findings. */}
-        {isInPracticeDojo && topicId === 'what-are-my-priorities' && (
-          <RecordStrip record={currentPrioritiesRecord} />
+        {((isInPracticeDojo && topicId === 'what-are-my-priorities') ||
+          completedTopicNotice === 'what-are-my-priorities') && (
+          <RecordStrip
+            record={prioritiesStripRecord?.record ?? null}
+            fromThisSession={prioritiesStripRecord?.fromThisSession ?? true}
+          />
         )}
         {/* Belt strip (Code Kata Dojo): earned belts + Belt Record download/import */}
         {isInPracticeDojo && topicId === 'intro-programming' && (
@@ -631,7 +638,7 @@ export default function Home() {
               the Practice Dojo, and you can revisit it any time.
             </span>
             <button
-              onClick={() => setCompletedTopicNotice(false)}
+              onClick={() => setCompletedTopicNotice(null)}
               className="text-emerald-300 hover:text-emerald-100 text-xs px-2 py-1 rounded border border-emerald-700/50 hover:bg-emerald-800/30"
             >
               Dismiss

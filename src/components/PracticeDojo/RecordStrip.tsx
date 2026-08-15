@@ -8,9 +8,13 @@ import {
 import { downloadFile } from '@/lib/export';
 
 interface RecordStripProps {
-  // The record from this conversation, once the Sensei has closed it out.
-  // null while the conversation is still running.
+  // The record on offer — this conversation's once the Sensei has closed it
+  // out, or the most recent one still in the browser. null before the first
+  // record exists.
   record: PrioritiesRecord | null;
+  // False when the record predates the conversation on screen, so the strip
+  // can say which one it is instead of implying it is today's.
+  fromThisSession: boolean;
 }
 
 /**
@@ -21,7 +25,7 @@ interface RecordStripProps {
  * the conversation contained — the Sensei's whole stance is that it mirrors,
  * never scores, and a strip that displayed findings would undo that.
  */
-export function RecordStrip({ record }: RecordStripProps) {
+export function RecordStrip({ record, fromThisSession }: RecordStripProps) {
   const handleDownload = (format: 'md' | 'json') => {
     if (!record) return;
     const stamp = record.at.slice(0, 10);
@@ -44,9 +48,11 @@ export function RecordStrip({ record }: RecordStripProps) {
     <div className="border-b border-gray-800 bg-gray-900/60 px-4 py-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-[11px] text-gray-500">
-          {record
-            ? 'Your record is saved in this browser. Nothing is sent anywhere — download it if you want to keep or share it.'
-            : 'When this conversation closes, a record of it is saved here for you to download.'}
+          {!record
+            ? 'When this conversation closes, a record of it is saved here for you to download.'
+            : fromThisSession
+              ? 'Your record is saved in this browser. Nothing is sent anywhere — download it if you want to keep or share it.'
+              : `Your record from ${record.at.slice(0, 10)} is still saved in this browser. When this conversation closes, its record replaces it here.`}
         </span>
 
         <div className="flex items-center gap-1.5">

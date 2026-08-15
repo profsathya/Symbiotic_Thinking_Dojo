@@ -4,6 +4,7 @@ import {
   parsePrioritiesRecord,
   prioritiesRecordToJson,
   prioritiesRecordToMarkdown,
+  recordForStrip,
   stripPrioritiesRecordMarkers,
 } from '@/lib/practice-dojo/priorities-record';
 import { PrioritiesRecord } from '@/lib/practice-dojo/types';
@@ -135,6 +136,43 @@ describe('priorities record sanitizing', () => {
     expect(record.mind_nutrition.sources).toEqual([]);
     expect(record.self_named_gap.named).toBeNull();
     expect(record.flags.physical_habit_flag).toBe(false);
+  });
+});
+
+describe('which record the download strip offers', () => {
+  const older: PrioritiesRecord = { ...extractPrioritiesRecords(MESSAGE, AT)[0], at: '2026-08-11T17:04:00.000Z' };
+  const newer: PrioritiesRecord = { ...older, at: '2026-08-18T18:00:00.000Z' };
+
+  it('offers nothing before the first record exists', () => {
+    expect(recordForStrip([], '2026-08-11T17:00:00.000Z')).toBeNull();
+    expect(recordForStrip(undefined, null)).toBeNull();
+  });
+
+  it('offers this conversation\'s record while the session runs', () => {
+    const strip = recordForStrip([older], '2026-08-11T17:00:00.000Z')!;
+    expect(strip.record.at).toBe(older.at);
+    expect(strip.fromThisSession).toBe(true);
+  });
+
+  // Regression: completing the activity clears topicId AND sessionStarted, so
+  // a strictly session-scoped record was stranded the moment the student
+  // pressed the completion button — with the file still in their browser.
+  it('still offers the record after the activity completes and sessionStarted is cleared', () => {
+    const strip = recordForStrip([older], null)!;
+    expect(strip.record.at).toBe(older.at);
+    expect(strip.fromThisSession).toBe(true);
+  });
+
+  it('offers an earlier record when the student comes back, marked as not this one', () => {
+    const strip = recordForStrip([older], '2026-08-18T09:00:00.000Z')!;
+    expect(strip.record.at).toBe(older.at);
+    expect(strip.fromThisSession).toBe(false);
+  });
+
+  it('offers the newest record when there are several', () => {
+    const strip = recordForStrip([older, newer], '2026-08-18T09:00:00.000Z')!;
+    expect(strip.record.at).toBe(newer.at);
+    expect(strip.fromThisSession).toBe(true);
   });
 });
 

@@ -217,6 +217,36 @@ export function extractPrioritiesRecords(content: string, at: string): Prioritie
   return records;
 }
 
+export interface StripRecord {
+  record: PrioritiesRecord;
+  // Whether this record came from the conversation on screen, as opposed to
+  // one the student finished earlier
+  fromThisSession: boolean;
+}
+
+/**
+ * Which record the download strip should offer.
+ *
+ * Records are appended in order, so the last one is always the newest. The
+ * strip offers it whether or not it came from the conversation on screen:
+ * completing the activity clears topicId AND sessionStarted, so a record
+ * scoped strictly to the current session would be stranded the moment the
+ * student pressed the completion button — with the file still sitting in
+ * their browser, unreachable. A student who finished last week can come back
+ * to the topic and still download it.
+ *
+ * A null sessionStarted means no session is running (just completed), so the
+ * newest record belongs to the conversation that was on screen.
+ */
+export function recordForStrip(
+  records: PrioritiesRecord[] | undefined,
+  sessionStarted: string | null
+): StripRecord | null {
+  if (!records || records.length === 0) return null;
+  const record = records[records.length - 1];
+  return { record, fromThisSession: !sessionStarted || record.at >= sessionStarted };
+}
+
 // ---------------------------------------------------------------------------
 // Downloads
 // ---------------------------------------------------------------------------
