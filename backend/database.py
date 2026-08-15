@@ -1,5 +1,6 @@
 import sqlite3
 import threading
+import uuid
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -10,6 +11,12 @@ _local = threading.local()
 
 # PostgreSQL uses %s for placeholders, SQLite uses ?
 _PH = "%s" if DATABASE_TYPE == "postgres" else "?"
+
+# One-time backfill that files every pre-existing CTI key under a first course.
+# Guarded by an admin_settings flag so repeated init_db() runs (every process
+# start, in production) never re-create the course or re-assign keys.
+COURSE_BACKFILL_FLAG = "course_backfill_v1"
+COURSE_BACKFILL_NAME = "CST395 - Spring 2026"
 
 
 def _serialize_datetime(value: Any) -> Any:
@@ -40,7 +47,17 @@ CREATE TABLE IF NOT EXISTS cti_keys (
     openai_key TEXT,
     anthropic_key TEXT,
     google_key TEXT,
-    github_key TEXT
+    github_key TEXT,
+    course_id TEXT
+);
+
+CREATE TABLE IF NOT EXISTS courses (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    term TEXT,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    notes TEXT
 );
 
 CREATE TABLE IF NOT EXISTS admin_settings (
@@ -88,7 +105,17 @@ CREATE TABLE IF NOT EXISTS cti_keys (
     openai_key TEXT,
     anthropic_key TEXT,
     google_key TEXT,
-    github_key TEXT
+    github_key TEXT,
+    course_id TEXT
+);
+
+CREATE TABLE IF NOT EXISTS courses (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    term TEXT,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    notes TEXT
 );
 
 CREATE TABLE IF NOT EXISTS admin_settings (
@@ -199,6 +226,75 @@ def get_db():
             raise
 
 
+def _upsert_admin_setting(db: "_DbWrapper", key: str, value: str) -> None:
+    """Write an admin setting using an existing connection.
+
+    Takes the wrapper rather than opening its own so it can run inside
+    init_db()'s transaction — on postgres a nested get_db() would be a second
+    connection that cannot see this transaction's uncommitted DDL.
+    """
+    now = datetime.utcnow().isoformat()
+    if DATABASE_TYPE == "postgres":
+        db.execute(
+            f"""
+            INSERT INTO admin_settings (key, value, updated_at)
+            VALUES ({_PH}, {_PH}, {_PH})
+            ON CONFLICT (key) DO UPDATE SET value = {_PH}, updated_at = {_PH}
+            """,
+            (key, value, now, value, now),
+        )
+    else:
+        db.execute(
+            f"""
+            INSERT OR REPLACE INTO admin_settings (key, value, updated_at)
+            VALUES ({_PH}, {_PH}, {_PH})
+            """,
+            (key, value, now),
+        )
+
+
+def _backfill_courses(db: "_DbWrapper") -> None:
+    """Assign every pre-existing CTI key to a first course, exactly once.
+
+    No-op once the COURSE_BACKFILL_FLAG admin setting is present, so restarting
+    the service does not create a duplicate course or re-file keys that an
+    admin has since moved. Keys created after this runs get a course only when
+    one is explicitly chosen.
+    """
+    flag = db.query_one(
+        f"SELECT value FROM admin_settings WHERE key = {_PH}", (COURSE_BACKFILL_FLAG,)
+    )
+    if flag:
+        return
+
+    # `name` is unique — reuse a matching course rather than failing the insert
+    # if one was created by hand before this migration ran.
+    existing = db.query_one(
+        f"SELECT id FROM courses WHERE name = {_PH}", (COURSE_BACKFILL_NAME,)
+    )
+    if existing:
+        course_id = existing["id"]
+    else:
+        course_id = str(uuid.uuid4())
+        db.execute(
+            f"""
+            INSERT INTO courses (id, name, term, active, created_at, notes)
+            VALUES ({_PH}, {_PH}, NULL, TRUE, {_PH}, {_PH})
+            """,
+            (
+                course_id,
+                COURSE_BACKFILL_NAME,
+                datetime.utcnow().isoformat(),
+                "Created automatically when course organization was added.",
+            ),
+        )
+
+    db.execute(
+        f"UPDATE cti_keys SET course_id = {_PH} WHERE course_id IS NULL", (course_id,)
+    )
+    _upsert_admin_setting(db, COURSE_BACKFILL_FLAG, course_id)
+
+
 def init_db() -> None:
     """Create tables if they don't exist."""
     with get_db() as db:
@@ -215,6 +311,25 @@ def init_db() -> None:
                     db.execute(f"ALTER TABLE cti_keys ADD COLUMN IF NOT EXISTS {column} TEXT")
                 except:
                     pass
+            # Add course_id column if it doesn't exist (for existing tables)
+            try:
+                db.execute("ALTER TABLE cti_keys ADD COLUMN IF NOT EXISTS course_id TEXT")
+            except:
+                pass
+            # Create courses table if it doesn't exist
+            try:
+                db.execute("""
+                CREATE TABLE IF NOT EXISTS courses (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL UNIQUE,
+                    term TEXT,
+                    active BOOLEAN NOT NULL DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    notes TEXT
+                )
+                """)
+            except:
+                pass
             # Create admin_keys table if it doesn't exist
             try:
                 db.execute("""
@@ -265,6 +380,16 @@ def init_db() -> None:
             );
             """)
             db.execute("""
+            CREATE TABLE IF NOT EXISTS courses (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                term TEXT,
+                active BOOLEAN NOT NULL DEFAULT TRUE,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                notes TEXT
+            );
+            """)
+            db.execute("""
             CREATE TABLE IF NOT EXISTS admin_settings (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL,
@@ -305,6 +430,15 @@ def init_db() -> None:
                     db.execute(f"ALTER TABLE cti_keys ADD COLUMN {column} TEXT")
                 except:
                     pass
+            # Add course_id column if it doesn't exist (for existing tables)
+            try:
+                db.execute("ALTER TABLE cti_keys ADD COLUMN course_id TEXT")
+            except:
+                pass
+
+        # Both branches land here with `courses` and `cti_keys.course_id` in
+        # place, so the one-time backfill is shared.
+        _backfill_courses(db)
 
 
 def get_key(key_id: str) -> Optional[Dict[str, Any]]:
@@ -372,15 +506,16 @@ def create_key(
     anthropic_key: Optional[str] = None,
     google_key: Optional[str] = None,
     github_key: Optional[str] = None,
+    course_id: Optional[str] = None,
 ) -> None:
     """Insert a new CTI key."""
     with get_db() as db:
         db.execute(
             f"""
-            INSERT INTO cti_keys (id, student_email, student_name, total_budget_tokens, expires_at, notes, openai_key, anthropic_key, google_key, github_key)
-            VALUES ({_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH})
+            INSERT INTO cti_keys (id, student_email, student_name, total_budget_tokens, expires_at, notes, openai_key, anthropic_key, google_key, github_key, course_id)
+            VALUES ({_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH})
             """,
-            (key_id, student_email, student_name, total_budget_tokens, expires_at, notes, openai_key, anthropic_key, google_key, github_key),
+            (key_id, student_email, student_name, total_budget_tokens, expires_at, notes, openai_key, anthropic_key, google_key, github_key, course_id),
         )
 
 
@@ -430,32 +565,139 @@ def get_admin_setting(key: str) -> Optional[str]:
 def set_admin_setting(key: str, value: str) -> None:
     """Set an admin setting value (insert or update)."""
     with get_db() as db:
+        _upsert_admin_setting(db, key, value)
+
+
+def list_keys(
+    active_only: bool = False,
+    course_id: Optional[str] = None,
+    unassigned_only: bool = False,
+) -> List[Dict[str, Any]]:
+    """List keys, optionally filtered to active-only and/or a single course.
+
+    `unassigned_only` selects the keys that belong to no course and takes
+    precedence over `course_id`.
+    """
+    with get_db() as db:
+        conditions: List[str] = []
+        params: List[Any] = []
+        if active_only:
+            conditions.append("active = TRUE")
+        if unassigned_only:
+            conditions.append("course_id IS NULL")
+        elif course_id is not None:
+            conditions.append(f"course_id = {_PH}")
+            params.append(course_id)
+
+        query = "SELECT * FROM cti_keys"
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+        query += " ORDER BY created_at DESC"
+        rows = db.query_all(query, tuple(params))
+        return [_serialize_row(row) for row in rows]
+
+
+def set_key_course(key_id: str, course_id: Optional[str]) -> None:
+    """Move a key into a course, or out of every course when course_id is None."""
+    with get_db() as db:
         db.execute(
-            f"""
-            INSERT INTO admin_settings (key, value, updated_at)
-            VALUES ({_PH}, {_PH}, {_PH})
-            ON CONFLICT (key) DO UPDATE SET value = {_PH}, updated_at = {_PH}
-            """
-            if DATABASE_TYPE == "postgres"
-            else f"""
-            INSERT OR REPLACE INTO admin_settings (key, value, updated_at)
-            VALUES ({_PH}, {_PH}, {_PH})
-            """,
-            (key, value, datetime.utcnow().isoformat(), value, datetime.utcnow().isoformat())
-            if DATABASE_TYPE == "postgres"
-            else (key, value, datetime.utcnow().isoformat()),
+            f"UPDATE cti_keys SET course_id = {_PH} WHERE id = {_PH}", (course_id, key_id)
         )
 
 
-def list_keys(active_only: bool = False) -> List[Dict[str, Any]]:
-    """List all keys, optionally filtered to active-only."""
+# Course Management
+def create_course(
+    course_id: str,
+    name: str,
+    term: Optional[str] = None,
+    notes: Optional[str] = None,
+) -> None:
+    """Insert a new course."""
     with get_db() as db:
-        query = "SELECT * FROM cti_keys"
-        if active_only:
-            query += " WHERE active = TRUE"
-        query += " ORDER BY created_at DESC"
-        rows = db.query_all(query)
-        return [_serialize_row(row) for row in rows]
+        db.execute(
+            f"""
+            INSERT INTO courses (id, name, term, active, created_at, notes)
+            VALUES ({_PH}, {_PH}, {_PH}, TRUE, {_PH}, {_PH})
+            """,
+            (course_id, name, term, datetime.utcnow().isoformat(), notes),
+        )
+
+
+def list_courses() -> List[Dict[str, Any]]:
+    """List courses, each with its key count and total tokens used."""
+    with get_db() as db:
+        return db.query_all(
+            """
+            SELECT c.id, c.name, c.term, c.active, c.created_at, c.notes,
+                   COUNT(k.id) AS key_count,
+                   COALESCE(SUM(k.used_tokens_input + k.used_tokens_output), 0) AS total_used_tokens
+            FROM courses c
+            LEFT JOIN cti_keys k ON k.course_id = c.id
+            GROUP BY c.id, c.name, c.term, c.active, c.created_at, c.notes
+            ORDER BY c.name
+            """
+        )
+
+
+def get_course(course_id: str) -> Optional[Dict[str, Any]]:
+    """Look up a course by its ID."""
+    with get_db() as db:
+        return db.query_one(f"SELECT * FROM courses WHERE id = {_PH}", (course_id,))
+
+
+def get_course_by_name(name: str) -> Optional[Dict[str, Any]]:
+    """Look up a course by its (unique) name."""
+    with get_db() as db:
+        return db.query_one(f"SELECT * FROM courses WHERE name = {_PH}", (name,))
+
+
+def update_course(
+    course_id: str,
+    name: Optional[str] = None,
+    term: Optional[str] = None,
+    notes: Optional[str] = None,
+) -> None:
+    """Update the supplied fields of a course; omitted fields are left alone."""
+    assignments: List[str] = []
+    params: List[Any] = []
+    if name is not None:
+        assignments.append(f"name = {_PH}")
+        params.append(name)
+    if term is not None:
+        assignments.append(f"term = {_PH}")
+        params.append(term)
+    if notes is not None:
+        assignments.append(f"notes = {_PH}")
+        params.append(notes)
+    if not assignments:
+        return
+
+    params.append(course_id)
+    with get_db() as db:
+        db.execute(
+            f"UPDATE courses SET {', '.join(assignments)} WHERE id = {_PH}", tuple(params)
+        )
+
+
+def set_course_active(course_id: str, active: bool) -> None:
+    """Activate or deactivate a course."""
+    with get_db() as db:
+        db.execute(f"UPDATE courses SET active = {_PH} WHERE id = {_PH}", (active, course_id))
+
+
+def count_keys_in_course(course_id: str) -> int:
+    """Count the CTI keys currently assigned to a course."""
+    with get_db() as db:
+        row = db.query_one(
+            f"SELECT COUNT(*) AS key_count FROM cti_keys WHERE course_id = {_PH}", (course_id,)
+        )
+        return int(row["key_count"]) if row else 0
+
+
+def delete_course(course_id: str) -> None:
+    """Delete a course. Callers must check it holds no keys first."""
+    with get_db() as db:
+        db.execute(f"DELETE FROM courses WHERE id = {_PH}", (course_id,))
 
 
 def create_admin_key(key_id: str, key_value: str, label: Optional[str] = None, notes: Optional[str] = None) -> None:
