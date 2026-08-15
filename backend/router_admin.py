@@ -37,7 +37,25 @@ async def verify_admin(x_admin_key: Optional[str] = Header(None)) -> None:
 router = APIRouter(dependencies=[Depends(verify_admin)])
 
 
+# A course filter of this value selects the keys that belong to no course at
+# all — course IDs are uuids, so it can never collide with a real one.
+NO_COURSE = "none"
+
+
+def _resolve_course_filter(course_id: Optional[str]) -> dict:
+    """Turn a course_id query param into database.list_keys() keyword args."""
+    if course_id is None or course_id == "":
+        return {}
+    if course_id == NO_COURSE:
+        return {"unassigned_only": True}
+    return {"course_id": course_id}
+
+
 # Pydantic models
+#
+# Every Optional field carries an explicit `= None` default. Production rows
+# predate some of these columns, and a field without a default makes Pydantic
+# treat a missing key as a validation error — which surfaces as a 500.
 class KeyCreateRequest(BaseModel):
     email: str
     name: Optional[str] = None
@@ -48,30 +66,33 @@ class KeyCreateRequest(BaseModel):
     anthropic_key: Optional[str] = None
     google_key: Optional[str] = None
     github_key: Optional[str] = None
+    course_id: Optional[str] = None
 
 
 class KeyResponse(BaseModel):
     id: str
     student_email: str
-    student_name: Optional[str]
+    student_name: Optional[str] = None
     total_budget_tokens: int
     used_tokens_input: int
     used_tokens_output: int
     active: bool
     created_at: str
-    expires_at: Optional[str]
-    last_used_at: Optional[str]
+    expires_at: Optional[str] = None
+    last_used_at: Optional[str] = None
     notes: Optional[str] = None
     openai_key: Optional[str] = None
     anthropic_key: Optional[str] = None
     google_key: Optional[str] = None
     github_key: Optional[str] = None
+    course_id: Optional[str] = None
 
 
 class BulkCreateRequest(BaseModel):
     students: List[dict]  # Each dict must have 'email', optional 'name'
     budget: int = Field(default=5_000_000, ge=1)
     expires: Optional[str] = None
+    course_id: Optional[str] = None
 
 
 class BulkCreateResponse(BaseModel):
@@ -91,11 +112,41 @@ class KeyStatsResponse(BaseModel):
     total_remaining: int
 
 
+class CourseResponse(BaseModel):
+    id: str
+    name: str
+    term: Optional[str] = None
+    active: bool
+    created_at: Optional[str] = None
+    notes: Optional[str] = None
+    key_count: int = 0
+    total_used_tokens: int = 0
+
+
+class CourseCreateRequest(BaseModel):
+    name: str = Field(..., min_length=1)
+    term: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class CourseUpdateRequest(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1)
+    term: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class MoveKeyToCourseRequest(BaseModel):
+    course_id: Optional[str] = None
+
+
 # Endpoints
 @router.get("/api/admin/keys", response_model=List[KeyResponse])
-async def list_keys(active_only: bool = False):
-    """List all CTI keys."""
-    keys = database.list_keys(active_only=active_only)
+async def list_keys(active_only: bool = False, course_id: Optional[str] = None):
+    """List all CTI keys.
+
+    `course_id` filters to one course; pass "none" for keys in no course.
+    """
+    keys = database.list_keys(active_only=active_only, **_resolve_course_filter(course_id))
     return keys
 
 
@@ -110,9 +161,12 @@ async def get_key(key_id: str):
 
 @router.post("/api/admin/keys", response_model=KeyResponse, status_code=status.HTTP_201_CREATED)
 async def create_key(request: KeyCreateRequest):
-    """Create a new CTI key."""
+    """Create a new CTI key, optionally filed under a course."""
     import uuid
     key_id = str(uuid.uuid4())
+
+    if request.course_id and not database.get_course(request.course_id):
+        raise HTTPException(status_code=404, detail="Course not found")
 
     database.create_key(
         key_id=key_id,
@@ -125,6 +179,7 @@ async def create_key(request: KeyCreateRequest):
         anthropic_key=request.anthropic_key,
         google_key=request.google_key,
         github_key=request.github_key,
+        course_id=request.course_id,
     )
 
     key_data = database.get_key(key_id)
@@ -133,17 +188,39 @@ async def create_key(request: KeyCreateRequest):
 
 @router.post("/api/admin/keys/bulk", response_model=BulkCreateResponse)
 async def bulk_create_keys(request: BulkCreateRequest):
-    """Bulk create CTI keys from a list of students."""
+    """Bulk create CTI keys from a list of students.
+
+    A per-student `course_id` wins over the request-level one, so a mixed CSV
+    can still place each key individually.
+    """
     import uuid
+
+    if request.course_id and not database.get_course(request.course_id):
+        raise HTTPException(status_code=404, detail="Course not found")
 
     created = []
     failed = []
+    # cti_keys.course_id has no foreign key, so an unchecked id would be stored
+    # verbatim and the key would show up under neither that course nor "no
+    # course". Validate every distinct id once, and reject just the offending
+    # student rather than the whole batch.
+    known_courses: dict = {}
+
+    def course_exists(candidate: str) -> bool:
+        if candidate not in known_courses:
+            known_courses[candidate] = database.get_course(candidate) is not None
+        return known_courses[candidate]
 
     for student in request.students:
         try:
             email = student.get("email")
             if not email:
                 failed.append({"student": student, "error": "Missing email"})
+                continue
+
+            course_id = student.get("course_id") or request.course_id
+            if course_id and not course_exists(course_id):
+                failed.append({"student": student, "error": f"Course not found: {course_id}"})
                 continue
 
             key_id = str(uuid.uuid4())
@@ -157,6 +234,7 @@ async def bulk_create_keys(request: BulkCreateRequest):
                 anthropic_key=student.get("anthropic_key"),
                 google_key=student.get("google_key"),
                 github_key=student.get("github_key"),
+                course_id=course_id,
             )
 
             key_data = database.get_key(key_id)
@@ -240,11 +318,38 @@ async def update_key_label(key_id: str, request: UpdateLabelRequest):
     return {"success": True, "message": "Label updated successfully"}
 
 
+@router.post("/api/admin/keys/{key_id}/course")
+async def move_key_to_course(key_id: str, request: MoveKeyToCourseRequest):
+    """Move a CTI key into a course, or out of every course with a null id."""
+    key_data = database.get_key(key_id)
+    if not key_data:
+        raise HTTPException(status_code=404, detail="Key not found")
+
+    course_name = None
+    if request.course_id:
+        course = database.get_course(request.course_id)
+        if not course:
+            raise HTTPException(status_code=404, detail="Course not found")
+        course_name = course["name"]
+
+    database.set_key_course(key_id, request.course_id or None)
+    return {
+        "success": True,
+        "message": f"Key moved to {course_name}" if course_name else "Key removed from its course",
+        "course_id": request.course_id or None,
+        "course_name": course_name,
+    }
+
+
 @router.get("/api/admin/stats", response_model=KeyStatsResponse)
-async def get_stats():
-    """Get overall statistics for all keys."""
-    keys = database.list_keys()
-    
+async def get_stats(course_id: Optional[str] = None):
+    """Get overall statistics for all keys.
+
+    `course_id` narrows the numbers to one course; pass "none" for the keys
+    that belong to no course.
+    """
+    keys = database.list_keys(**_resolve_course_filter(course_id))
+
     total_keys = len(keys)
     active_keys = sum(1 for k in keys if k["active"])
     total_budget = sum(k["total_budget_tokens"] for k in keys)
@@ -261,10 +366,11 @@ async def get_stats():
 
 
 @router.get("/api/admin/usage")
-async def export_usage():
-    """Export all usage data (CSV format)."""
-    keys = database.list_keys()
-    
+async def export_usage(course_id: Optional[str] = None):
+    """Export usage data, optionally narrowed to a single course."""
+    keys = database.list_keys(**_resolve_course_filter(course_id))
+    course_names = {c["id"]: c["name"] for c in database.list_courses()}
+
     results = []
     for k in keys:
         used = k["used_tokens_input"] + k["used_tokens_output"]
@@ -272,6 +378,7 @@ async def export_usage():
             "key_id": k["id"],
             "email": k["student_email"],
             "name": k["student_name"] or "",
+            "course": course_names.get(k.get("course_id"), ""),
             "input_tokens": k["used_tokens_input"],
             "output_tokens": k["used_tokens_output"],
             "total_used": used,
@@ -282,8 +389,98 @@ async def export_usage():
             "expires": k["expires_at"] or "",
             "last_used": k["last_used_at"] or "",
         })
-    
+
     return {"data": results}
+
+
+# Course Management
+@router.get("/api/admin/courses", response_model=List[CourseResponse])
+async def list_courses():
+    """List all courses with their key counts and total tokens used."""
+    return database.list_courses()
+
+
+@router.post("/api/admin/courses", response_model=CourseResponse, status_code=status.HTTP_201_CREATED)
+async def create_course(request: CourseCreateRequest):
+    """Create a new course."""
+    import uuid
+
+    name = request.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Course name is required")
+    if database.get_course_by_name(name):
+        raise HTTPException(status_code=409, detail=f'A course named "{name}" already exists')
+
+    course_id = str(uuid.uuid4())
+    database.create_course(
+        course_id=course_id,
+        name=name,
+        term=request.term,
+        notes=request.notes,
+    )
+    return {**database.get_course(course_id), "key_count": 0, "total_used_tokens": 0}
+
+
+@router.post("/api/admin/courses/{course_id}", response_model=CourseResponse)
+async def update_course(course_id: str, request: CourseUpdateRequest):
+    """Rename a course and/or update its term and notes."""
+    course = database.get_course(course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    name = request.name.strip() if request.name is not None else None
+    if request.name is not None and not name:
+        raise HTTPException(status_code=400, detail="Course name cannot be empty")
+    if name and name != course["name"]:
+        if database.get_course_by_name(name):
+            raise HTTPException(status_code=409, detail=f'A course named "{name}" already exists')
+
+    database.update_course(course_id, name=name, term=request.term, notes=request.notes)
+    return {
+        **database.get_course(course_id),
+        "key_count": database.count_keys_in_course(course_id),
+    }
+
+
+@router.post("/api/admin/courses/{course_id}/deactivate")
+async def deactivate_course(course_id: str):
+    """Deactivate a course. Its keys keep their assignment."""
+    if not database.get_course(course_id):
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    database.set_course_active(course_id, False)
+    return {"success": True, "message": "Course deactivated"}
+
+
+@router.post("/api/admin/courses/{course_id}/reactivate")
+async def reactivate_course(course_id: str):
+    """Reactivate a course."""
+    if not database.get_course(course_id):
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    database.set_course_active(course_id, True)
+    return {"success": True, "message": "Course reactivated"}
+
+
+@router.delete("/api/admin/courses/{course_id}")
+async def delete_course(course_id: str):
+    """Delete a course. Refused while any key still belongs to it."""
+    course = database.get_course(course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    key_count = database.count_keys_in_course(course_id)
+    if key_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Cannot delete a course that still has {key_count} key(s). "
+                "Move them to another course first, or deactivate this one instead."
+            ),
+        )
+
+    database.delete_course(course_id)
+    return {"success": True, "message": "Course deleted", "name": course["name"]}
 
 
 @router.get("/api/admin/database")
