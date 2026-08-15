@@ -212,13 +212,32 @@ def test_sync_routes_do_not_block_the_event_loop():
     )
 
 
+class _StubCursor:
+    def __init__(self, ping_fails: bool):
+        self.ping_fails = ping_fails
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def execute(self, sql, params=()):
+        if self.ping_fails:
+            raise RuntimeError("server closed the connection unexpectedly")
+
+
 class _StubConnection:
-    def __init__(self, closed: int = 0):
+    def __init__(self, closed: int = 0, ping_fails: bool = False):
         self.closed = closed
-        self.rolled_back = False
+        self.ping_fails = ping_fails
+        self.rollbacks = 0
+
+    def cursor(self, *args, **kwargs):
+        return _StubCursor(self.ping_fails)
 
     def rollback(self):
-        self.rolled_back = True
+        self.rollbacks += 1
 
 
 class _StubPool:
@@ -270,13 +289,17 @@ def test_pool_returns_healthy_connections_and_discards_broken_ones():
                 raise ValueError("query blew up")
         except ValueError:
             pass
-        check(recoverable.rolled_back, "the failed transaction was not rolled back")
+        # One rollback from the pre-ping, one from the failed transaction.
+        check(recoverable.rollbacks == 2, "the failed transaction was not rolled back")
         check(pool.returned == [(recoverable, False)], f"unexpected disposal: {pool.returned}")
 
-    # One whose rollback also fails is dead — close it instead of pooling it.
+    # One that passes the pre-ping and then dies mid-use is not reusable: its
+    # rollback fails too, so it must be closed rather than pooled.
     class _DeadConnection(_StubConnection):
         def rollback(self):
-            raise RuntimeError("connection is gone")
+            self.rollbacks += 1
+            if self.rollbacks > 1:  # the first is the pre-ping, which succeeds
+                raise RuntimeError("connection is gone")
 
     dead = _DeadConnection()
     with stub_pool([dead]) as pool:
@@ -296,6 +319,49 @@ def test_pool_skips_connections_cloud_sql_already_closed():
             check(conn is live, "checkout handed back a closed connection")
         check((stale, True) in pool.returned, "the stale connection was not discarded")
         check((live, False) in pool.returned, "the live connection was not returned to the pool")
+
+
+def test_pool_discards_connections_that_look_open_but_are_dead():
+    """The case `conn.closed` cannot catch.
+
+    Cloud SQL reaping an idle session leaves psycopg2 reporting closed == 0
+    until an operation fails, so checkout has to pre-ping rather than trust the
+    flag. Without this the first request after an idle period 500s.
+    """
+    silently_dead = _StubConnection(closed=0, ping_fails=True)
+    live = _StubConnection()
+    with stub_pool([silently_dead, live]) as pool:
+        with database._pooled_connection() as conn:
+            check(conn is live, "checkout handed back a connection that fails on use")
+        check(
+            (silently_dead, True) in pool.returned,
+            f"the dead-but-open-looking connection was pooled again: {pool.returned}",
+        )
+        check((live, False) in pool.returned, "the live connection was not returned")
+
+
+def test_bulk_isolates_a_malformed_course_id():
+    """An unhashable course_id must fail one student, not the whole request."""
+    res = client.post(
+        "/api/admin/keys/bulk",
+        headers=AUTH,
+        json={
+            "students": [
+                {"email": "fine-1@csumb.edu"},
+                {"email": "broken@csumb.edu", "course_id": ["not", "a", "string"]},
+                {"email": "fine-2@csumb.edu"},
+            ],
+            "budget": 1000,
+        },
+    )
+    check(res.status_code == 200, f"malformed course_id returned {res.status_code}: {res.text}")
+    body = res.json()
+    check(len(body["created"]) == 2, f"valid students were lost: {len(body['created'])}")
+    check(len(body["failed"]) == 1, f"expected exactly 1 failure, got {body['failed']}")
+    check(
+        body["failed"][0]["student"]["email"] == "broken@csumb.edu",
+        f"wrong student blamed: {body['failed']}",
+    )
 
 
 def test_pool_slot_is_released_after_use():
@@ -320,6 +386,8 @@ def main() -> int:
         test_sync_routes_do_not_block_the_event_loop,
         test_pool_returns_healthy_connections_and_discards_broken_ones,
         test_pool_skips_connections_cloud_sql_already_closed,
+        test_pool_discards_connections_that_look_open_but_are_dead,
+        test_bulk_isolates_a_malformed_course_id,
         test_pool_slot_is_released_after_use,
     ]
     for test in tests:

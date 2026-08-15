@@ -263,6 +263,32 @@ def close_pool() -> None:
             _pool_slots = None
 
 
+def _connection_is_live(conn) -> bool:
+    """Pre-ping a pooled connection before handing it to a caller.
+
+    `conn.closed` only flips once an operation notices the disconnect, so a
+    session Cloud SQL reaped while idle still looks open. Without a ping the
+    first request after an idle period fails instead of transparently getting
+    a replacement — the pool equivalent of SQLAlchemy's pool_pre_ping.
+
+    One extra round trip per checkout, against the ~100ms handshake this whole
+    change exists to avoid.
+    """
+    if conn.closed:
+        return False
+    started = time.perf_counter()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        # Leave no open transaction behind from the ping itself.
+        conn.rollback()
+        return True
+    except Exception:
+        return False
+    finally:
+        _log_timing("pool pre-ping", started)
+
+
 @contextmanager
 def _pooled_connection():
     """Check a live connection out of the pool and return it when done.
@@ -283,10 +309,11 @@ def _pooled_connection():
     started = time.perf_counter()
     conn = None
     try:
-        # Cloud SQL drops idle connections; skip past any the pool still holds.
+        # Cloud SQL drops idle connections; discard any dead ones the pool
+        # still holds and let it open a replacement.
         for _ in range(3):
             candidate = pool.getconn()
-            if candidate.closed:
+            if not _connection_is_live(candidate):
                 pool.putconn(candidate, close=True)
                 continue
             conn = candidate

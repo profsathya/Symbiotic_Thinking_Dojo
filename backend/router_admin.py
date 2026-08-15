@@ -212,29 +212,38 @@ def bulk_create_keys(request: BulkCreateRequest):
         return known_courses[candidate]
 
     # Validate first so the write phase is a single uninterrupted transaction.
+    # `students` is untyped, so every check here stays inside a try — one
+    # malformed entry must fail on its own, exactly as it did when validation
+    # lived in the per-student try below.
     for student in request.students:
-        email = student.get("email")
-        if not email:
-            failed.append({"student": student, "error": "Missing email"})
-            continue
+        try:
+            email = student.get("email")
+            if not email:
+                failed.append({"student": student, "error": "Missing email"})
+                continue
 
-        course_id = student.get("course_id") or request.course_id
-        if course_id and not course_exists(course_id):
-            failed.append({"student": student, "error": f"Course not found: {course_id}"})
-            continue
+            course_id = student.get("course_id") or request.course_id
+            if course_id is not None and not isinstance(course_id, str):
+                failed.append({"student": student, "error": "course_id must be a string"})
+                continue
+            if course_id and not course_exists(course_id):
+                failed.append({"student": student, "error": f"Course not found: {course_id}"})
+                continue
 
-        pending.append((student, {
-            "key_id": str(uuid.uuid4()),
-            "student_email": email,
-            "student_name": student.get("name"),
-            "total_budget_tokens": request.budget,
-            "expires_at": request.expires,
-            "openai_key": student.get("openai_key"),
-            "anthropic_key": student.get("anthropic_key"),
-            "google_key": student.get("google_key"),
-            "github_key": student.get("github_key"),
-            "course_id": course_id,
-        }))
+            pending.append((student, {
+                "key_id": str(uuid.uuid4()),
+                "student_email": email,
+                "student_name": student.get("name"),
+                "total_budget_tokens": request.budget,
+                "expires_at": request.expires,
+                "openai_key": student.get("openai_key"),
+                "anthropic_key": student.get("anthropic_key"),
+                "google_key": student.get("google_key"),
+                "github_key": student.get("github_key"),
+                "course_id": course_id,
+            }))
+        except Exception as e:
+            failed.append({"student": student, "error": str(e)})
 
     # One connection and one transaction for the whole batch. The previous
     # create-then-read-back per student opened two connections each, which on
