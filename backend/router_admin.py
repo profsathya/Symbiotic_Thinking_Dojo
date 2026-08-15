@@ -61,11 +61,11 @@ class KeyResponse(BaseModel):
     created_at: str
     expires_at: Optional[str]
     last_used_at: Optional[str]
-    notes: Optional[str]
-    openai_key: Optional[str]
-    anthropic_key: Optional[str]
-    google_key: Optional[str]
-    github_key: Optional[str]
+    notes: Optional[str] = None
+    openai_key: Optional[str] = None
+    anthropic_key: Optional[str] = None
+    google_key: Optional[str] = None
+    github_key: Optional[str] = None
 
 
 class BulkCreateRequest(BaseModel):

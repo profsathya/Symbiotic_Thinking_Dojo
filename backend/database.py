@@ -209,6 +209,12 @@ def init_db() -> None:
                 db.execute("ALTER TABLE cti_keys ADD COLUMN IF NOT EXISTS label TEXT")
             except:
                 pass
+            # Add provider key columns if they don't exist (for existing tables)
+            for column in ['openai_key', 'anthropic_key', 'google_key', 'github_key']:
+                try:
+                    db.execute(f"ALTER TABLE cti_keys ADD COLUMN IF NOT EXISTS {column} TEXT")
+                except:
+                    pass
             # Create admin_keys table if it doesn't exist
             try:
                 db.execute("""
