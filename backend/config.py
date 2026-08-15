@@ -14,6 +14,19 @@ DATABASE_TYPE: str = os.environ.get("DATABASE_TYPE", "sqlite")  # "sqlite" or "p
 DATABASE_PATH: str = os.environ.get("DATABASE_PATH", "./cti_keys.db")
 DATABASE_URL: str = os.environ.get("DATABASE_URL", "")  # For postgres
 
+# Postgres connection pool. Sized per Cloud Run *instance*, so the ceiling that
+# matters is DB_POOL_MAX x max instances against the Cloud SQL tier's
+# max_connections (~25 on db-f1-micro). The default of 3 leaves headroom at the
+# current max of 5 instances; raise it only alongside the instance tier.
+DB_POOL_MIN: int = int(os.environ.get("DB_POOL_MIN", "1"))
+DB_POOL_MAX: int = int(os.environ.get("DB_POOL_MAX", "3"))
+# Seconds a request waits for a pooled connection before giving up.
+DB_POOL_TIMEOUT: float = float(os.environ.get("DB_POOL_TIMEOUT", "30"))
+
+# Log the duration of every database call at INFO. Off by default; turn on to
+# make a latency regression visible in Cloud Run logs.
+LOG_DB_TIMINGS: bool = os.environ.get("LOG_DB_TIMINGS", "").lower() in ("1", "true", "yes")
+
 # CORS
 CORS_ORIGINS: list[str] = [
     origin.strip()

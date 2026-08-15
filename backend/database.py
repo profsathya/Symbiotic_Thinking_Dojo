@@ -1,13 +1,23 @@
+import logging
 import sqlite3
 import threading
+import time
 import uuid
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from config import DATABASE_PATH, DATABASE_TYPE
+from config import DATABASE_PATH, DATABASE_TYPE, LOG_DB_TIMINGS
+
+logger = logging.getLogger(__name__)
 
 _local = threading.local()
+
+
+def _log_timing(label: str, started: float) -> None:
+    """Record how long a database call took, when LOG_DB_TIMINGS is on."""
+    if LOG_DB_TIMINGS:
+        logger.info("db %.1fms %s", (time.perf_counter() - started) * 1000, label)
 
 # PostgreSQL uses %s for placeholders, SQLite uses ?
 _PH = "%s" if DATABASE_TYPE == "postgres" else "?"
@@ -153,15 +163,26 @@ class _DbWrapper:
     def __init__(self, obj: Any):
         self._obj = obj
 
+    @staticmethod
+    def _label(sql: str) -> str:
+        """First line of a statement, for timing logs."""
+        return " ".join(sql.split())[:80]
+
     def execute(self, sql: str, params: tuple = ()) -> None:
+        started = time.perf_counter()
         self._obj.execute(sql, params)
+        _log_timing(self._label(sql), started)
 
     def execute_rowcount(self, sql: str, params: tuple = ()) -> int:
         """Execute a statement and return the number of affected rows."""
-        if DATABASE_TYPE == "postgres":
-            self._obj.execute(sql, params)
-            return self._obj.rowcount
-        return self._obj.execute(sql, params).rowcount
+        started = time.perf_counter()
+        try:
+            if DATABASE_TYPE == "postgres":
+                self._obj.execute(sql, params)
+                return self._obj.rowcount
+            return self._obj.execute(sql, params).rowcount
+        finally:
+            _log_timing(self._label(sql), started)
 
     def fetchone(self) -> Optional[Dict[str, Any]]:
         if DATABASE_TYPE == "postgres":
@@ -172,20 +193,28 @@ class _DbWrapper:
         raise NotImplementedError("Use query() for SELECTs")
 
     def query_one(self, sql: str, params: tuple = ()) -> Optional[Dict[str, Any]]:
-        if DATABASE_TYPE == "postgres":
-            self._obj.execute(sql, params)
-            row = self._obj.fetchone()
-            return _serialize_row(dict(row)) if row else None
-        else:
-            row = self._obj.execute(sql, params).fetchone()
-            return _serialize_row(dict(row)) if row else None
+        started = time.perf_counter()
+        try:
+            if DATABASE_TYPE == "postgres":
+                self._obj.execute(sql, params)
+                row = self._obj.fetchone()
+                return _serialize_row(dict(row)) if row else None
+            else:
+                row = self._obj.execute(sql, params).fetchone()
+                return _serialize_row(dict(row)) if row else None
+        finally:
+            _log_timing(self._label(sql), started)
 
     def query_all(self, sql: str, params: tuple = ()) -> List[Dict[str, Any]]:
-        if DATABASE_TYPE == "postgres":
-            self._obj.execute(sql, params)
-            return [_serialize_row(dict(r)) for r in self._obj.fetchall()]
-        else:
-            return [_serialize_row(dict(r)) for r in self._obj.execute(sql, params).fetchall()]
+        started = time.perf_counter()
+        try:
+            if DATABASE_TYPE == "postgres":
+                self._obj.execute(sql, params)
+                return [_serialize_row(dict(r)) for r in self._obj.fetchall()]
+            else:
+                return [_serialize_row(dict(r)) for r in self._obj.execute(sql, params).fetchall()]
+        finally:
+            _log_timing(self._label(sql), started)
 
 
 def _get_sqlite_conn() -> sqlite3.Connection:
@@ -197,25 +226,109 @@ def _get_sqlite_conn() -> sqlite3.Connection:
     return _local.conn
 
 
+_pool = None
+_pool_lock = threading.Lock()
+_pool_slots: Optional[threading.Semaphore] = None
+
+
+def _get_pool():
+    """Lazily build the process-wide postgres connection pool.
+
+    Built on first use rather than at import so that importing this module
+    never reaches out to the network (tests, `compileall`, CLI tools).
+    """
+    global _pool, _pool_slots
+    if _pool is None:
+        with _pool_lock:
+            if _pool is None:
+                from psycopg2 import pool as pg_pool
+
+                from config import DATABASE_URL, DB_POOL_MAX, DB_POOL_MIN
+
+                _pool_slots = threading.Semaphore(DB_POOL_MAX)
+                _pool = pg_pool.ThreadedConnectionPool(DB_POOL_MIN, DB_POOL_MAX, DATABASE_URL)
+                logger.info(
+                    "Postgres connection pool created (min=%s, max=%s)", DB_POOL_MIN, DB_POOL_MAX
+                )
+    return _pool
+
+
+def close_pool() -> None:
+    """Close every pooled connection. Used on shutdown."""
+    global _pool, _pool_slots
+    with _pool_lock:
+        if _pool is not None:
+            _pool.closeall()
+            _pool = None
+            _pool_slots = None
+
+
+@contextmanager
+def _pooled_connection():
+    """Check a live connection out of the pool and return it when done.
+
+    psycopg2's ThreadedConnectionPool raises instead of waiting once it is
+    exhausted, so a semaphore bounds callers first and makes them queue.
+    A connection that errors is closed rather than handed to the next caller.
+    """
+    from config import DB_POOL_TIMEOUT
+
+    pool = _get_pool()
+    assert _pool_slots is not None
+    if not _pool_slots.acquire(timeout=DB_POOL_TIMEOUT):
+        raise TimeoutError(
+            f"Timed out after {DB_POOL_TIMEOUT}s waiting for a database connection"
+        )
+
+    started = time.perf_counter()
+    conn = None
+    try:
+        # Cloud SQL drops idle connections; skip past any the pool still holds.
+        for _ in range(3):
+            candidate = pool.getconn()
+            if candidate.closed:
+                pool.putconn(candidate, close=True)
+                continue
+            conn = candidate
+            break
+        if conn is None:
+            raise RuntimeError("Could not obtain a live database connection from the pool")
+        _log_timing("connection checkout", started)
+
+        broken = False
+        try:
+            yield conn
+        except Exception:
+            try:
+                conn.rollback()
+            except Exception:
+                broken = True
+            raise
+        finally:
+            pool.putconn(conn, close=broken)
+            conn = None
+    finally:
+        if conn is not None:
+            pool.putconn(conn, close=True)
+        _pool_slots.release()
+
+
 @contextmanager
 def get_db():
     """Context manager that yields a _DbWrapper for database operations."""
     if DATABASE_TYPE == "postgres":
-        import psycopg2
         import psycopg2.extras
-        from config import DATABASE_URL
 
-        conn = psycopg2.connect(DATABASE_URL)
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        try:
-            yield _DbWrapper(cursor)
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            cursor.close()
-            conn.close()
+        with _pooled_connection() as conn:
+            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            try:
+                yield _DbWrapper(cursor)
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+            finally:
+                cursor.close()
     else:
         conn = _get_sqlite_conn()
         try:
@@ -517,6 +630,67 @@ def create_key(
             """,
             (key_id, student_email, student_name, total_budget_tokens, expires_at, notes, openai_key, anthropic_key, google_key, github_key, course_id),
         )
+
+
+def create_keys(keys: List[Dict[str, Any]]) -> Dict[str, List]:
+    """Insert many CTI keys over ONE connection and ONE transaction.
+
+    Each entry must carry `key_id` and `student_email`; the rest of the
+    create_key() arguments are optional. Returns
+    `{"created": [row, ...], "failed": [{"index": i, "error": str}, ...]}`.
+
+    A SAVEPOINT around each insert keeps the previous per-student error
+    isolation: one bad row is rolled back on its own instead of aborting the
+    batch (on postgres a failed statement would otherwise poison the whole
+    transaction). The created rows are read back in a single SELECT rather
+    than one per key.
+    """
+    created_ids: List[str] = []
+    failed: List[Dict[str, Any]] = []
+    if not keys:
+        return {"created": [], "failed": []}
+
+    with get_db() as db:
+        for index, key in enumerate(keys):
+            savepoint = f"sp_{index}"
+            try:
+                db.execute(f"SAVEPOINT {savepoint}")
+                db.execute(
+                    f"""
+                    INSERT INTO cti_keys (id, student_email, student_name, total_budget_tokens, expires_at, notes, openai_key, anthropic_key, google_key, github_key, course_id)
+                    VALUES ({_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH}, {_PH})
+                    """,
+                    (
+                        key["key_id"],
+                        key["student_email"],
+                        key.get("student_name"),
+                        key.get("total_budget_tokens", 5_000_000),
+                        key.get("expires_at"),
+                        key.get("notes"),
+                        key.get("openai_key"),
+                        key.get("anthropic_key"),
+                        key.get("google_key"),
+                        key.get("github_key"),
+                        key.get("course_id"),
+                    ),
+                )
+                db.execute(f"RELEASE SAVEPOINT {savepoint}")
+                created_ids.append(key["key_id"])
+            except Exception as exc:
+                db.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+                failed.append({"index": index, "error": str(exc)})
+
+        created: List[Dict[str, Any]] = []
+        if created_ids:
+            placeholders = ", ".join([_PH] * len(created_ids))
+            created = db.query_all(
+                f"SELECT * FROM cti_keys WHERE id IN ({placeholders})", tuple(created_ids)
+            )
+            # Return them in the order they were requested.
+            by_id = {row["id"]: row for row in created}
+            created = [by_id[key_id] for key_id in created_ids if key_id in by_id]
+
+    return {"created": created, "failed": failed}
 
 
 def set_key_active(key_id: str, active: bool) -> None:

@@ -7,7 +7,7 @@ import database
 from config import ADMIN_API_KEY, DATABASE_TYPE, DATABASE_PATH, DATABASE_URL, get_admin_api_key
 
 # Authentication
-async def verify_admin(x_admin_key: Optional[str] = Header(None)) -> None:
+def verify_admin(x_admin_key: Optional[str] = Header(None)) -> None:
     """Verify admin API key from X-Admin-Key header."""
     if not x_admin_key:
         raise HTTPException(
@@ -141,7 +141,7 @@ class MoveKeyToCourseRequest(BaseModel):
 
 # Endpoints
 @router.get("/api/admin/keys", response_model=List[KeyResponse])
-async def list_keys(active_only: bool = False, course_id: Optional[str] = None):
+def list_keys(active_only: bool = False, course_id: Optional[str] = None):
     """List all CTI keys.
 
     `course_id` filters to one course; pass "none" for keys in no course.
@@ -151,7 +151,7 @@ async def list_keys(active_only: bool = False, course_id: Optional[str] = None):
 
 
 @router.get("/api/admin/keys/{key_id}", response_model=KeyResponse)
-async def get_key(key_id: str):
+def get_key(key_id: str):
     """Get details of a specific key."""
     key_data = database.get_key(key_id)
     if not key_data:
@@ -160,7 +160,7 @@ async def get_key(key_id: str):
 
 
 @router.post("/api/admin/keys", response_model=KeyResponse, status_code=status.HTTP_201_CREATED)
-async def create_key(request: KeyCreateRequest):
+def create_key(request: KeyCreateRequest):
     """Create a new CTI key, optionally filed under a course."""
     import uuid
     key_id = str(uuid.uuid4())
@@ -187,7 +187,7 @@ async def create_key(request: KeyCreateRequest):
 
 
 @router.post("/api/admin/keys/bulk", response_model=BulkCreateResponse)
-async def bulk_create_keys(request: BulkCreateRequest):
+def bulk_create_keys(request: BulkCreateRequest):
     """Bulk create CTI keys from a list of students.
 
     A per-student `course_id` wins over the request-level one, so a mixed CSV
@@ -198,8 +198,8 @@ async def bulk_create_keys(request: BulkCreateRequest):
     if request.course_id and not database.get_course(request.course_id):
         raise HTTPException(status_code=404, detail="Course not found")
 
-    created = []
     failed = []
+    pending = []
     # cti_keys.course_id has no foreign key, so an unchecked id would be stored
     # verbatim and the key would show up under neither that course nor "no
     # course". Validate every distinct id once, and reject just the offending
@@ -211,42 +211,44 @@ async def bulk_create_keys(request: BulkCreateRequest):
             known_courses[candidate] = database.get_course(candidate) is not None
         return known_courses[candidate]
 
+    # Validate first so the write phase is a single uninterrupted transaction.
     for student in request.students:
-        try:
-            email = student.get("email")
-            if not email:
-                failed.append({"student": student, "error": "Missing email"})
-                continue
+        email = student.get("email")
+        if not email:
+            failed.append({"student": student, "error": "Missing email"})
+            continue
 
-            course_id = student.get("course_id") or request.course_id
-            if course_id and not course_exists(course_id):
-                failed.append({"student": student, "error": f"Course not found: {course_id}"})
-                continue
+        course_id = student.get("course_id") or request.course_id
+        if course_id and not course_exists(course_id):
+            failed.append({"student": student, "error": f"Course not found: {course_id}"})
+            continue
 
-            key_id = str(uuid.uuid4())
-            database.create_key(
-                key_id=key_id,
-                student_email=email,
-                student_name=student.get("name"),
-                total_budget_tokens=request.budget,
-                expires_at=request.expires,
-                openai_key=student.get("openai_key"),
-                anthropic_key=student.get("anthropic_key"),
-                google_key=student.get("google_key"),
-                github_key=student.get("github_key"),
-                course_id=course_id,
-            )
+        pending.append((student, {
+            "key_id": str(uuid.uuid4()),
+            "student_email": email,
+            "student_name": student.get("name"),
+            "total_budget_tokens": request.budget,
+            "expires_at": request.expires,
+            "openai_key": student.get("openai_key"),
+            "anthropic_key": student.get("anthropic_key"),
+            "google_key": student.get("google_key"),
+            "github_key": student.get("github_key"),
+            "course_id": course_id,
+        }))
 
-            key_data = database.get_key(key_id)
-            created.append(key_data)
-        except Exception as e:
-            failed.append({"student": student, "error": str(e)})
+    # One connection and one transaction for the whole batch. The previous
+    # create-then-read-back per student opened two connections each, which on
+    # postgres meant a fresh TLS handshake per key.
+    result = database.create_keys([row for _, row in pending])
+    for failure in result["failed"]:
+        student, _ = pending[failure["index"]]
+        failed.append({"student": student, "error": failure["error"]})
 
-    return BulkCreateResponse(created=created, failed=failed)
+    return BulkCreateResponse(created=result["created"], failed=failed)
 
 
 @router.post("/api/admin/keys/{key_id}/deactivate")
-async def deactivate_key(key_id: str):
+def deactivate_key(key_id: str):
     """Deactivate a CTI key."""
     key_data = database.get_key(key_id)
     if not key_data:
@@ -257,7 +259,7 @@ async def deactivate_key(key_id: str):
 
 
 @router.post("/api/admin/keys/{key_id}/reactivate")
-async def reactivate_key(key_id: str):
+def reactivate_key(key_id: str):
     """Reactivate a CTI key."""
     key_data = database.get_key(key_id)
     if not key_data:
@@ -268,7 +270,7 @@ async def reactivate_key(key_id: str):
 
 
 @router.delete("/api/admin/keys/{key_id}")
-async def delete_key(key_id: str):
+def delete_key(key_id: str):
     """Delete a CTI key."""
     key_data = database.get_key(key_id)
     if not key_data:
@@ -279,7 +281,7 @@ async def delete_key(key_id: str):
 
 
 @router.post("/api/admin/keys/{key_id}/add-budget")
-async def add_budget(key_id: str, request: AddBudgetRequest):
+def add_budget(key_id: str, request: AddBudgetRequest):
     """Set the total budget for a key to a specific value."""
     key_data = database.get_key(key_id)
     if not key_data:
@@ -308,7 +310,7 @@ class UpdateLabelRequest(BaseModel):
 
 
 @router.post("/api/admin/keys/{key_id}/label")
-async def update_key_label(key_id: str, request: UpdateLabelRequest):
+def update_key_label(key_id: str, request: UpdateLabelRequest):
     """Update the label for a CTI key."""
     key_data = database.get_key(key_id)
     if not key_data:
@@ -319,7 +321,7 @@ async def update_key_label(key_id: str, request: UpdateLabelRequest):
 
 
 @router.post("/api/admin/keys/{key_id}/course")
-async def move_key_to_course(key_id: str, request: MoveKeyToCourseRequest):
+def move_key_to_course(key_id: str, request: MoveKeyToCourseRequest):
     """Move a CTI key into a course, or out of every course with a null id."""
     key_data = database.get_key(key_id)
     if not key_data:
@@ -342,7 +344,7 @@ async def move_key_to_course(key_id: str, request: MoveKeyToCourseRequest):
 
 
 @router.get("/api/admin/stats", response_model=KeyStatsResponse)
-async def get_stats(course_id: Optional[str] = None):
+def get_stats(course_id: Optional[str] = None):
     """Get overall statistics for all keys.
 
     `course_id` narrows the numbers to one course; pass "none" for the keys
@@ -366,7 +368,7 @@ async def get_stats(course_id: Optional[str] = None):
 
 
 @router.get("/api/admin/usage")
-async def export_usage(course_id: Optional[str] = None):
+def export_usage(course_id: Optional[str] = None):
     """Export usage data, optionally narrowed to a single course."""
     keys = database.list_keys(**_resolve_course_filter(course_id))
     course_names = {c["id"]: c["name"] for c in database.list_courses()}
@@ -395,13 +397,13 @@ async def export_usage(course_id: Optional[str] = None):
 
 # Course Management
 @router.get("/api/admin/courses", response_model=List[CourseResponse])
-async def list_courses():
+def list_courses():
     """List all courses with their key counts and total tokens used."""
     return database.list_courses()
 
 
 @router.post("/api/admin/courses", response_model=CourseResponse, status_code=status.HTTP_201_CREATED)
-async def create_course(request: CourseCreateRequest):
+def create_course(request: CourseCreateRequest):
     """Create a new course."""
     import uuid
 
@@ -422,7 +424,7 @@ async def create_course(request: CourseCreateRequest):
 
 
 @router.post("/api/admin/courses/{course_id}", response_model=CourseResponse)
-async def update_course(course_id: str, request: CourseUpdateRequest):
+def update_course(course_id: str, request: CourseUpdateRequest):
     """Rename a course and/or update its term and notes."""
     course = database.get_course(course_id)
     if not course:
@@ -443,7 +445,7 @@ async def update_course(course_id: str, request: CourseUpdateRequest):
 
 
 @router.post("/api/admin/courses/{course_id}/deactivate")
-async def deactivate_course(course_id: str):
+def deactivate_course(course_id: str):
     """Deactivate a course. Its keys keep their assignment."""
     if not database.get_course(course_id):
         raise HTTPException(status_code=404, detail="Course not found")
@@ -453,7 +455,7 @@ async def deactivate_course(course_id: str):
 
 
 @router.post("/api/admin/courses/{course_id}/reactivate")
-async def reactivate_course(course_id: str):
+def reactivate_course(course_id: str):
     """Reactivate a course."""
     if not database.get_course(course_id):
         raise HTTPException(status_code=404, detail="Course not found")
@@ -463,7 +465,7 @@ async def reactivate_course(course_id: str):
 
 
 @router.delete("/api/admin/courses/{course_id}")
-async def delete_course(course_id: str):
+def delete_course(course_id: str):
     """Delete a course. Refused while any key still belongs to it."""
     course = database.get_course(course_id)
     if not course:
@@ -484,7 +486,7 @@ async def delete_course(course_id: str):
 
 
 @router.get("/api/admin/database")
-async def get_database_info():
+def get_database_info():
     """Get database configuration information."""
     return {
         "type": DATABASE_TYPE,
@@ -494,7 +496,7 @@ async def get_database_info():
 
 
 @router.get("/api/admin/config")
-async def get_config_info():
+def get_config_info():
     """Get admin configuration information (without sensitive data)."""
     admin_key = get_admin_api_key()
     admin_key_label = database.get_admin_setting("admin_api_key_label")
@@ -506,7 +508,7 @@ async def get_config_info():
 
 
 @router.get("/api/admin/config/key")
-async def get_admin_key():
+def get_admin_key():
     """Get the admin API key (for display purposes)."""
     return {
         "admin_key": get_admin_api_key(),
@@ -519,7 +521,7 @@ class UpdateAdminKeyRequest(BaseModel):
 
 
 @router.post("/api/admin/config/key")
-async def update_admin_key(request: UpdateAdminKeyRequest):
+def update_admin_key(request: UpdateAdminKeyRequest):
     """Update the admin API key (stored in database)."""
     database.set_admin_setting("admin_api_key", request.new_key)
     if request.label is not None:
@@ -532,7 +534,7 @@ class UpdateAdminKeyLabelRequest(BaseModel):
 
 
 @router.post("/api/admin/config/key/label")
-async def update_admin_key_label(request: UpdateAdminKeyLabelRequest):
+def update_admin_key_label(request: UpdateAdminKeyLabelRequest):
     """Update the admin API key label (stored in database)."""
     database.set_admin_setting("admin_api_key_label", request.label)
     return {"success": True, "message": "Admin key label updated successfully"}
@@ -545,7 +547,7 @@ class DatabaseConfigRequest(BaseModel):
 
 
 @router.get("/api/admin/database/config")
-async def get_database_config():
+def get_database_config():
     """Get database configuration from settings or environment."""
     db_type = database.get_admin_setting("database_type") or DATABASE_TYPE
     db_path = database.get_admin_setting("database_path") or (DATABASE_PATH if DATABASE_TYPE == "sqlite" else None)
@@ -559,7 +561,7 @@ async def get_database_config():
 
 
 @router.post("/api/admin/database/config")
-async def update_database_config(request: DatabaseConfigRequest):
+def update_database_config(request: DatabaseConfigRequest):
     """Update database configuration (stored in database, requires server restart)."""
     database.set_admin_setting("database_type", request.database_type)
     if request.database_path:
@@ -581,7 +583,7 @@ class AdminKeyCreateRequest(BaseModel):
 
 
 @router.post("/api/admin/keys/admin")
-async def create_admin_key(request: AdminKeyCreateRequest):
+def create_admin_key(request: AdminKeyCreateRequest):
     """Create a new admin key."""
     import uuid
     key_id = str(uuid.uuid4())
@@ -590,7 +592,7 @@ async def create_admin_key(request: AdminKeyCreateRequest):
 
 
 @router.get("/api/admin/keys/admin")
-async def list_admin_keys():
+def list_admin_keys():
     """List all admin keys."""
     keys = database.get_admin_keys()
     # Don't expose the actual key values in the list
@@ -608,28 +610,28 @@ async def list_admin_keys():
 
 
 @router.delete("/api/admin/keys/admin/{key_id}")
-async def delete_admin_key(key_id: str):
+def delete_admin_key(key_id: str):
     """Delete an admin key."""
     database.delete_admin_key(key_id)
     return {"success": True, "message": "Admin key deleted successfully"}
 
 
 @router.post("/api/admin/keys/admin/{key_id}/activate")
-async def activate_admin_key(key_id: str):
+def activate_admin_key(key_id: str):
     """Activate an admin key."""
     database.set_admin_key_active(key_id, True)
     return {"success": True, "message": "Admin key activated successfully"}
 
 
 @router.post("/api/admin/keys/admin/{key_id}/deactivate")
-async def deactivate_admin_key(key_id: str):
+def deactivate_admin_key(key_id: str):
     """Deactivate an admin key."""
     database.set_admin_key_active(key_id, False)
     return {"success": True, "message": "Admin key deactivated successfully"}
 
 
 @router.post("/api/admin/keys/admin/{key_id}/label")
-async def update_admin_key_label_endpoint(key_id: str, request: UpdateAdminKeyLabelRequest):
+def update_admin_key_label_endpoint(key_id: str, request: UpdateAdminKeyLabelRequest):
     """Update the label for an admin key."""
     database.update_admin_key_label(key_id, request.label)
     return {"success": True, "message": "Admin key label updated successfully"}
@@ -644,7 +646,7 @@ class ProviderKeyCreateRequest(BaseModel):
 
 
 @router.post("/api/admin/provider-keys")
-async def create_provider_key(request: ProviderKeyCreateRequest):
+def create_provider_key(request: ProviderKeyCreateRequest):
     """Create a new provider API key."""
     import uuid
     key_id = str(uuid.uuid4())
@@ -653,7 +655,7 @@ async def create_provider_key(request: ProviderKeyCreateRequest):
 
 
 @router.get("/api/admin/provider-keys")
-async def list_provider_keys():
+def list_provider_keys():
     """List all provider keys."""
     keys = database.get_provider_keys()
     # Don't expose the actual key values in the list
@@ -672,7 +674,7 @@ async def list_provider_keys():
 
 
 @router.get("/api/admin/provider-keys/{provider}")
-async def list_provider_keys_by_provider(provider: str):
+def list_provider_keys_by_provider(provider: str):
     """List all provider keys for a specific provider."""
     keys = database.get_provider_keys_by_provider(provider)
     return [
@@ -690,28 +692,28 @@ async def list_provider_keys_by_provider(provider: str):
 
 
 @router.delete("/api/admin/provider-keys/{key_id}")
-async def delete_provider_key(key_id: str):
+def delete_provider_key(key_id: str):
     """Delete a provider key."""
     database.delete_provider_key(key_id)
     return {"success": True, "message": "Provider key deleted successfully"}
 
 
 @router.post("/api/admin/provider-keys/{key_id}/activate")
-async def activate_provider_key(key_id: str):
+def activate_provider_key(key_id: str):
     """Activate a provider key."""
     database.set_provider_key_active(key_id, True)
     return {"success": True, "message": "Provider key activated successfully"}
 
 
 @router.post("/api/admin/provider-keys/{key_id}/deactivate")
-async def deactivate_provider_key(key_id: str):
+def deactivate_provider_key(key_id: str):
     """Deactivate a provider key."""
     database.set_provider_key_active(key_id, False)
     return {"success": True, "message": "Provider key deactivated successfully"}
 
 
 @router.post("/api/admin/provider-keys/{key_id}/label")
-async def update_provider_key_label_endpoint(key_id: str, request: UpdateAdminKeyLabelRequest):
+def update_provider_key_label_endpoint(key_id: str, request: UpdateAdminKeyLabelRequest):
     """Update the label for a provider key."""
     database.update_provider_key_label(key_id, request.label)
     return {"success": True, "message": "Provider key label updated successfully"}
