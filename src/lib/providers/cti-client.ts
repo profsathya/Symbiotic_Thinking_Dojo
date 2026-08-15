@@ -69,6 +69,7 @@ export async function streamCtiChat({
   onComplete,
   onError,
   signal,
+  requestType = 'reasoning',
 }: StreamChatOptions): Promise<string> {
   try {
     if (signal?.aborted) {
@@ -85,7 +86,7 @@ export async function streamCtiChat({
       body: JSON.stringify({
         messages: messages.map(m => ({ role: m.role, content: m.content })),
         system: systemPrompt,
-        request_type: 'reasoning',
+        request_type: requestType,
         max_tokens: 4096,
       }),
       signal,

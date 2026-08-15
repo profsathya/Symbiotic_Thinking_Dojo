@@ -110,6 +110,11 @@ export interface StreamChatOptions {
   onComplete: () => void;
   onError: (error: Error) => void;
   signal?: AbortSignal;
+  // CTI only: which backend model tier to request. 'reasoning' → Sonnet
+  // (default, higher quality), 'extraction' → Haiku (faster, lower latency).
+  // Other providers ignore this. Lets a surface trade speed for depth per
+  // message (e.g. the INSPIRE demo runs fast early, deep once thinking starts).
+  requestType?: 'reasoning' | 'extraction';
 }
 
 /**
