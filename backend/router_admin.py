@@ -200,12 +200,27 @@ async def bulk_create_keys(request: BulkCreateRequest):
 
     created = []
     failed = []
+    # cti_keys.course_id has no foreign key, so an unchecked id would be stored
+    # verbatim and the key would show up under neither that course nor "no
+    # course". Validate every distinct id once, and reject just the offending
+    # student rather than the whole batch.
+    known_courses: dict = {}
+
+    def course_exists(candidate: str) -> bool:
+        if candidate not in known_courses:
+            known_courses[candidate] = database.get_course(candidate) is not None
+        return known_courses[candidate]
 
     for student in request.students:
         try:
             email = student.get("email")
             if not email:
                 failed.append({"student": student, "error": "Missing email"})
+                continue
+
+            course_id = student.get("course_id") or request.course_id
+            if course_id and not course_exists(course_id):
+                failed.append({"student": student, "error": f"Course not found: {course_id}"})
                 continue
 
             key_id = str(uuid.uuid4())
@@ -219,7 +234,7 @@ async def bulk_create_keys(request: BulkCreateRequest):
                 anthropic_key=student.get("anthropic_key"),
                 google_key=student.get("google_key"),
                 github_key=student.get("github_key"),
-                course_id=student.get("course_id") or request.course_id,
+                course_id=course_id,
             )
 
             key_data = database.get_key(key_id)

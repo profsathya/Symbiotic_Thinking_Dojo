@@ -399,9 +399,41 @@ def test_create_and_filter_by_course():
         "bulk-created keys did not land in the course",
     )
 
+    # A per-student course_id overrides the request-level one, and an unknown
+    # id must fail that student instead of storing a dangling reference — a key
+    # pointing at no real course shows up under neither that course nor the
+    # "no course" filter.
+    mixed = client.post(
+        "/api/admin/keys/bulk",
+        headers=AUTH,
+        json={
+            "students": [
+                {"email": "ghost@csumb.edu", "course_id": "does-not-exist"},
+                {"email": "b3@csumb.edu"},
+            ],
+            "budget": 2000,
+            "course_id": course["id"],
+        },
+    )
+    check(mixed.status_code == 200, f"mixed bulk create failed: {mixed.text}")
+    check(len(mixed.json()["failed"]) == 1, f"unknown course should fail one student: {mixed.json()}")
+    check(
+        "does-not-exist" in mixed.json()["failed"][0]["error"],
+        f"failure should name the missing course: {mixed.json()['failed']}",
+    )
+    check(len(mixed.json()["created"]) == 1, "the valid student should still be created")
+    check(
+        len(raw_query("SELECT id FROM cti_keys WHERE course_id = 'does-not-exist'")) == 0,
+        "a key was stored pointing at a nonexistent course",
+    )
+    check(
+        len(raw_query("SELECT id FROM cti_keys WHERE student_email = 'ghost@csumb.edu'")) == 0,
+        "the rejected student should not have been created at all",
+    )
+
     filtered = client.get(f"/api/admin/keys?course_id={course['id']}", headers=AUTH)
     check(filtered.status_code == 200, f"filtered listing failed: {filtered.text}")
-    check(len(filtered.json()) == 3, f"expected 3 keys in the course, got {len(filtered.json())}")
+    check(len(filtered.json()) == 4, f"expected 4 keys in the course, got {len(filtered.json())}")
 
     unassigned = client.get("/api/admin/keys?course_id=none", headers=AUTH)
     emails = {k["student_email"] for k in unassigned.json()}
@@ -420,9 +452,9 @@ def test_create_and_filter_by_course():
     # Stats follow the same filter.
     all_stats = client.get("/api/admin/stats", headers=AUTH).json()
     course_stats = client.get(f"/api/admin/stats?course_id={course['id']}", headers=AUTH).json()
-    check(course_stats["total_keys"] == 3, f"course stats key count wrong: {course_stats}")
+    check(course_stats["total_keys"] == 4, f"course stats key count wrong: {course_stats}")
     check(
-        course_stats["total_budget"] == 1000 + 2000 + 2000,
+        course_stats["total_budget"] == 1000 + 2000 + 2000 + 2000,
         f"course stats budget wrong: {course_stats}",
     )
     check(
@@ -434,7 +466,7 @@ def test_create_and_filter_by_course():
     check(none_stats["total_keys"] >= 1, f"no-course stats should count the unassigned key: {none_stats}")
 
     usage = client.get(f"/api/admin/usage?course_id={course['id']}", headers=AUTH).json()
-    check(len(usage["data"]) == 3, "usage export did not honour the course filter")
+    check(len(usage["data"]) == 4, "usage export did not honour the course filter")
     check(
         all(row["course"] == "CST300 - Summer 2026" for row in usage["data"]),
         "usage export is missing the course name",

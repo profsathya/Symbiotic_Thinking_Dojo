@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Trash2, Plus, Globe, CheckCircle, AlertCircle, Users, Download, TrendingUp, KeyRound, Filter, FileText, Eye, LogOut, Lock, GraduationCap, FolderInput, Pencil } from 'lucide-react'
 
 interface ProviderKey {
@@ -78,6 +78,11 @@ export default function AdminDashboard() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [adminKey, setAdminKey] = useState<string | null>(null)
 
+  // Ticket counters that let a course-filter change invalidate the responses
+  // of the load it superseded. See fetchCTIKeys.
+  const keysRequestRef = useRef(0)
+  const statsRequestRef = useRef(0)
+
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
   // Check for admin key in localStorage on mount
@@ -115,6 +120,11 @@ export default function AdminDashboard() {
   const courseQuery = courseFilter ? `course_id=${encodeURIComponent(courseFilter)}` : ''
 
   const fetchCTIKeys = async () => {
+    // Switching the course filter twice in quick succession leaves two
+    // requests in flight; without this the slower, older response would land
+    // last and show the previous course's rows under the current filter.
+    // Every load takes a ticket and only the newest one may write state.
+    const ticket = ++keysRequestRef.current
     try {
       const params = [
         activeOnlyFilter ? 'active_only=true' : '',
@@ -126,6 +136,7 @@ export default function AdminDashboard() {
       })
       if (res.ok) {
         const data = await res.json()
+        if (ticket !== keysRequestRef.current) return
         setCtiKeys(data)
       }
     } catch (err) {
@@ -148,6 +159,9 @@ export default function AdminDashboard() {
   }
 
   const fetchStats = async () => {
+    // Same ordering hazard as fetchCTIKeys — the totals must not describe a
+    // course the admin has already navigated away from.
+    const ticket = ++statsRequestRef.current
     try {
       const url = courseQuery ? `${API_BASE}/api/admin/stats?${courseQuery}` : `${API_BASE}/api/admin/stats`
       const res = await fetch(url, {
@@ -155,6 +169,7 @@ export default function AdminDashboard() {
       })
       if (res.ok) {
         const data = await res.json()
+        if (ticket !== statsRequestRef.current) return
         setStats(data)
       }
     } catch (err) {
@@ -639,7 +654,7 @@ export default function AdminDashboard() {
                                       method: 'POST',
                                       headers: adminKey ? { 'X-Admin-Key': adminKey } : {}
                                     }).then(() => {
-                                      fetchCTIKeys()
+                                      refreshCourseViews()
                                       setToast({ message: `Key ${key.active ? 'deactivated' : 'reactivated'}`, type: 'success' })
                                       setTimeout(() => setToast(null), 3000)
                                     })
@@ -734,7 +749,7 @@ export default function AdminDashboard() {
               API_BASE={API_BASE}
               keyId={selectedKeyForBudget}
               setToast={setToast}
-              onSuccess={() => { fetchCTIKeys(); }}
+              onSuccess={refreshCourseViews}
               currentBudget={key.total_budget_tokens}
               adminKey={adminKey}
             />
@@ -775,7 +790,7 @@ export default function AdminDashboard() {
                         })
                         if (!res.ok) throw new Error('Failed to delete CTI key')
                         setToast({ message: 'CTI key deleted successfully', type: 'success' })
-                        fetchCTIKeys()
+                        refreshCourseViews()
                         setShowDeleteModal(false)
                         setSelectedKeyForDelete(null)
                       } catch (err) {
