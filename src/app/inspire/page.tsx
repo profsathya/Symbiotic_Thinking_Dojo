@@ -8,7 +8,8 @@ import { useApiKey } from '@/hooks/useApiKey';
 import { MessageList } from '@/components/Chat/MessageList';
 import { ChatInput } from '@/components/Chat/ChatInput';
 import { INSPIRE_DEMO_TOPIC } from '@/lib/practice-dojo/topics';
-import { PracticeDojoContext, Pathway, SerializedMessage } from '@/lib/practice-dojo/types';
+import { PracticeDojoContext, Pathway } from '@/lib/practice-dojo/types';
+import { InspireSaved, restorableMessages } from '@/lib/inspire-session';
 import { isCtiEnabled } from '@/lib/providers';
 import { urlHasKey, validKeyFromUrl, stripKeyFromUrl } from '@/lib/url-key';
 
@@ -33,14 +34,6 @@ const FAST_UNTIL_PHASE = 1;
 // Isolated persistence — a dedicated key so it never collides with the main
 // Dojo's 'practiceDojo' state.
 const INSPIRE_STORAGE_KEY = 'inspireDemo';
-
-interface InspireSaved {
-  messages: SerializedMessage[];
-  currentPhase: number;
-  userChoices: Record<string, string>;
-  interactionCount: number;
-  senseiReady: boolean;
-}
 
 function loadInspire(): InspireSaved | null {
   if (typeof window === 'undefined') return null;
@@ -149,8 +142,11 @@ export default function InspirePage() {
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
-    if (initialSaved?.messages?.length) {
-      restoreMessages(initialSaved.messages);
+    // Only completed turns come back: a reply interrupted by the refresh is
+    // dropped rather than restored as finished history (see restorableMessages).
+    const restorable = restorableMessages(initialSaved);
+    if (restorable.length > 0) {
+      restoreMessages(restorable);
     } else {
       startPracticeDojo(INSPIRE_DEMO_TOPIC, 'guided');
     }
@@ -166,8 +162,11 @@ export default function InspirePage() {
       userChoices,
       interactionCount,
       senseiReady,
+      // Marks a snapshot taken while a reply was still streaming, so the
+      // restore can drop the partial instead of trusting it.
+      inFlight: isLoading,
     });
-  }, [mounted, messages, currentPhase, userChoices, interactionCount, senseiReady, getSerializedMessages]);
+  }, [mounted, messages, isLoading, currentPhase, userChoices, interactionCount, senseiReady, getSerializedMessages]);
 
   const handleSend = useCallback(
     (message: string) => {
