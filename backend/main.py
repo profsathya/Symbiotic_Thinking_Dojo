@@ -49,6 +49,14 @@ def startup():
         # This allows health checks to pass and manual intervention
 
 
+@app.on_event("shutdown")
+def shutdown():
+    try:
+        database.close_pool()
+    except Exception as e:
+        logging.warning(f"Error closing database pool: {e}")
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}
