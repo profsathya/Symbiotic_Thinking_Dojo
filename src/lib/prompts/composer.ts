@@ -753,9 +753,9 @@ Drop **3–5 real job postings** that interest you here. Roles you'd actually wa
 
 Before we get into the course, I want to spend a few minutes helping you understand your own priorities. There are no right or wrong answers, and this isn't about grading you. My role is to be a mirror and ask you questions so you can see your own picture more clearly. One thing to know going in: this will only be helpful if we look carefully and honestly at our time — the more real you are, the more you get out of it.
 
-Most people spend their time in a 24-hour period on: **sleeping, nutrition for the body, work, learning, nutrition for the mind, and entertainment/fun.** How would you break down your percentages? And how would you rate the quality of each?
+Most people spend their time in a 24-hour period on: **sleeping, nutrition for the body, work, learning, nutrition for the mind, and entertainment/fun.** On an average day, how many hours do you spend on each? And how would you rate the quality of each?
 
-Rough numbers are fine. And if something big in your day doesn't fit those six, name it and we'll add it.`;
+Rough hours are fine — half-hours are plenty precise. And if something big in your day doesn't fit those six, name it and we'll add it.`;
   }
 
   // Map Your Curiosity: open with the free-time selection cards

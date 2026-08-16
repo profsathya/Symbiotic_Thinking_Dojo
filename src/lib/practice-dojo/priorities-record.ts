@@ -131,9 +131,10 @@ function cleanStringArray(raw: unknown, maxItems: number, maxLen: number): strin
     .slice(0, maxItems);
 }
 
-function cleanPct(raw: unknown): number | null {
+// Hours in a day, to one decimal so half-hours survive ("about 6.5").
+function cleanHours(raw: unknown): number | null {
   if (typeof raw !== 'number' || !Number.isFinite(raw)) return null;
-  return Math.min(100, Math.max(0, Math.round(raw)));
+  return Math.min(24, Math.max(0, Math.round(raw * 10) / 10));
 }
 
 function cleanTriState(raw: unknown): boolean | null {
@@ -148,8 +149,8 @@ function cleanTimePicture(raw: unknown): TimePictureEntry[] {
     if (!category) continue;
     entries.push({
       category,
-      first_estimate_pct: cleanPct((item as TimePictureEntry)?.first_estimate_pct),
-      revised_pct: cleanPct((item as TimePictureEntry)?.revised_pct),
+      first_estimate_hours: cleanHours((item as TimePictureEntry)?.first_estimate_hours),
+      revised_hours: cleanHours((item as TimePictureEntry)?.revised_hours),
       quality_rating: cleanString((item as TimePictureEntry)?.quality_rating, 80),
       sources_named: cleanStringArray((item as TimePictureEntry)?.sources_named, 12, 120),
     });
@@ -255,8 +256,8 @@ export function prioritiesRecordToJson(record: PrioritiesRecord): string {
   return JSON.stringify(record, null, 2);
 }
 
-function pct(value: number | null): string {
-  return value === null ? '—' : `${value}%`;
+function hours(value: number | null): string {
+  return value === null ? '—' : `${value}h`;
 }
 
 /** Markdown tables break on a raw pipe, and student words can contain one. */
@@ -288,7 +289,7 @@ export function prioritiesRecordToMarkdown(record: PrioritiesRecord): string {
     );
     for (const entry of record.time_picture) {
       lines.push(
-        `| ${cell(entry.category)} | ${pct(entry.first_estimate_pct)} | ${pct(entry.revised_pct)} | ${cell(entry.quality_rating)} | ${cell(entry.sources_named.join(', '))} |`
+        `| ${cell(entry.category)} | ${hours(entry.first_estimate_hours)} | ${hours(entry.revised_hours)} | ${cell(entry.quality_rating)} | ${cell(entry.sources_named.join(', '))} |`
       );
     }
     lines.push('', '_A dash under "After we looked" means you kept that one as it was._');
