@@ -18,15 +18,15 @@ const PAYLOAD = JSON.stringify({
   time_picture: [
     {
       category: 'sleep',
-      first_estimate_pct: 30,
-      revised_pct: 25,
+      first_estimate_hours: 7,
+      revised_hours: 5.5,
       quality_rating: 'ok',
       sources_named: ['phone in bed until 2'],
     },
     {
       category: 'entertainment/fun',
-      first_estimate_pct: 20,
-      revised_pct: 35,
+      first_estimate_hours: 5,
+      revised_hours: 8,
       quality_rating: 'fine',
       sources_named: ['tiktok', 'youtube while eating'],
     },
@@ -42,7 +42,7 @@ const PAYLOAD = JSON.stringify({
     observable_as: 'gets to the 8am class awake instead of skipping',
   },
   evidence_notes: {
-    self_knowledge: 'Revised fun from 20 to 35 once the eating-and-scrolling came up, then named the gap themselves.',
+    self_knowledge: 'Revised fun from five hours to eight once the eating-and-scrolling came up, then named the gap themselves.',
     self_regulation: 'Sleep is a default rather than a routine; the try is their first deliberate structure.',
   },
   flags: { declined_try: false, physical_habit_flag: false },
@@ -93,29 +93,30 @@ describe('priorities record extraction', () => {
 });
 
 describe('priorities record sanitizing', () => {
-  it('keeps revised_pct null when the student never revised — the gap is the signal', () => {
+  it('keeps revised_hours null when the student never revised — the gap is the signal', () => {
     const payload = JSON.stringify({
       time_picture: [
-        { category: 'work', first_estimate_pct: 15, revised_pct: null, quality_rating: 'good', sources_named: [] },
+        { category: 'work', first_estimate_hours: 4, revised_hours: null, quality_rating: 'good', sources_named: [] },
       ],
     });
     const record = parsePrioritiesRecord(payload, AT)!;
-    expect(record.time_picture[0].revised_pct).toBeNull();
-    expect(record.time_picture[0].first_estimate_pct).toBe(15);
+    expect(record.time_picture[0].revised_hours).toBeNull();
+    expect(record.time_picture[0].first_estimate_hours).toBe(4);
   });
 
-  it('clamps percentages and rejects non-numeric ones', () => {
+  it('clamps hours to a real day, keeps half-hours, and rejects non-numeric ones', () => {
     const payload = JSON.stringify({
       time_picture: [
-        { category: 'a', first_estimate_pct: 140, revised_pct: -5, quality_rating: '', sources_named: [] },
-        { category: 'b', first_estimate_pct: 'lots', revised_pct: 12.6, quality_rating: '', sources_named: [] },
+        { category: 'a', first_estimate_hours: 40, revised_hours: -5, quality_rating: '', sources_named: [] },
+        { category: 'b', first_estimate_hours: 'lots', revised_hours: 6.5, quality_rating: '', sources_named: [] },
       ],
     });
     const record = parsePrioritiesRecord(payload, AT)!;
-    expect(record.time_picture[0].first_estimate_pct).toBe(100);
-    expect(record.time_picture[0].revised_pct).toBe(0);
-    expect(record.time_picture[1].first_estimate_pct).toBeNull();
-    expect(record.time_picture[1].revised_pct).toBe(13);
+    expect(record.time_picture[0].first_estimate_hours).toBe(24);
+    expect(record.time_picture[0].revised_hours).toBe(0);
+    expect(record.time_picture[1].first_estimate_hours).toBeNull();
+    // Half-hours survive — "about six and a half" is how students answer
+    expect(record.time_picture[1].revised_hours).toBe(6.5);
   });
 
   it('flattens whitespace and caps long strings so nothing can forge structure in the file', () => {
@@ -182,11 +183,14 @@ describe('priorities record downloads', () => {
   it('the student-facing Markdown carries their picture but no evidence notes or flags', () => {
     const md = prioritiesRecordToMarkdown(record);
     expect(md).toContain('Your time picture');
+    expect(md).toContain('7h');
+    expect(md).toContain('5.5h');
+    expect(md).not.toContain('%');
     expect(md).toContain('entertainment/fun');
     expect(md).toContain('I scroll way more than I said');
     expect(md).toContain('phone charges across the room');
     // The notes are observations for later analysis, not a report card
-    expect(md).not.toContain('Revised fun from 20 to 35');
+    expect(md).not.toContain('Revised fun from five hours to eight');
     expect(md).not.toContain('self_knowledge');
     expect(md).not.toContain('physical_habit_flag');
   });
@@ -203,7 +207,7 @@ describe('priorities record downloads', () => {
     const piped = parsePrioritiesRecord(
       JSON.stringify({
         time_picture: [
-          { category: 'fun', first_estimate_pct: 20, revised_pct: null, quality_rating: 'good | bad', sources_named: [] },
+          { category: 'fun', first_estimate_hours: 5, revised_hours: null, quality_rating: 'good | bad', sources_named: [] },
         ],
       }),
       AT
@@ -218,7 +222,7 @@ describe('priorities record downloads', () => {
   it('records a declined try as a real answer, not a blank', () => {
     const declined = parsePrioritiesRecord(
       JSON.stringify({
-        time_picture: [{ category: 'sleep', first_estimate_pct: 30, revised_pct: null, quality_rating: 'ok', sources_named: [] }],
+        time_picture: [{ category: 'sleep', first_estimate_hours: 7, revised_hours: null, quality_rating: 'ok', sources_named: [] }],
         try: { named: false, student_words: '', observable_as: '' },
         flags: { declined_try: true, physical_habit_flag: false },
       }),

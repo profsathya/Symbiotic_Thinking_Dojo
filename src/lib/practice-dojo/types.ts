@@ -183,12 +183,14 @@ export interface KataResult {
 export interface TimePictureEntry {
   // The student's own name for the category (the six, plus any they added)
   category: string;
-  // Their opening guess, before types-and-sources made anything concrete
-  first_estimate_pct: number | null;
+  // Hours on an average day — their opening guess, before types-and-sources
+  // made anything concrete. Hours rather than percentages because that is
+  // what a student can actually answer; percentages stay derivable from them.
+  first_estimate_hours: number | null;
   // Where they landed after. null means they never revised this one — the
   // first estimate is deliberately NOT copied here, because "didn't revise"
   // is itself the signal.
-  revised_pct: number | null;
+  revised_hours: number | null;
   // Their word for how good this part of the day is, not the Sensei's
   quality_rating: string;
   // The concrete things they named: apps, shows, sources, kinds of meals

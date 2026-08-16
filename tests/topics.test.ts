@@ -170,8 +170,26 @@ describe('What Are My Priorities?', () => {
     ]) {
       expect(welcome, category).toContain(category);
     }
+    // Hours, not percentages — a student can answer "about 6" off the top of
+    // their head; percentages of a day they have never counted, they cannot.
+    expect(welcome).toContain('how many hours do you spend on each');
+    expect(welcome).toContain('On an average day');
+    expect(welcome).not.toMatch(/percentage/i);
     expect(welcome).toContain('rate the quality of each');
     expect(welcome).not.toContain('What drew you to this topic');
+  });
+
+  it('asks for hours everywhere, never percentages', () => {
+    // Percentages survive only inside prohibitions ("never convert to
+    // percentages", "never a percentage in the notes")
+    const pctLines = everything.split('\n').filter((line) => /percentage/i.test(line));
+    for (const line of pctLines) {
+      expect(line, line).toMatch(/never/i);
+    }
+    expect(topic.phases[1].contentGuidance).toContain('rough hours');
+    // The total to notice is a day, not a hundred
+    expect(topic.phases[1].contentGuidance).toContain('IF THE HOURS ARE WAY OFF 24');
+    expect(topic.systemInstructions).toContain('first_estimate_hours');
   });
 
   it('gets accuracy from types and sources, with hour-by-hour reconstruction banned', () => {
