@@ -44,10 +44,19 @@ production build on every PR. All four must pass.
 - TypeScript + Next.js App Router + Tailwind v4; dark theme
   (`bg-gray-950` base) with `print:` variants on instructor-facing pages.
 - Practice Dojo topics live in `src/lib/practice-dojo/topics/`. Phase
-  progression is **student-owned**: the `[NEXT_PHASE]` marker is only a
-  readiness signal that highlights the "Ready to move on?" button — it never
-  advances state. New topic prompts must describe it that way (the test suite
-  checks for engine-semantics wording).
+  progression is **student-owned by default**: the `[NEXT_PHASE]` marker is
+  only a readiness signal that highlights the "Ready to move on?" button — it
+  never advances state. New topic prompts must describe it that way (the test
+  suite checks for engine-semantics wording).
+  The one exception is a topic that opts in with `advanceOnSenseiSignal`
+  (`what-are-my-priorities` — added after two test runs ended three stages
+  early at an unpressed button). There the app acts on the marker, and the
+  topic prompt MUST bridge into the next phase in the same message it signals
+  on: a signal message that ends without a question reads as the end of the
+  activity and students stop there. The button stays as their escape hatch for
+  leaving a phase early, so any code acting on the marker must re-check the
+  CURRENT phase (`phaseAfterSignal`) — the student can advance mid-stream,
+  which makes the captured index stale.
 - Student free text is untrusted everywhere it enters a system prompt:
   flatten whitespace, cap length, JSON-quote (see `quoteSelfCheckResponse`
   in `src/lib/prompts/composer.ts`).
