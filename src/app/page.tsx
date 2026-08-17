@@ -139,15 +139,28 @@ export default function Home() {
     provider,
     practiceDojoContext,
     onPhaseComplete: () => {
-      // The model emitted [NEXT_PHASE]: the Sensei's READINESS SIGNAL, not a
-      // transition. The student owns phase advancement via the "Ready to
-      // move on?" self-check — this only highlights that button.
+      // The model emitted [NEXT_PHASE]. By default that is a READINESS SIGNAL
+      // and nothing more: the student owns advancement via the "Ready to move
+      // on?" self-check, and this only highlights that button. Topics that set
+      // advanceOnSenseiSignal act on it — see below.
       // Only act when a dojo session is actively running: exitSession()
       // leaves topicId / currentPhase intact for resume, so a literal
       // marker appearing in an ordinary chat must not touch saved state.
       if (!isActive) return;
       if (!topicId) return;
       practiceDojoState.markSenseiSignaled(currentPhaseIndex);
+
+      // Topics that opt into advanceOnSenseiSignal move themselves: the
+      // Sensei has judged the stage complete and has already bridged into the
+      // next one in the same message, so asking the student to confirm is a
+      // gate with nothing behind it — and one they can miss, which silently
+      // ends the activity early. Their button stays for leaving a stage early.
+      const runningTopic = practiceDojoContext?.topic;
+      if (!runningTopic?.advanceOnSenseiSignal) return;
+      // The final phase has no successor: closing the activity stays the
+      // student's call, through the "Finished with this activity?" gate.
+      if (currentPhaseIndex + 1 >= runningTopic.phases.length) return;
+      practiceDojoState.advancePhase();
     },
     onPrioritiesRecord: (record) => {
       // What Are My Priorities? closed out and reported its record. Same

@@ -275,6 +275,57 @@ describe('What Are My Priorities?', () => {
     expect(topic.systemInstructions).toContain('say plainly that you don\'t know');
   });
 
+  // After the 2026-08-17 TA runs, both of which ended at the Stage 1 card
+  // because the student never pressed "Ready to move on?"
+  it('moves itself when the Sensei judges a stage done', () => {
+    expect(topic.advanceOnSenseiSignal).toBe(true);
+    expect(topic.systemInstructions).toContain('HOW STAGES MOVE — SIGNAL AND BRIDGE TOGETHER');
+    expect(topic.systemInstructions).toContain('NEVER SIGNAL ON A MESSAGE THAT ENDS WITHOUT A QUESTION');
+    // The button survives as the student's escape hatch, not the normal path
+    expect(topic.systemInstructions).toContain('escape hatch');
+  });
+
+  it('carves the bridge out of the one-move-per-turn rule so it can be sent at all', () => {
+    expect(topic.systemInstructions).toContain('THE ONE EXCEPTION is a BRIDGE message');
+  });
+
+  it('bridges into the next stage in the same message it signals on', () => {
+    for (const phase of topic.phases.slice(1, 4)) {
+      expect(phase.contentGuidance, phase.title).toMatch(/BRIDGE into Stage \d/);
+    }
+    // Each bridge carries the next stage's opening question
+    expect(topic.phases[1].contentGuidance).toContain("what's actually in those hours?");
+    expect(topic.phases[2].contentGuidance).toContain("Name them like you'd name meals");
+    expect(topic.phases[3].contentGuidance).toContain('is there one small thing you want to try');
+  });
+
+  it('does not re-open a stage it already bridged into', () => {
+    for (const phase of topic.phases.slice(2, 5)) {
+      expect(phase.contentGuidance, phase.title).toMatch(/HOW YOU ARRIVED HERE|ASKED IT ALREADY/);
+    }
+    expect(topic.phases[4].contentGuidance).toContain('do NOT ask again');
+  });
+
+  // Stage 1 played as an intake form in both test runs: three consecutive
+  // "one number I still need" turns in one, four quality questions in the other
+  it('treats stage 1 as an on-ramp, not a form to fill', () => {
+    const stageOne = topic.phases[1].contentGuidance;
+    expect(stageOne).toContain('AT MOST TWO follow-up questions');
+    expect(stageOne).toContain('ENOUGH IS ENOUGH');
+    expect(stageOne).toContain('Do NOT chase every blank');
+    expect(stageOne).toContain('Do NOT ask for quality category by category');
+    // The "reconstruct a normal weekday" fallback produced exactly the
+    // hour-by-hour narrative the design bans, so it asks for a bracket instead
+    expect(stageOne).toContain('do NOT ask them to reconstruct a day');
+    expect(stageOne).toContain('Closer to 2 hours or 6?');
+  });
+
+  it('takes the mind-diet reflection when a student offers it early', () => {
+    expect(topic.phases[1].contentGuidance).toContain('IF THE STUDENT HANDS YOU STAGE 3 EARLY');
+    expect(topic.phases[1].contentGuidance).toContain('Never file it away');
+    expect(topic.phases[3].contentGuidance).toContain('never make them repeat themselves');
+  });
+
   it('signals readiness in every stage but the last', () => {
     for (const phase of topic.phases.slice(1, 4)) {
       expect(phase.contentGuidance, phase.title).toContain('[NEXT_PHASE]');

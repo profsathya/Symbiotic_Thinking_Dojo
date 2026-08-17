@@ -53,6 +53,33 @@ function compose(phaseSelfChecks: PhaseSelfCheck[] = [], kataResults: KataResult
   });
 }
 
+describe('phase transition instructions', () => {
+  const phase = { phaseId: 1, title: 'Stage', purpose: 'p', hasCheckpoint: false, contentGuidance: 'g' };
+  const base: TopicConfig = {
+    topicId: 't', title: 'T', description: 'd', estimatedTime: '5m', category: 'foundations',
+    enabled: true, icon: '⏳', pathways: [], phases: [phase], systemInstructions: 'x [NEXT_PHASE] x',
+  };
+  const context = (topic: TopicConfig): PracticeDojoContext => ({
+    topic, currentPhase: phase, pathway: 'guided', completedPhases: [], userChoices: {},
+    checkpointStatuses: {}, phaseSelfChecks: [], kataResults: [], interactionCount: 1,
+  });
+
+  it('tells a self-advancing topic that the marker moves the session', () => {
+    const prompt = composeSystemPrompt(config, 'learn', [], {
+      practiceDojoContext: context({ ...base, advanceOnSenseiSignal: true }),
+    });
+    expect(prompt).toContain('This topic moves itself');
+    expect(prompt).toContain('bridge into the next phase in the SAME message');
+    expect(prompt).not.toContain('You cannot advance the phase yourself');
+  });
+
+  it('leaves every other topic with the student-owned gate', () => {
+    const prompt = composeSystemPrompt(config, 'learn', [], { practiceDojoContext: context(base) });
+    expect(prompt).toContain('You cannot advance the phase yourself');
+    expect(prompt).not.toContain('This topic moves itself');
+  });
+});
+
 describe('composePracticeDojoPrompt phase transitions', () => {
   it('tells the model the student owns phase transitions', () => {
     const prompt = compose();
