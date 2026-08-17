@@ -157,10 +157,10 @@ export default function Home() {
       // ends the activity early. Their button stays for leaving a stage early.
       const runningTopic = practiceDojoContext?.topic;
       if (!runningTopic?.advanceOnSenseiSignal) return;
-      // The final phase has no successor: closing the activity stays the
-      // student's call, through the "Finished with this activity?" gate.
-      if (currentPhaseIndex + 1 >= runningTopic.phases.length) return;
-      practiceDojoState.advancePhase();
+      // Bounds AND staleness are judged inside the hook, against the latest
+      // state: this callback captured currentPhaseIndex before the reply
+      // streamed, and the student's own button stayed live the whole time.
+      practiceDojoState.advancePhaseFromSignal(currentPhaseIndex, runningTopic.phases.length);
     },
     onPrioritiesRecord: (record) => {
       // What Are My Priorities? closed out and reported its record. Same

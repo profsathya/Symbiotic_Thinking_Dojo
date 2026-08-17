@@ -12,6 +12,7 @@ import {
   SerializedMessage,
 } from '@/lib/practice-dojo/types';
 import { mergeKataResults } from '@/lib/practice-dojo/belt-record';
+import { phaseAfterSignal } from '@/lib/practice-dojo/phase-advance';
 
 const STORAGE_KEY = 'practiceDojo';
 
@@ -31,6 +32,10 @@ interface UsePracticeDojoStateReturn {
 
   // Phase management
   advancePhase: () => void;
+  // Advance in response to a Sensei readiness signal (topics that set
+  // advanceOnSenseiSignal). Ignored if the student already moved on their own
+  // while the reply was streaming, or if there is no next phase.
+  advancePhaseFromSignal: (signaledPhase: number, phaseCount: number) => void;
   setPhase: (phase: number) => void;
   markPhaseCompleted: (phase: number) => void;
 
@@ -181,6 +186,25 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
       currentPhase: current.currentPhase + 1,
       lastUpdated: new Date().toISOString(),
     }));
+  }, []);
+
+  // Advance because the Sensei signaled, not because the student pressed the
+  // button. The guard runs INSIDE the updater so it sees the latest phase:
+  // the caller captured its index before the reply finished streaming, and
+  // the student's own button stays live throughout that stream.
+  const advancePhaseFromSignal = useCallback((signaledPhase: number, phaseCount: number) => {
+    setState(current => {
+      const next = phaseAfterSignal(current.currentPhase, signaledPhase, phaseCount);
+      if (next === null) return current;
+      return {
+        ...current,
+        completedPhases: current.completedPhases.includes(current.currentPhase)
+          ? current.completedPhases
+          : [...current.completedPhases, current.currentPhase],
+        currentPhase: next,
+        lastUpdated: new Date().toISOString(),
+      };
+    });
   }, []);
 
   // Set specific phase
@@ -370,6 +394,7 @@ export function usePracticeDojoState(): UsePracticeDojoStateReturn {
     exitSession,
     resetSession,
     advancePhase,
+    advancePhaseFromSignal,
     setPhase,
     markPhaseCompleted,
     incrementInteractionCount,
