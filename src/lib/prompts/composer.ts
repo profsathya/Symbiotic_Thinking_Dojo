@@ -385,11 +385,18 @@ ${currentPhase.checkpointCriteria || 'Use judgment to assess understanding.'}` :
 ${previousCheckpoints.map(([phase, status]) => `- ${phase}: ${status}`).join('\n')}`);
   }
 
-  // How phases advance now: the student decides, via the "Ready to move on?"
-  // self-check. The model's [NEXT_PHASE] marker (where a topic instructs it)
-  // is demoted to a readiness signal that highlights that button.
-  sections.push(`## PHASE TRANSITIONS
-The STUDENT controls when this session moves to the next phase, using a "Ready to move on?" button that asks them to self-assess against the phase goal first. You cannot advance the phase yourself. If this topic's instructions tell you to emit \`[NEXT_PHASE]\`, keep doing exactly that when the phase's completion condition is genuinely met — it highlights the student's button as your readiness signal; it does not advance anything.`);
+  // How phases advance: by default the student decides, via the "Ready to
+  // move on?" self-check, and the model's [NEXT_PHASE] marker only highlights
+  // that button. Topics that set advanceOnSenseiSignal act on the marker
+  // instead — the prompt has to describe whichever contract is real, or the
+  // model writes closing lines for a gate that isn't there.
+  sections.push(
+    topic.advanceOnSenseiSignal
+      ? `## PHASE TRANSITIONS
+This topic moves itself. When you emit \`[NEXT_PHASE]\`, the session ADVANCES to the next phase — so emit it only when the phase's completion condition is genuinely met, and always bridge into the next phase in the SAME message. A message that signals but ends without a question reads as the end of the activity, and the student stops there. The STUDENT can also move themselves at any time with a "Ready to move on?" button; that is their escape hatch mid-phase, not the normal path.`
+      : `## PHASE TRANSITIONS
+The STUDENT controls when this session moves to the next phase, using a "Ready to move on?" button that asks them to self-assess against the phase goal first. You cannot advance the phase yourself. If this topic's instructions tell you to emit \`[NEXT_PHASE]\`, keep doing exactly that when the phase's completion condition is genuinely met — it highlights the student's button as your readiness signal; it does not advance anything.`
+  );
 
   // The student's own self-checks are first-class context: if they moved on
   // while admitting a gap, the new phase should open by addressing it.

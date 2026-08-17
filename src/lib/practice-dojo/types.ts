@@ -121,6 +121,15 @@ export interface TopicConfig {
   phases: PhaseConfig[];
   // Topic-level instructions that apply to ALL phases (tone, anti-gaming, response style)
   systemInstructions?: string;
+  // Opt in to moving the session on when the Sensei emits [NEXT_PHASE],
+  // instead of only highlighting the student's "Ready to move on?" button.
+  // For conversations (rather than skill gates) a confirmation step after the
+  // Sensei has already judged the stage complete is a gate with nothing behind
+  // it — and a student who doesn't press it silently ends the activity early.
+  // Topics that opt in must bridge into the next stage in the same message
+  // they signal on. The student's button stays available for leaving a stage
+  // early. Default (absent) keeps the student-confirms behavior.
+  advanceOnSenseiSignal?: boolean;
   // Additional content for course topics
   courseContent?: {
     syllabus: string;
