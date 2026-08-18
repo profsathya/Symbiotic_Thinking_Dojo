@@ -32,6 +32,14 @@ export function TourOverlay({
 
   const updatePosition = useCallback(() => {
     const element = document.querySelector(step.target);
+    if (!element) {
+      // Some panels are hidden for some activities (see
+      // TopicConfig.suppressThinkingMetrics). Clear the highlight rather than
+      // leaving it on the PREVIOUS step's element, which would frame the
+      // wrong thing while the tooltip explains something not on screen.
+      setTargetPosition(null);
+      return;
+    }
     if (element) {
       const rect = element.getBoundingClientRect();
       const padding = 8;
@@ -89,21 +97,27 @@ export function TourOverlay({
     }
   }, [step.target, step.position]);
 
-  // Scroll target into view when step changes
+  // Scroll target into view when step changes — or skip a step whose target
+  // isn't on screen at all. Some panels are hidden for some activities (see
+  // TopicConfig.suppressThinkingMetrics), and a tour step explaining a panel
+  // the student cannot see is worse than one step fewer.
   useEffect(() => {
     const element = document.querySelector(step.target);
-    if (element) {
-      // Scroll the element into view with smooth behavior
-      element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-
-      // Wait for scroll to complete, then update position
-      const timer = setTimeout(() => {
-        updatePosition();
-      }, 300);
-
-      return () => clearTimeout(timer);
+    if (!element) {
+      onNext();
+      return;
     }
-  }, [step.target, updatePosition]);
+
+    // Scroll the element into view with smooth behavior
+    element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+
+    // Wait for scroll to complete, then update position
+    const timer = setTimeout(() => {
+      updatePosition();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [step.target, updatePosition, onNext]);
 
   useEffect(() => {
     // Update on resize

@@ -166,6 +166,17 @@ describe('priorities record sanitizing', () => {
     expect(record.self_named_gap.student_words).toContain('feeding my mind');
   });
 
+  it('will not credit the student when the attribution is missing or unrecognised', () => {
+    // A model that skips or misspells introduced_by used to keep named:true,
+    // which is the same corrupt reading by a different route
+    const noAttribution = parsePrioritiesRecord(
+      JSON.stringify({ time_picture: [], self_named_gap: { named: true, student_words: 'hm' } }),
+      AT
+    )!;
+    expect(noAttribution.self_named_gap.named).toBe(false);
+    expect(noAttribution.self_named_gap.introduced_by).toBeNull();
+  });
+
   it('treats an unrecognised attribution as no attribution', () => {
     const record = parsePrioritiesRecord(
       JSON.stringify({ time_picture: [], self_named_gap: { named: true, introduced_by: 'both' } }),
@@ -190,14 +201,18 @@ describe('priorities record sanitizing', () => {
       AT
     )!;
     expect(prioritiesRecordToMarkdown(mine)).toContain('## What you noticed');
-    expect(prioritiesRecordToMarkdown(theirs)).toContain('## What you agreed with');
+    // "sensei" covers acceptance, amendment and rejection alike — the heading
+    // must not put agreement in the mouth of a student who pushed back
+    expect(prioritiesRecordToMarkdown(theirs)).toContain('## What came up');
+    expect(prioritiesRecordToMarkdown(theirs)).not.toContain('agreed with');
   });
 
   it('defaults missing sections rather than dropping the record', () => {
     const record = parsePrioritiesRecord('{"time_picture":[]}', AT)!;
     expect(record.activity).toBe('what-are-my-priorities');
     expect(record.mind_nutrition.sources).toEqual([]);
-    expect(record.self_named_gap.named).toBeNull();
+    // "Nothing of the kind came up" is named:false — not an open question
+    expect(record.self_named_gap.named).toBe(false);
     expect(record.self_named_gap.introduced_by).toBeNull();
     expect(record.flags.physical_habit_flag).toBe(false);
   });

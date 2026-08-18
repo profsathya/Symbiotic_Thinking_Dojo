@@ -121,7 +121,8 @@ export default function Home() {
   // arrival of the record is what "finished" looks like. Treat it as the
   // readiness signal, or the gate tells a student who just finished that the
   // Sensei hasn't signaled yet.
-  const activityFinished = Boolean(prioritiesStripRecord?.fromThisSession);
+  const activityFinished =
+    topicId === 'what-are-my-priorities' && Boolean(prioritiesStripRecord?.fromThisSession);
   // Some activities hide the thinking-metrics rail and keep its numbers out of
   // the export — see TopicConfig.suppressThinkingMetrics.
   const showThinkingMetrics = !(isActive && practiceDojoContext?.topic.suppressThinkingMetrics);
@@ -172,9 +173,10 @@ export default function Home() {
     },
     onPrioritiesRecord: (record) => {
       // What Are My Priorities? closed out and reported its record. Same
-      // guard as above: only persist while a dojo session is running, so a
-      // literal marker in an ordinary chat can't write to saved state.
-      if (!isActive || !topicId) return;
+      // guard as above, plus the topic itself: this record is the completion
+      // signal for ONE activity, and a stray marker from another topic must
+      // not tell that topic's student they are finished.
+      if (!isActive || topicId !== 'what-are-my-priorities') return;
       practiceDojoState.recordPrioritiesRecord(record);
       // The record IS the Sensei's "you're done" for this activity: it never
       // emits [NEXT_PHASE] on the final stage, so without this the student is
@@ -480,6 +482,11 @@ export default function Home() {
     practiceDojoState.markTopicCompleted(topicId);
     resetChat();
     setCompletedTopicNotice(topicId);
+    // resetChat() has just replaced the transcript with a fresh welcome, so
+    // "Save Session" would now export an empty conversation. The banner that
+    // points there must go with it — otherwise the submission flow we told
+    // the student to follow hands in nothing.
+    setRecordReadyNotice(false);
 
     setTimeout(() => {
       isExitingPracticeDojoRef.current = false;
@@ -646,14 +653,19 @@ export default function Home() {
             }
             senseiSignaled={senseiSignaledPhases.includes(currentPhaseIndex) || activityFinished}
             mode={
-              currentPhaseIndex + 1 >= currentTopic.phases.length
+              // The record can arrive before the last stage — the topic lets
+              // the Sensei close out "wherever the student ends it". Once it
+              // has, the affirmative action must finish the activity; telling
+              // a student they're done and then advancing them into another
+              // stage is the opposite of what the banner just promised.
+              currentPhaseIndex + 1 >= currentTopic.phases.length || activityFinished
                 ? 'complete'
                 : 'advance'
             }
             onCancel={() => setPhaseCheckOpen(false)}
             onDecision={(decision, response) => {
               const isFinalPhase =
-                currentPhaseIndex + 1 >= currentTopic.phases.length;
+                currentPhaseIndex + 1 >= currentTopic.phases.length || activityFinished;
               practiceDojoState.recordPhaseSelfCheck({
                 phase: currentPhaseIndex,
                 goal:
@@ -684,6 +696,9 @@ export default function Home() {
             <span>
               🎉 Activity complete — nice work. It&apos;s now marked as done in
               the Practice Dojo, and you can revisit it any time.
+              {completedTopicNotice === 'what-are-my-priorities' && (
+                <> Your record is still saved below — use <strong>Copy my record</strong> to hand it in.</>
+              )}
             </span>
             <button
               onClick={() => setCompletedTopicNotice(null)}

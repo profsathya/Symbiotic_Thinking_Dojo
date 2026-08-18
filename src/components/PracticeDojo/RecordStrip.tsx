@@ -32,12 +32,15 @@ interface RecordStripProps {
  */
 export function RecordStrip({ records, fromThisSession }: RecordStripProps) {
   const [notice, setNotice] = useState<string | null>(null);
-  // Which run the buttons act on: the newest by default, or an earlier one
-  // the student picked from the list.
-  const [selected, setSelected] = useState<number | null>(null);
+  // Which run the buttons act on, held as the record's OWN timestamp rather
+  // than its index: a new record appended mid-session shifts every index, so
+  // an index would silently re-point "latest" at the previous conversation
+  // exactly when the student is about to submit the new one. null = latest.
+  const [selectedAt, setSelectedAt] = useState<string | null>(null);
 
-  const record = records.length > 0 ? records[selected ?? records.length - 1] : null;
-  const viewingOlder = selected !== null && selected !== records.length - 1;
+  const latest = records.length > 0 ? records[records.length - 1] : null;
+  const record = (selectedAt && records.find((r) => r.at === selectedAt)) || latest;
+  const viewingOlder = record !== null && record !== latest;
   const stamp = record?.at.slice(0, 10) ?? '';
 
   const handleCopy = async () => {
@@ -71,13 +74,13 @@ export function RecordStrip({ records, fromThisSession }: RecordStripProps) {
               the student the record from their first. */}
           {records.length > 1 && (
             <select
-              value={selected ?? records.length - 1}
-              onChange={(e) => setSelected(Number(e.target.value))}
+              value={record?.at ?? ''}
+              onChange={(e) => setSelectedAt(e.target.value || null)}
               className="rounded border border-gray-700 bg-gray-800 px-1.5 py-1 text-[11px] text-gray-300"
               aria-label="Which conversation record"
             >
               {records.map((r, i) => (
-                <option key={`${r.at}-${i}`} value={i}>
+                <option key={`${r.at}-${i}`} value={r.at}>
                   {r.at.slice(0, 10)}
                   {i === records.length - 1 ? ' (latest)' : ''}
                 </option>

@@ -194,11 +194,12 @@ export function parsePrioritiesRecord(json: string, at: string): PrioritiesRecor
       student_read_on_quality: cleanString(mind.student_read_on_quality, 400),
     },
     self_named_gap: {
-      // A gap credited to the student must be one the student introduced.
-      // If the model says named:true but attributes it to itself, the
-      // attribution wins — that combination is the exact bookkeeping error
-      // this field exists to catch.
-      named: cleanIntroducedBy(gap.introduced_by) === 'sensei' ? false : cleanTriState(gap.named),
+      // A gap counts as student-named ONLY on an explicit student
+      // attribution. named:true with the gap attributed to the Sensei — or
+      // with no attribution at all, which is what a model that skipped or
+      // misspelled the field produces — does not earn "demonstrated". The
+      // claim never outranks the evidence for it.
+      named: cleanIntroducedBy(gap.introduced_by) === 'student' ? cleanTriState(gap.named) : false,
       introduced_by: cleanIntroducedBy(gap.introduced_by),
       student_words: cleanString(gap.student_words, 400),
     },
@@ -317,10 +318,14 @@ export function prioritiesRecordToMarkdown(record: PrioritiesRecord): string {
   }
 
   if (record.self_named_gap.student_words) {
+    // "sensei" covers acceptance, amendment AND rejection — a student pushing
+    // back is the same attribution as a student agreeing. So the heading stays
+    // neutral there; calling a rejection "what you agreed with" would reverse
+    // the student's own meaning in the file they hand in.
     const heading =
-      record.self_named_gap.introduced_by === 'sensei'
-        ? '## What you agreed with'
-        : '## What you noticed';
+      record.self_named_gap.introduced_by === 'student'
+        ? '## What you noticed'
+        : '## What came up';
     lines.push('', heading, '', `"${record.self_named_gap.student_words}"`);
   }
 
