@@ -117,6 +117,15 @@ export default function Home() {
     () => recordForStrip(prioritiesRecords, sessionStarted),
     [prioritiesRecords, sessionStarted]
   );
+  // This activity's Sensei never emits [NEXT_PHASE] on its last stage, so the
+  // arrival of the record is what "finished" looks like. Treat it as the
+  // readiness signal, or the gate tells a student who just finished that the
+  // Sensei hasn't signaled yet.
+  const activityFinished =
+    topicId === 'what-are-my-priorities' && Boolean(prioritiesStripRecord?.fromThisSession);
+  // Some activities hide the thinking-metrics rail and keep its numbers out of
+  // the export — see TopicConfig.suppressThinkingMetrics.
+  const showThinkingMetrics = !(isActive && practiceDojoContext?.topic.suppressThinkingMetrics);
 
   const {
     messages,
@@ -164,10 +173,15 @@ export default function Home() {
     },
     onPrioritiesRecord: (record) => {
       // What Are My Priorities? closed out and reported its record. Same
-      // guard as above: only persist while a dojo session is running, so a
-      // literal marker in an ordinary chat can't write to saved state.
-      if (!isActive || !topicId) return;
+      // guard as above, plus the topic itself: this record is the completion
+      // signal for ONE activity, and a stray marker from another topic must
+      // not tell that topic's student they are finished.
+      if (!isActive || topicId !== 'what-are-my-priorities') return;
       practiceDojoState.recordPrioritiesRecord(record);
+      // The record IS the Sensei's "you're done" for this activity: it never
+      // emits [NEXT_PHASE] on the final stage, so without this the student is
+      // never told they finished and never prompted to submit.
+      setRecordReadyNotice(true);
     },
     onKataResult: (result) => {
       // Code Kata Dojo scorecard entry. Same guard as above: only record
@@ -187,6 +201,9 @@ export default function Home() {
 
   // "Ready to move on?" self-check dialog (Practice Dojo phase gate)
   const [phaseCheckOpen, setPhaseCheckOpen] = useState(false);
+  // Shown when the conversation record arrives — the completion signal for
+  // "What Are My Priorities?", plus the one instruction that submits it
+  const [recordReadyNotice, setRecordReadyNotice] = useState(false);
   // Shown once after the final phase's gate completes an activity
   // Holds the topicId that just completed (not just a flag): markTopicCompleted
   // clears topicId, and the record strip needs to know which activity finished
@@ -299,6 +316,7 @@ export default function Home() {
 
     // A new activity supersedes any lingering completion banner
     setCompletedTopicNotice(null);
+    setRecordReadyNotice(false);
 
     // Start the Practice Dojo session
     practiceDojoState.startSession(topicId, pathway);
@@ -464,6 +482,11 @@ export default function Home() {
     practiceDojoState.markTopicCompleted(topicId);
     resetChat();
     setCompletedTopicNotice(topicId);
+    // resetChat() has just replaced the transcript with a fresh welcome, so
+    // "Save Session" would now export an empty conversation. The banner that
+    // points there must go with it — otherwise the submission flow we told
+    // the student to follow hands in nothing.
+    setRecordReadyNotice(false);
 
     setTimeout(() => {
       isExitingPracticeDojoRef.current = false;
@@ -503,14 +526,18 @@ export default function Home() {
 
   // Handle visual component interactions (e.g., clicking selection cards)
   const handleVisualInteraction = useCallback((action: string, data: Record<string, string>) => {
-    if (action === 'select' && data.optionTitle) {
-      // Store the user's choice
-      if (data.optionId) {
-        practiceDojoState.setUserChoice(data.optionId, data.optionTitle);
-      }
-      // Send the selection as a message (this goes through handleSendMessage)
-      handleSendMessage(`I choose: ${data.optionTitle}`);
+    if (action !== 'select') return;
+    // A card with no title used to send NOTHING: the click registered, the
+    // card highlighted, and the conversation sat there. That silently killed
+    // the "skip this" escape hatch — the one card offered to the most
+    // disengaged student. Fall back through whatever the card does carry, so
+    // a click always says something.
+    const spoken = data.optionTitle?.trim() || data.optionDescription?.trim() || data.optionId?.trim();
+    if (!spoken) return;
+    if (data.optionId) {
+      practiceDojoState.setUserChoice(data.optionId, spoken);
     }
+    handleSendMessage(`I choose: ${spoken}`);
   }, [practiceDojoState, handleSendMessage]);
 
   // Check if user has started a conversation (more than just the welcome message)
@@ -566,7 +593,7 @@ export default function Home() {
             currentPhase={practiceDojoState.state.currentPhase}
             completedPhases={practiceDojoState.state.completedPhases}
             onExit={handleExitPracticeDojo}
-            senseiReady={senseiSignaledPhases.includes(currentPhaseIndex)}
+            senseiReady={senseiSignaledPhases.includes(currentPhaseIndex) || activityFinished}
             finalPhase={currentPhaseIndex + 1 >= currentTopic.phases.length}
             onRequestPhaseCheck={() => setPhaseCheckOpen(true)}
           />
@@ -576,7 +603,7 @@ export default function Home() {
         {((isInPracticeDojo && topicId === 'what-are-my-priorities') ||
           completedTopicNotice === 'what-are-my-priorities') && (
           <RecordStrip
-            record={prioritiesStripRecord?.record ?? null}
+            records={prioritiesRecords ?? []}
             fromThisSession={prioritiesStripRecord?.fromThisSession ?? true}
           />
         )}
@@ -586,6 +613,21 @@ export default function Home() {
             kataResults={kataResults}
             onImport={practiceDojoState.importKataResults}
           />
+        )}
+        {recordReadyNotice && (
+          <div className="bg-emerald-900/30 border-b border-emerald-800/50 px-4 py-2 text-sm text-emerald-200 flex items-center justify-between gap-4">
+            <span>
+              ✅ <strong>That&apos;s the activity — you&apos;re done.</strong> Your record is
+              saved below. To submit: <strong>Save Session → Copy to clipboard</strong>, then
+              paste it where your instructor asked.
+            </span>
+            <button
+              onClick={() => setRecordReadyNotice(false)}
+              className="text-emerald-300 hover:text-emerald-100 text-xs px-2 py-1 rounded border border-emerald-700/50 hover:bg-emerald-800/30"
+            >
+              Dismiss
+            </button>
+          </div>
         )}
         {beltAwardNotice && (
           <div className="bg-amber-900/30 border-b border-amber-700/50 px-4 py-2 text-sm text-amber-100 flex items-center justify-between gap-4">
@@ -609,16 +651,21 @@ export default function Home() {
               practiceDojoContext.currentPhase.studentGoal ??
               practiceDojoContext.currentPhase.purpose
             }
-            senseiSignaled={senseiSignaledPhases.includes(currentPhaseIndex)}
+            senseiSignaled={senseiSignaledPhases.includes(currentPhaseIndex) || activityFinished}
             mode={
-              currentPhaseIndex + 1 >= currentTopic.phases.length
+              // The record can arrive before the last stage — the topic lets
+              // the Sensei close out "wherever the student ends it". Once it
+              // has, the affirmative action must finish the activity; telling
+              // a student they're done and then advancing them into another
+              // stage is the opposite of what the banner just promised.
+              currentPhaseIndex + 1 >= currentTopic.phases.length || activityFinished
                 ? 'complete'
                 : 'advance'
             }
             onCancel={() => setPhaseCheckOpen(false)}
             onDecision={(decision, response) => {
               const isFinalPhase =
-                currentPhaseIndex + 1 >= currentTopic.phases.length;
+                currentPhaseIndex + 1 >= currentTopic.phases.length || activityFinished;
               practiceDojoState.recordPhaseSelfCheck({
                 phase: currentPhaseIndex,
                 goal:
@@ -649,6 +696,9 @@ export default function Home() {
             <span>
               🎉 Activity complete — nice work. It&apos;s now marked as done in
               the Practice Dojo, and you can revisit it any time.
+              {completedTopicNotice === 'what-are-my-priorities' && (
+                <> Your record is still saved below — use <strong>Copy my record</strong> to hand it in.</>
+              )}
             </span>
             <button
               onClick={() => setCompletedTopicNotice(null)}
@@ -686,6 +736,7 @@ export default function Home() {
                 activePartners={activePartners}
                 balance={balance}
                 dikw={dikw}
+                includeMetrics={showThinkingMetrics}
                 disabled={isLoading}
               />
               <HelpButtons onOpen={() => setIsHelpOpen(true)} />
@@ -704,6 +755,7 @@ export default function Home() {
         balance={balance}
         dikw={dikw}
         hasStartedConversation={hasStartedConversation}
+        showThinkingMetrics={showThinkingMetrics}
       />
 
       {/* API Key Modal */}

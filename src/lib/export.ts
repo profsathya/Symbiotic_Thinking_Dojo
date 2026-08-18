@@ -12,7 +12,9 @@ export interface SessionExport {
     startedAt: string;
     messageCount: number;
   };
-  metrics: {
+  // Optional: activities that suppress the thinking-metrics rail export
+  // without it rather than shipping numbers that mean nothing in context.
+  metrics?: {
     balance: {
       finalScore: number;
       history: number[];
@@ -34,13 +36,23 @@ export interface SessionExport {
 /**
  * Export session as JSON for later import
  */
+export interface ExportOptions {
+  // Some activities suppress the thinking metrics (see
+  // TopicConfig.suppressThinkingMetrics). Their numbers then don't belong in
+  // the file either — an export is where a number outlives the screen and
+  // starts looking authoritative.
+  includeMetrics?: boolean;
+}
+
 export function exportSessionAsJSON(
   messages: Message[],
   construct: Construct,
   activePartners: SparringPartner[],
   balance: BalanceState,
-  dikw: DIKWState
+  dikw: DIKWState,
+  options: ExportOptions = {}
 ): string {
+  const { includeMetrics = true } = options;
   const sessionExport: SessionExport = {
     version: '1.0',
     exportedAt: new Date().toISOString(),
@@ -51,17 +63,21 @@ export function exportSessionAsJSON(
       startedAt: messages[0]?.timestamp.toISOString() || new Date().toISOString(),
       messageCount: messages.length,
     },
-    metrics: {
-      balance: {
-        finalScore: balance.score,
-        history: balance.history,
-      },
-      dikw: {
-        finalLevel: dikw.current,
-        highWaterMark: dikw.highWaterMark,
-        history: dikw.history,
-      },
-    },
+    ...(includeMetrics
+      ? {
+          metrics: {
+            balance: {
+              finalScore: balance.score,
+              history: balance.history,
+            },
+            dikw: {
+              finalLevel: dikw.current,
+              highWaterMark: dikw.highWaterMark,
+              history: dikw.history,
+            },
+          },
+        }
+      : {}),
     messages: messages.map(msg => ({
       role: msg.role,
       speaker: msg.speaker || (msg.role === 'user' ? 'user' : 'sensei'),
@@ -81,7 +97,8 @@ export function exportSessionAsMarkdown(
   construct: Construct,
   activePartners: SparringPartner[],
   balance: BalanceState,
-  dikw: DIKWState
+  dikw: DIKWState,
+  options: ExportOptions = {}
 ): string {
   const constructInfo = CONSTRUCT_INFO[construct];
   const dikwInfo = DIKW_LEVELS.find(l => l.id === dikw.highWaterMark);
@@ -128,7 +145,10 @@ export function exportSessionAsMarkdown(
 | **Active Partners** | ${activePartners.length > 0 ? activePartners.map(p => `@${p}`).join(', ') : 'None (Sensei only)'} |
 | **Messages** | ${messages.length} |
 
-## Session Metrics
+${
+    options.includeMetrics === false
+      ? ''
+      : `## Session Metrics
 
 ### Creating-Consuming Balance
 - **Final Score:** ${balance.score > 0 ? '+' : ''}${balance.score}
@@ -138,7 +158,8 @@ export function exportSessionAsMarkdown(
 - **Highest Level Reached:** ${dikwInfo?.name || 'Data'} — ${dikwInfo?.description || 'Raw facts'}
 
 ---
-
+`
+  }
 ## Conversation
 
 `;
@@ -409,24 +430,13 @@ export function parseImportedSession(jsonContent: string): ImportResult {
     };
   }
 
-  // Validate metrics
-  const metrics = data.metrics as Record<string, unknown> | undefined;
-  if (!metrics || typeof metrics !== 'object') {
-    return {
-      success: false,
-      error: { type: 'validation', message: 'Missing metrics data.' },
-    };
-  }
-
-  const balanceData = metrics.balance as Record<string, unknown> | undefined;
-  const dikwData = metrics.dikw as Record<string, unknown> | undefined;
-
-  if (!balanceData || !dikwData) {
-    return {
-      success: false,
-      error: { type: 'validation', message: 'Missing balance or DIKW metrics.' },
-    };
-  }
+  // Metrics are OPTIONAL. Activities that suppress the thinking-metrics rail
+  // export without them, and a session file is still a session file — the
+  // conversation is the thing being restored. Missing metrics import as the
+  // starting state rather than failing the whole file.
+  const metrics = (data.metrics ?? {}) as Record<string, unknown>;
+  const balanceData = (metrics.balance ?? {}) as Record<string, unknown>;
+  const dikwData = (metrics.dikw ?? {}) as Record<string, unknown>;
 
   // Convert messages to Message type
   const convertedMessages: Message[] = messages.map((msg: Record<string, unknown>, index: number) => ({

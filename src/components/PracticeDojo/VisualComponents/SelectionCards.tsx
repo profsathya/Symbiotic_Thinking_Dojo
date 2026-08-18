@@ -4,7 +4,7 @@ import { SelectionCardsData } from '@/lib/practice-dojo/types';
 
 interface SelectionCardsProps {
   data: SelectionCardsData;
-  onSelect: (optionId: string, optionTitle: string) => void;
+  onSelect: (optionId: string, optionTitle: string, optionDescription: string) => void;
 }
 
 export function SelectionCards({ data, onSelect }: SelectionCardsProps) {
@@ -17,7 +17,7 @@ export function SelectionCards({ data, onSelect }: SelectionCardsProps) {
         {data.options.map((option) => (
           <button
             key={option.id}
-            onClick={() => onSelect(option.id, option.title)}
+            onClick={() => onSelect(option.id, option.title, option.description)}
             className="w-full p-4 rounded-lg border border-gray-700 bg-gray-800/50 hover:bg-gray-800 hover:border-purple-500/50 transition-all text-left group"
           >
             <div className="flex items-start gap-3">

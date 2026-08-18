@@ -390,6 +390,15 @@ ${previousCheckpoints.map(([phase, status]) => `- ${phase}: ${status}`).join('\n
   // that button. Topics that set advanceOnSenseiSignal act on the marker
   // instead — the prompt has to describe whichever contract is real, or the
   // model writes closing lines for a gate that isn't there.
+  // A topic that hides the metrics must also stop feeding them: the base Dojo
+  // prompt asks for [BALANCE:] on every turn and tells the Sensei to intervene
+  // on "consuming" patterns — advice that directly contradicts an activity
+  // whose whole promise is that it isn't judging the student.
+  if (topic.suppressThinkingMetrics) {
+    sections.push(`## NO ENGAGEMENT SCORING IN THIS ACTIVITY
+Ignore any instruction elsewhere in this prompt to emit \`[BALANCE: X]\` or \`[DIKW: X]\` markers, and never emit them here. Do not track, mention, or act on creating-vs-consuming or DIKW level. There is no engagement score in this conversation, and nothing the student says should be weighed as one.`);
+  }
+
   sections.push(
     topic.advanceOnSenseiSignal
       ? `## PHASE TRANSITIONS

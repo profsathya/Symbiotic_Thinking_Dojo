@@ -14,6 +14,9 @@ interface StatusPanelProps {
   balance: BalanceState;
   dikw: DIKWState;
   hasStartedConversation: boolean;
+  // Some activities suppress the thinking-metrics rail entirely (see
+  // TopicConfig.suppressThinkingMetrics). Defaults to showing it.
+  showThinkingMetrics?: boolean;
 }
 
 export function StatusPanel({
@@ -25,6 +28,7 @@ export function StatusPanel({
   balance,
   dikw,
   hasStartedConversation,
+  showThinkingMetrics = true,
 }: StatusPanelProps) {
   const construct = config.constructs.find(c => c.id === activeConstruct);
   const partners = config.partners.filter(p => activePartners.includes(p.id));
@@ -60,26 +64,33 @@ export function StatusPanel({
         </div>
       </div>
 
-      {/* DIKW Pyramid */}
-      <div data-tour="dikw">
-        <DIKWPyramid dikwState={dikw} />
-      </div>
+      {/* The thinking-metrics rail. Activities that measure something else —
+          or nothing — hide it rather than show a number that doesn't mean
+          anything in their context. */}
+      {showThinkingMetrics && (
+        <>
+          {/* DIKW Pyramid */}
+          <div data-tour="dikw">
+            <DIKWPyramid dikwState={dikw} />
+          </div>
 
-      {/* UMPIRE Tracker */}
-      <div data-tour="umpire">
-        <UmpireTracker
-          currentStage={umpireStage}
-          onStageChange={onUmpireStageChange}
-        />
-      </div>
+          {/* UMPIRE Tracker */}
+          <div data-tour="umpire">
+            <UmpireTracker
+              currentStage={umpireStage}
+              onStageChange={onUmpireStageChange}
+            />
+          </div>
 
-      {/* Creating-Consuming Balance */}
-      <div data-tour="balance">
-        <CreatingConsumingBalance
-          balance={balance}
-          hasStartedConversation={hasStartedConversation}
-        />
-      </div>
+          {/* Creating-Consuming Balance */}
+          <div data-tour="balance">
+            <CreatingConsumingBalance
+              balance={balance}
+              hasStartedConversation={hasStartedConversation}
+            />
+          </div>
+        </>
+      )}
     </aside>
   );
 }

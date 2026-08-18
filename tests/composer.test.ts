@@ -73,6 +73,19 @@ describe('phase transition instructions', () => {
     expect(prompt).not.toContain('You cannot advance the phase yourself');
   });
 
+  it('tells a metrics-suppressed topic to stop emitting engagement markers', () => {
+    const prompt = composeSystemPrompt(config, 'learn', [], {
+      practiceDojoContext: context({ ...base, suppressThinkingMetrics: true }),
+    });
+    expect(prompt).toContain('NO ENGAGEMENT SCORING IN THIS ACTIVITY');
+    expect(prompt).toContain('never emit them here');
+  });
+
+  it('leaves the engagement markers alone for every other topic', () => {
+    const prompt = composeSystemPrompt(config, 'learn', [], { practiceDojoContext: context(base) });
+    expect(prompt).not.toContain('NO ENGAGEMENT SCORING IN THIS ACTIVITY');
+  });
+
   it('leaves every other topic with the student-owned gate', () => {
     const prompt = composeSystemPrompt(config, 'learn', [], { practiceDojoContext: context(base) });
     expect(prompt).toContain('You cannot advance the phase yourself');

@@ -13,9 +13,11 @@ interface DojoVisualRendererProps {
 }
 
 export function DojoVisualRenderer({ data, onInteraction }: DojoVisualRendererProps) {
-  const handleSelection = (optionId: string, optionTitle: string) => {
+  const handleSelection = (optionId: string, optionTitle: string, optionDescription: string) => {
     if (onInteraction) {
-      onInteraction('select', { optionId, optionTitle });
+      // Description travels too: a card whose title the model left empty can
+      // still speak for itself instead of clicking into silence.
+      onInteraction('select', { optionId, optionTitle, optionDescription });
     }
   };
 

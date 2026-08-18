@@ -326,6 +326,94 @@ describe('What Are My Priorities?', () => {
     expect(topic.phases[3].contentGuidance).toContain('never make them repeat themselves');
   });
 
+  // ---- Change request from live testing (2026-08-18) ----
+
+  it('never hands the student a tidier version of their own answer', () => {
+    expect(topic.systemInstructions).toContain('THEIR WORDS, NOT YOURS');
+    expect(topic.systemInstructions).toContain('HEDGES INCLUDED');
+    expect(topic.systemInstructions).toContain('must be a phrase the student actually typed');
+    // The cleaner formulation is asked, never asserted
+    expect(topic.systemInstructions).toContain('would you call that mostly entertainment?');
+  });
+
+  it('bans praise and bans telling the student what to notice', () => {
+    expect(topic.systemInstructions).toContain('NEVER EVALUATE AN ANSWER');
+    for (const banned of ['Nice catch.', 'Good, that one holds.', "That's a real answer."]) {
+      expect(topic.systemInstructions, banned).toContain(banned);
+    }
+    expect(topic.systemInstructions).toContain('NEVER TELL THE STUDENT WHAT IS WORTH NOTICING');
+  });
+
+  it('makes stage 1 end on something that could be wrong', () => {
+    const stageOne = topic.phases[1].contentGuidance;
+    // Wide ranges get one narrowing ask
+    expect(stageOne).toContain('WIDE RANGES');
+    expect(stageOne).toContain('closer to 1 or closer to 8?');
+    expect(stageOne).toContain('Never ask twice hoping for a different answer');
+    // Uniform quality reads get one ask
+    expect(stageOne).toContain('UNIFORM QUALITY READS');
+    expect(stageOne).toContain('which one is least true?');
+    // Blanks get one ask before the bridge
+    expect(stageOne).toContain('MOSTLY BLANK PICTURES');
+    expect(stageOne).toContain('even roughly?');
+  });
+
+  it('never invents a category and keeps the mirror footer fixed', () => {
+    expect(topic.systemInstructions).toContain('ROWS COME FROM THE SIX, OR FROM THE STUDENT');
+    expect(topic.systemInstructions).toContain('NEVER invent one');
+    expect(topic.systemInstructions).toContain('First-guess hours. Nothing here is fixed.');
+    expect(topic.systemInstructions).toContain('NO COMMENTARY AROUND IT EITHER');
+  });
+
+  it('keeps stage 2 from collapsing into the mind-diet stage', () => {
+    const stageTwo = topic.phases[2].contentGuidance;
+    expect(stageTwo).toContain('STAY IN THIS PHASE UNTIL ALL FOUR ARE TRUE');
+    expect(stageTwo).toContain('hard exit condition');
+    expect(stageTwo).toContain('THIS STAGE IS NOT THE MIND-DIET STAGE');
+    // The revised list belongs to stage 2, before the bridge
+    expect(stageTwo).toContain('Do not show the first-guess-vs-revised card after you have bridged');
+    // And stage 1 must not aim its bridge at mind food
+    expect(topic.phases[1].contentGuidance).toContain('Do NOT announce nutrition for the mind here');
+  });
+
+  it('scaffolds the student who cannot put it into words', () => {
+    expect(topic.systemInstructions).toContain("WHEN A STUDENT CAN'T PUT IT INTO WORDS");
+    expect(topic.systemInstructions).toContain('closer to 2 hours or 6?');
+    expect(topic.systemInstructions).toContain('ASK FOR RECALL, NOT CHARACTERISATION');
+    expect(topic.systemInstructions).toContain('ABSORB APOLOGIES IN ONE CLAUSE');
+    expect(topic.systemInstructions).toContain('DO NOT RESCUE A THIN PICTURE');
+  });
+
+  it('keeps every question answerable from the day they described', () => {
+    expect(topic.systemInstructions).toContain('STANDING CONSTRAINT');
+    expect(topic.systemInstructions).toContain('recall a past episode and narrate what it meant');
+    // The removed episode stage must not creep back in: the phrase survives
+    // only inside the rule that bans it
+    const episodeLines = everything
+      .split('\n')
+      .filter((line) => /something you did on your own/i.test(line));
+    for (const line of episodeLines) {
+      expect(line, line).toMatch(/OUT OF BOUNDS/);
+    }
+  });
+
+  it('tells the truth about being graded, and says how to submit', () => {
+    expect(topic.systemInstructions).toContain('It is a graded activity');
+    // The evasive line appears once, in the sentence forbidding it
+    const gradeLines = (topic.systemInstructions ?? '')
+      .split('\n')
+      .filter((line) => line.includes("I honestly don't know how this connects to your grade"));
+    expect(gradeLines).toHaveLength(1);
+    expect(gradeLines[0]).toContain('Never say');
+    expect(topic.phases[4].contentGuidance).toContain(
+      'When you\'re ready to submit, click Save Session and copy to clipboard.'
+    );
+  });
+
+  it('runs without an engagement score', () => {
+    expect(topic.suppressThinkingMetrics).toBe(true);
+  });
+
   it('signals readiness in every stage but the last', () => {
     for (const phase of topic.phases.slice(1, 4)) {
       expect(phase.contentGuidance, phase.title).toContain('[NEXT_PHASE]');

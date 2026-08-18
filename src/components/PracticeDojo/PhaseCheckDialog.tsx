@@ -74,9 +74,9 @@ export function PhaseCheckDialog({
 
         <p className="mt-3 text-sm text-gray-300">
           <span className="font-semibold text-gray-200">Sensei:</span> What
-          did you actually do or work out toward this goal? Be honest — this
-          check is for you, not for a grade. A sincere &quot;not yet&quot; is
-          worth more than a rushed &quot;done&quot;.
+          did you actually do or work out toward this goal? Be honest — nobody
+          scores this answer. A sincere &quot;not yet&quot; is worth more than
+          a rushed &quot;done&quot;.
         </p>
 
         <textarea
