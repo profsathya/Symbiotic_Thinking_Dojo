@@ -17,6 +17,9 @@ interface ExportButtonProps {
   balance: BalanceState;
   dikw: DIKWState;
   disabled?: boolean;
+  // Activities that suppress the thinking-metrics rail also keep those
+  // numbers out of the exported file (see TopicConfig.suppressThinkingMetrics)
+  includeMetrics?: boolean;
 }
 
 export function ExportButton({
@@ -26,6 +29,7 @@ export function ExportButton({
   balance,
   dikw,
   disabled = false,
+  includeMetrics = true,
 }: ExportButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   // Message shown in the success toast — varies by action (download vs copy)
@@ -64,7 +68,7 @@ export function ExportButton({
     setHint(null);
 
     try {
-      const content = exportSessionAsMarkdown(messages, construct, activePartners, balance, dikw);
+      const content = exportSessionAsMarkdown(messages, construct, activePartners, balance, dikw, { includeMetrics });
       const filename = generateFilename(construct, 'md');
       console.log('[Export] Generated filename:', filename);
       console.log('[Export] Content length:', content.length);
@@ -90,7 +94,7 @@ export function ExportButton({
     setHint(null);
 
     try {
-      const content = exportSessionAsJSON(messages, construct, activePartners, balance, dikw);
+      const content = exportSessionAsJSON(messages, construct, activePartners, balance, dikw, { includeMetrics });
       const filename = generateFilename(construct, 'json');
       console.log('[Export] Generated filename:', filename);
       console.log('[Export] Content length:', content.length);
@@ -116,7 +120,7 @@ export function ExportButton({
     setHint(null);
 
     try {
-      const content = exportSessionAsMarkdown(messages, construct, activePartners, balance, dikw);
+      const content = exportSessionAsMarkdown(messages, construct, activePartners, balance, dikw, { includeMetrics });
       console.log('[Export] Content length:', content.length);
       const success = await copyToClipboard(content);
       console.log('[Export] Copy finished, success:', success);

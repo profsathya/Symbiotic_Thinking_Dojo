@@ -35,7 +35,7 @@ const PAYLOAD = JSON.stringify({
     sources: ['tiktok', 'two podcasts'],
     student_read_on_quality: 'mostly junk, some good',
   },
-  self_named_gap: { named: true, student_words: 'I scroll way more than I said' },
+  self_named_gap: { named: true, introduced_by: 'student', student_words: 'I scroll way more than I said' },
   try: {
     named: true,
     student_words: 'phone charges across the room',
@@ -131,11 +131,74 @@ describe('priorities record sanitizing', () => {
     expect(record.evidence_notes.self_knowledge.length).toBeLessThanOrEqual(800);
   });
 
+  // §1.2: a gap the Sensei proposed and the student agreed with is not a
+  // student-named gap. Without this, the most agreeable student in a cohort
+  // produces the strongest-looking record while doing the least thinking.
+  it('credits a gap to the student only when the student introduced it', () => {
+    const record = parsePrioritiesRecord(
+      JSON.stringify({
+        time_picture: [],
+        self_named_gap: { named: true, introduced_by: 'student', student_words: 'I scroll more than I said' },
+      }),
+      AT
+    )!;
+    expect(record.self_named_gap.named).toBe(true);
+    expect(record.self_named_gap.introduced_by).toBe('student');
+  });
+
+  it('demotes a Sensei-proposed reframe even when the model marks it named', () => {
+    const record = parsePrioritiesRecord(
+      JSON.stringify({
+        time_picture: [],
+        self_named_gap: {
+          named: true,
+          introduced_by: 'sensei',
+          student_words: 'probably feeding my mind more than entertainment',
+        },
+      }),
+      AT
+    )!;
+    // The attribution wins over the claim — that combination is the exact
+    // bookkeeping error the field exists to catch
+    expect(record.self_named_gap.named).toBe(false);
+    expect(record.self_named_gap.introduced_by).toBe('sensei');
+    // The student's words are still kept: an accepted reframe is a real reading
+    expect(record.self_named_gap.student_words).toContain('feeding my mind');
+  });
+
+  it('treats an unrecognised attribution as no attribution', () => {
+    const record = parsePrioritiesRecord(
+      JSON.stringify({ time_picture: [], self_named_gap: { named: true, introduced_by: 'both' } }),
+      AT
+    )!;
+    expect(record.self_named_gap.introduced_by).toBeNull();
+  });
+
+  it('titles the student-facing section by who did the noticing', () => {
+    const mine = parsePrioritiesRecord(
+      JSON.stringify({
+        time_picture: [],
+        self_named_gap: { named: true, introduced_by: 'student', student_words: 'I scroll more' },
+      }),
+      AT
+    )!;
+    const theirs = parsePrioritiesRecord(
+      JSON.stringify({
+        time_picture: [],
+        self_named_gap: { named: false, introduced_by: 'sensei', student_words: 'yeah that tracks' },
+      }),
+      AT
+    )!;
+    expect(prioritiesRecordToMarkdown(mine)).toContain('## What you noticed');
+    expect(prioritiesRecordToMarkdown(theirs)).toContain('## What you agreed with');
+  });
+
   it('defaults missing sections rather than dropping the record', () => {
     const record = parsePrioritiesRecord('{"time_picture":[]}', AT)!;
     expect(record.activity).toBe('what-are-my-priorities');
     expect(record.mind_nutrition.sources).toEqual([]);
     expect(record.self_named_gap.named).toBeNull();
+    expect(record.self_named_gap.introduced_by).toBeNull();
     expect(record.flags.physical_habit_flag).toBe(false);
   });
 });

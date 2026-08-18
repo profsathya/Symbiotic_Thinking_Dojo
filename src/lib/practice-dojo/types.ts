@@ -130,6 +130,14 @@ export interface TopicConfig {
   // they signal on. The student's button stays available for leaving a stage
   // early. Default (absent) keeps the student-confirms behavior.
   advanceOnSenseiSignal?: boolean;
+  // Hide the thinking-metrics rail (Creating-Consuming, DIKW, UMPIRE) and keep
+  // its numbers out of the export while this topic runs. For a conversation
+  // where the student reports their own day, "creating vs consuming" and
+  // knowledge depth measure nothing: test runs showed the meter reading 44%
+  // before a word was typed, and "Great critical engagement!" at the close of
+  // the least thoughtful run in the set. A live score also contradicts a topic
+  // whose Sensei is forbidden to show one.
+  suppressThinkingMetrics?: boolean;
   // Additional content for course topics
   courseContent?: {
     syllabus: string;
@@ -213,9 +221,18 @@ export interface PrioritiesRecord {
     sources: string[];
     student_read_on_quality: string;
   };
-  // named is true only when the STUDENT put the calibration gap into words
+  // The calibration gap, and — decisively — who introduced it. A gap the
+  // Sensei proposed and the student agreed with is NOT a student-named gap:
+  // recording it as one lets the most agreeable student in a cohort produce
+  // the strongest-looking record while doing the least thinking.
   self_named_gap: {
+    // true only when the student put the gap into words themselves
     named: boolean | null;
+    // 'student' — raised it unprompted (the only route to "demonstrated")
+    // 'sensei'  — the Sensei proposed the reframe; the student accepted,
+    //             amended, or rejected it (all three are real readings)
+    // null      — nothing of the kind surfaced
+    introduced_by: 'student' | 'sensei' | null;
     student_words: string;
   };
   try: {

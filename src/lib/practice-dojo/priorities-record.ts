@@ -141,6 +141,12 @@ function cleanTriState(raw: unknown): boolean | null {
   return typeof raw === 'boolean' ? raw : null;
 }
 
+// Who introduced the calibration gap. Anything but the two known values is
+// null: an unrecognised value must never read as "the student named it".
+function cleanIntroducedBy(raw: unknown): 'student' | 'sensei' | null {
+  return raw === 'student' || raw === 'sensei' ? raw : null;
+}
+
 function cleanTimePicture(raw: unknown): TimePictureEntry[] {
   if (!Array.isArray(raw)) return [];
   const entries: TimePictureEntry[] = [];
@@ -188,7 +194,12 @@ export function parsePrioritiesRecord(json: string, at: string): PrioritiesRecor
       student_read_on_quality: cleanString(mind.student_read_on_quality, 400),
     },
     self_named_gap: {
-      named: cleanTriState(gap.named),
+      // A gap credited to the student must be one the student introduced.
+      // If the model says named:true but attributes it to itself, the
+      // attribution wins — that combination is the exact bookkeeping error
+      // this field exists to catch.
+      named: cleanIntroducedBy(gap.introduced_by) === 'sensei' ? false : cleanTriState(gap.named),
+      introduced_by: cleanIntroducedBy(gap.introduced_by),
       student_words: cleanString(gap.student_words, 400),
     },
     try: {
@@ -306,7 +317,11 @@ export function prioritiesRecordToMarkdown(record: PrioritiesRecord): string {
   }
 
   if (record.self_named_gap.student_words) {
-    lines.push('', '## What you noticed', '', `"${record.self_named_gap.student_words}"`);
+    const heading =
+      record.self_named_gap.introduced_by === 'sensei'
+        ? '## What you agreed with'
+        : '## What you noticed';
+    lines.push('', heading, '', `"${record.self_named_gap.student_words}"`);
   }
 
   lines.push('', '## The small thing you wanted to try', '');

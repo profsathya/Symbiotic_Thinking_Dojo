@@ -353,6 +353,27 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, provi
             }
           }
 
+          // A stream that ended with nothing in it: the request "succeeded"
+          // and the student is left with an empty bubble, no error, no spinner
+          // and no way to retry — they wait, re-send, and conclude the tool is
+          // broken. Say so instead, in the assistant's own bubble.
+          if (accumulatedContent.trim().length === 0) {
+            setError('The reply came back empty. Send your message again — nothing you typed was lost.');
+            setMessages(current =>
+              current.map(msg =>
+                msg.id === assistantMessageId
+                  ? {
+                      ...msg,
+                      content:
+                        '**No reply came back.** That one dropped on the way — send your last message again.',
+                      speaker: 'sensei' as const,
+                    }
+                  : msg
+              )
+            );
+            return;
+          }
+
           // Strip markers from final content
           let cleanContent = stripBalanceMarker(accumulatedContent);
           cleanContent = stripDIKWMarker(cleanContent);
