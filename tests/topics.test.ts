@@ -336,6 +336,20 @@ describe('What Are My Priorities?', () => {
     expect(topic.systemInstructions).toContain('would you call that mostly entertainment?');
   });
 
+  // TA feedback (2026-08-21): the Sensei moved to the next question without
+  // visibly doing anything with the numbers the student had just entered
+  it('asks questions that could only be asked of this student', () => {
+    expect(topic.systemInstructions).toContain('SHOW THAT YOU READ IT');
+    expect(topic.systemInstructions).toContain(
+      'Never open a turn with a transition that would fit any conversation'
+    );
+    // Anchored in their own numbers, not asked in the abstract
+    expect(topic.phases[1].contentGuidance).toContain('anchor it in their own numbers');
+    expect(topic.phases[2].contentGuidance).toContain('names the thing it is about');
+    // And it must not become praise or paraphrase, which are banned separately
+    expect(topic.systemInstructions).toContain('This is NOT praise and NOT a summary');
+  });
+
   it('bans praise and bans telling the student what to notice', () => {
     expect(topic.systemInstructions).toContain('NEVER EVALUATE AN ANSWER');
     for (const banned of ['Nice catch.', 'Good, that one holds.', "That's a real answer."]) {
