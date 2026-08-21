@@ -348,6 +348,11 @@ describe('What Are My Priorities?', () => {
     expect(topic.phases[2].contentGuidance).toContain('names the thing it is about');
     // And it must not become praise or paraphrase, which are banned separately
     expect(topic.systemInstructions).toContain('This is NOT praise and NOT a summary');
+    // The lines the topic mandates verbatim (the invitation, the close, the
+    // submission line) are carved out, or the rule would force the model to
+    // paraphrase the one wording it must not touch
+    expect(topic.systemInstructions).toContain('THE ONE EXCEPTION is a line this topic hands you word for word');
+    expect(topic.systemInstructions).toContain('do NOT personalise them');
   });
 
   it('bans praise and bans telling the student what to notice', () => {
