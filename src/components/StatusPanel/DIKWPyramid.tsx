@@ -9,7 +9,13 @@ interface DIKWPyramidProps {
 export function DIKWPyramid({ dikwState }: DIKWPyramidProps) {
   const { current, highWaterMark } = dikwState;
   const currentIndex = DIKW_ORDER[current];
+  // The peak is now EARNED — a level counts once it has been reached twice
+  // (see confirmedPeak), so one stray reading no longer crowns a session.
   const highWaterIndex = DIKW_ORDER[highWaterMark];
+  // Bars fill to wherever the conversation is now, so the display stays
+  // responsive even before a level has been confirmed twice.
+  const fillIndex = Math.max(currentIndex, highWaterIndex);
+  const lastReason = [...(dikwState.reasons ?? [])].reverse().find((r) => r.length > 0) ?? '';
 
 
   return (
@@ -22,7 +28,7 @@ export function DIKWPyramid({ dikwState }: DIKWPyramidProps) {
         {/* Vertical bar */}
         <div className="relative w-3 flex flex-col-reverse">
           {DIKW_LEVELS.map((level, idx) => {
-            const isAtOrBelowHighWater = idx <= highWaterIndex;
+            const isAtOrBelowHighWater = idx <= fillIndex;
             const isCurrent = idx === currentIndex;
 
 
@@ -66,7 +72,7 @@ export function DIKWPyramid({ dikwState }: DIKWPyramidProps) {
           {DIKW_LEVELS.map((level, idx) => {
             const isCurrent = idx === currentIndex;
             const isHighWater = idx === highWaterIndex;
-            const isAtOrBelowHighWater = idx <= highWaterIndex;
+            const isAtOrBelowHighWater = idx <= fillIndex;
 
             const textColors = {
               data: isCurrent ? 'text-gray-300' : 'text-gray-500',
@@ -87,8 +93,10 @@ export function DIKWPyramid({ dikwState }: DIKWPyramidProps) {
                 <span className={`text-[10px] ${isCurrent ? '' : 'hidden sm:inline'}`}>
                   {level.name.slice(1)}
                 </span>
-                {isHighWater && highWaterIndex !== currentIndex && (
-                  <span className="text-[9px] text-yellow-500 ml-1">peak</span>
+                {isHighWater && highWaterIndex !== currentIndex && highWaterIndex > 0 && (
+                  <span className="text-[9px] text-yellow-500 ml-1" title="Reached at least twice">
+                    peak
+                  </span>
                 )}
                 {isCurrent && (
                   <span className="text-[9px] ml-1">current</span>
@@ -98,6 +106,11 @@ export function DIKWPyramid({ dikwState }: DIKWPyramidProps) {
           })}
         </div>
       </div>
+
+      {/* Why it last moved — a level you can't check is a level you can't use */}
+      {lastReason && (
+        <p className="text-[10px] text-gray-500 italic">last: {lastReason}</p>
+      )}
 
       {/* Guidance text */}
       <div className="pt-1 border-t border-gray-800">

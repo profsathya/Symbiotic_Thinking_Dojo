@@ -52,8 +52,10 @@ export function BudgetIndicator({ apiKey }: BudgetIndicatorProps) {
           style={{ width: `${pct}%` }}
         />
       </div>
+      {/* Labelled: an unlabelled percentage next to the thinking meters was
+          being read as a score of the conversation. It is the token budget. */}
       <span className={`text-xs font-medium ${isLow ? 'text-amber-300' : 'text-gray-400'}`}>
-        {pct}%
+        {pct}% tokens left
       </span>
     </div>
   );

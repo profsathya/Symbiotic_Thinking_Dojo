@@ -106,10 +106,16 @@ export const THREE_CS_MAPPING = {
 // Creating-Consuming Balance types
 // Positive = Creating (engaging critically), Negative = Consuming (offloading to AI)
 export interface BalanceState {
-  score: number;           // Current cumulative score (-10 to +10 range, clamped)
+  score: number;           // Cumulative score (-10 to +10, clamped). Kept for
+                           // the export; the LIVE meter reads recentBalance()
+                           // instead, because a running total saturates a few
+                           // turns in and then stops reflecting the conversation.
   lastDelta: number;       // Last change (-3 to +3)
   consecutiveConsuming: number;  // Count of consecutive consuming interactions
   history: number[];       // History of deltas for this session
+  reasons: string[];       // One short reason per delta, in the model's words,
+                           // so a nudge can say WHY it moved. Same length as
+                           // history; '' when the model gave no reason.
 }
 
 export const INITIAL_BALANCE_STATE: BalanceState = {
@@ -117,11 +123,28 @@ export const INITIAL_BALANCE_STATE: BalanceState = {
   lastDelta: 0,
   consecutiveConsuming: 0,
   history: [],
+  reasons: [],
 };
 
-// Balance marker regex pattern - Sensei includes this in responses
-// Format: [BALANCE: +2] or [BALANCE: -1]
-export const BALANCE_MARKER_REGEX = /\[BALANCE:\s*([+-]?\d+)\]/;
+// Balance marker regex - the Sensei includes this in responses.
+// Format: [BALANCE: +2] or, preferred, [BALANCE: +2 | named her own gap]
+// The reason is optional so older sessions and stray markers still parse.
+export const BALANCE_MARKER_REGEX = /\[BALANCE:\s*([+-]?\d+)(?:\s*\|\s*([^\]]*))?\]/;
+
+/**
+ * What the live meter reads: the mean of the last few rated turns.
+ *
+ * The cumulative score was the bug behind "the meter has no visible
+ * relationship to the conversation" — five good turns pin it at +10 and
+ * nothing afterwards moves it. A window keeps the needle attached to what is
+ * happening now, which is the only thing a formative nudge can act on.
+ */
+export function recentBalance(history: number[], window = 5): { mean: number; count: number } {
+  const recent = history.slice(-window);
+  if (recent.length === 0) return { mean: 0, count: 0 };
+  const sum = recent.reduce((total, delta) => total + delta, 0);
+  return { mean: sum / recent.length, count: recent.length };
+}
 
 // Practice Dojo phase-readiness marker - the model emits this at the end of
 // a turn to signal the current phase's goal looks met. The app highlights
@@ -140,9 +163,10 @@ export const KATA_RESULT_MARKER_REGEX = /\[KATA_RESULT:\s*(\{[^\]]*\})\]/g;
 export type DIKWLevel = 'data' | 'information' | 'knowledge' | 'wisdom';
 
 export interface DIKWState {
-  current: DIKWLevel;      // Current level of the conversation
-  highWaterMark: DIKWLevel; // Highest level reached in this session
+  current: DIKWLevel;      // Level of the student's most recent message
+  highWaterMark: DIKWLevel; // Highest level reached TWICE — see confirmedPeak
   history: DIKWLevel[];    // History of levels through the session
+  reasons: string[];       // One short reason per level, same length as history
 }
 
 export const DIKW_LEVELS: { id: DIKWLevel; name: string; description: string; questions: string }[] = [
@@ -176,11 +200,33 @@ export const INITIAL_DIKW_STATE: DIKWState = {
   current: 'data',
   highWaterMark: 'data',
   history: [],
+  reasons: [],
 };
 
-// DIKW marker regex pattern - AI includes this in responses
-// Format: [DIKW: K] or [DIKW: W]
-export const DIKW_MARKER_REGEX = /\[DIKW:\s*([DIKW])\]/;
+// DIKW marker regex - the AI includes this in responses.
+// Format: [DIKW: K] or, preferred, [DIKW: K | weighed two options]
+export const DIKW_MARKER_REGEX = /\[DIKW:\s*([DIKW])(?:\s*\|\s*([^\]]*))?\]/;
+
+/**
+ * The highest level the conversation has reached AT LEAST TWICE.
+ *
+ * A single stray reading used to crown a whole session: one "W" — often
+ * rating the Sensei's own tradeoffs question rather than the student's
+ * thinking — left the peak at Wisdom permanently, including on sessions where
+ * the student volunteered nothing. Reaching a level twice is a low bar, but it
+ * is a bar, and it makes the claim survivable.
+ */
+export function confirmedPeak(history: DIKWLevel[]): DIKWLevel {
+  const counts = new Map<DIKWLevel, number>();
+  for (const level of history) {
+    counts.set(level, (counts.get(level) ?? 0) + 1);
+  }
+  let peak: DIKWLevel = 'data';
+  for (const [level, count] of counts) {
+    if (count >= 2 && DIKW_ORDER[level] > DIKW_ORDER[peak]) peak = level;
+  }
+  return peak;
+}
 
 // Helper to convert marker letter to level
 export const DIKW_MARKER_MAP: Record<string, DIKWLevel> = {

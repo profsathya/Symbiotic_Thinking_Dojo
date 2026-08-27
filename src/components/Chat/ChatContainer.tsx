@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { Message, BalanceState } from '@/lib/types';
+import { Message, BalanceState, recentBalance } from '@/lib/types';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { CountdownTimer } from '@/components/CountdownTimer';
@@ -20,20 +20,24 @@ interface ChatContainerProps {
 }
 
 
-// Calculate opacity for the overlay
+// Calculate opacity for the overlay. Reads the same recent window as the
+// meter — tinting on the cumulative score meant the tint latched on a few
+// turns in and then stayed regardless of what happened next.
 function getOverlayOpacity(balance: BalanceState): number {
   if (balance.history.length < 2) return 0;
 
-  if (balance.score < 0) {
+  const { mean } = recentBalance(balance.history);
+
+  if (mean < 0) {
     // Consuming: increase opacity with consecutive consuming
     if (balance.consecutiveConsuming >= 3) {
       return Math.min(0.15, 0.05 + (balance.consecutiveConsuming - 2) * 0.025);
     }
-    return Math.min(0.05, Math.abs(balance.score) * 0.005);
+    return Math.min(0.05, Math.abs(mean) * 0.015);
   }
 
-  if (balance.score > 2) {
-    return Math.min(0.08, balance.score * 0.01);
+  if (mean >= 1) {
+    return Math.min(0.08, mean * 0.025);
   }
 
   return 0;

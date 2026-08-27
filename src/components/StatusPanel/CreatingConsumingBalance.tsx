@@ -1,19 +1,35 @@
 'use client';
 
-import { BalanceState } from '@/lib/types';
+import { BalanceState, recentBalance } from '@/lib/types';
 
 interface CreatingConsumingBalanceProps {
   balance: BalanceState;
   hasStartedConversation: boolean;
 }
 
+/**
+ * The Creating–Consuming meter, read as a FORMATIVE NUDGE rather than a score.
+ *
+ * Two things make that possible. It reads the last few rated turns instead of
+ * the running total — a cumulative score pins itself after a handful of good
+ * turns and then stops responding to anything, which is why testers saw a
+ * meter with no visible relationship to their conversation. And its status
+ * line says what to DO next, not how the student is doing: a student who reads
+ * "Great critical engagement!" has learned nothing they can act on.
+ */
 export function CreatingConsumingBalance({
   balance,
   hasStartedConversation,
 }: CreatingConsumingBalanceProps) {
-  // Calculate tilt angle based on score (-10 to +10 maps to -30 to +30 degrees)
-  // Negative score (consuming) tilts right, positive (creating) tilts left
-  const tiltAngle = -(balance.score / 10) * 30;
+  const { mean, count } = recentBalance(balance.history);
+  // Deltas run -3..+3, so the mean maps straight onto the beam's ±30°
+  const tiltAngle = -(mean / 3) * 30;
+  const weight = Math.min(1, Math.abs(mean) / 3);
+  // The most recent reason the model gave for a move, if it gave one
+  const lastReason = [...(balance.reasons ?? [])].reverse().find((r) => r.length > 0) ?? '';
+
+  // A claim about engagement needs more than a turn or two behind it
+  const enoughToJudge = count >= 4;
 
   return (
     <div className="space-y-2">
@@ -29,10 +45,8 @@ export function CreatingConsumingBalance({
 
         {/* Balance visualization */}
         <div className="relative h-12 flex items-center justify-center">
-          {/* The balance bar and pivot */}
           <div className="relative w-full flex flex-col items-center">
-            {/* Balance bar - only show after conversation starts */}
-            {hasStartedConversation && (
+            {hasStartedConversation && count > 0 && (
               <div
                 className="w-32 h-1 bg-gray-500 rounded-full transition-transform duration-500 ease-out origin-center"
                 style={{ transform: `rotate(${tiltAngle}deg)` }}
@@ -41,16 +55,16 @@ export function CreatingConsumingBalance({
                 <div
                   className="absolute -left-1 -top-1.5 w-3 h-3 rounded-full bg-green-500 transition-all duration-500"
                   style={{
-                    opacity: balance.score > 0 ? 0.5 + (balance.score / 20) : 0.3,
-                    transform: `scale(${balance.score > 0 ? 1 + balance.score / 20 : 0.8})`,
+                    opacity: mean > 0 ? 0.5 + weight * 0.5 : 0.3,
+                    transform: `scale(${mean > 0 ? 1 + weight * 0.5 : 0.8})`,
                   }}
                 />
                 {/* Right weight (Consuming) */}
                 <div
                   className="absolute -right-1 -top-1.5 w-3 h-3 rounded-full bg-red-500 transition-all duration-500"
                   style={{
-                    opacity: balance.score < 0 ? 0.5 + (Math.abs(balance.score) / 20) : 0.3,
-                    transform: `scale(${balance.score < 0 ? 1 + Math.abs(balance.score) / 20 : 0.8})`,
+                    opacity: mean < 0 ? 0.5 + weight * 0.5 : 0.3,
+                    transform: `scale(${mean < 0 ? 1 + weight * 0.5 : 0.8})`,
                   }}
                 />
               </div>
@@ -58,35 +72,41 @@ export function CreatingConsumingBalance({
 
             {/* Triangle pivot - always visible */}
             <div className="relative mt-1">
-              <div
-                className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[10px] border-l-transparent border-r-transparent border-b-gray-400"
-              />
+              <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[10px] border-l-transparent border-r-transparent border-b-gray-400" />
             </div>
           </div>
         </div>
 
-        {/* Status text */}
+        {/* Status text — a next move, not a verdict */}
         <div className="text-center mt-2">
-          {!hasStartedConversation ? (
-            <p className="text-xs text-gray-500">
-              Start a conversation to see your balance
-            </p>
-          ) : balance.score > 2 ? (
-            <p className="text-xs text-green-400">
-              Great critical engagement!
-            </p>
-          ) : balance.score < -2 ? (
+          {!hasStartedConversation || count === 0 ? (
+            <p className="text-xs text-gray-500">Start a conversation to see your balance</p>
+          ) : mean <= -1 ? (
             <p className="text-xs text-red-400">
-              Try engaging more deeply
+              I&apos;m doing more of the thinking — try answering one in your own words
             </p>
+          ) : enoughToJudge && mean >= 1 ? (
+            <p className="text-xs text-green-400">You&apos;re driving this one — keep going</p>
           ) : (
             <p className="text-xs text-gray-400">
-              {balance.score > 0 ? 'Leaning toward creating' :
-               balance.score < 0 ? 'Leaning toward consuming' :
-               'Balanced'}
+              Add a reason or a question of your own to tip this
             </p>
           )}
         </div>
+
+        {/* Why it last moved — the meter is only useful if it can be checked */}
+        {lastReason && count > 0 && (
+          <p className="mt-1.5 text-[10px] text-gray-500 text-center italic">
+            last: {lastReason}
+          </p>
+        )}
+
+        {/* What it is reading, so the number isn't a mystery */}
+        {count > 0 && (
+          <p className="mt-1 text-[10px] text-gray-600 text-center">
+            your last {count} turn{count === 1 ? '' : 's'}
+          </p>
+        )}
       </div>
     </div>
   );

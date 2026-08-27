@@ -454,6 +454,9 @@ export function parseImportedSession(jsonContent: string): ImportResult {
     lastDelta: balanceHistory[balanceHistory.length - 1] || 0,
     consecutiveConsuming: 0, // Reset on import
     history: balanceHistory,
+    // Reasons are live nudge text, not part of the exported record — an
+    // imported session shows its history without them.
+    reasons: [],
   };
 
   // Reconstruct DIKW state
@@ -467,6 +470,7 @@ export function parseImportedSession(jsonContent: string): ImportResult {
     current: currentDikw,
     highWaterMark: highWaterDikw,
     history: dikwHistory,
+    reasons: [],
   };
 
   return {
