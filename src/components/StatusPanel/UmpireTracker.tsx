@@ -110,9 +110,15 @@ export function UmpireTracker({ currentStage, onStageChange }: UmpireTrackerProp
 
   return (
     <div className="space-y-2">
-      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-        UMPIRE Cycle
-      </h3>
+      <div>
+        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          UMPIRE Cycle
+        </h3>
+        {/* This one is NOT read from the conversation — it is a stage the
+            student sets for themselves. Saying so stops it reading as a
+            judgement the Dojo has made about where they are. */}
+        <p className="text-[10px] text-gray-600 mt-0.5">You set this — tap where you are</p>
+      </div>
 
       <div className="space-y-1">
         {THREE_CS_CONFIG.map((group, groupIdx) => {

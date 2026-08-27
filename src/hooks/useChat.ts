@@ -14,7 +14,7 @@ import {
   INITIAL_DIKW_STATE,
   DIKW_MARKER_REGEX,
   DIKW_MARKER_MAP,
-  DIKW_ORDER,
+  confirmedPeak,
   NEXT_PHASE_MARKER_REGEX,
   KATA_RESULT_MARKER_REGEX,
 } from '@/lib/types';
@@ -88,16 +88,24 @@ function hasInteractiveElements(content: string): boolean {
   return false;
 }
 
-// Parse balance marker from content and return the delta value
-function parseBalanceMarker(content: string): number | null {
+// One short reason, in the model's words, shown under the meter. Model output
+// is untrusted display input: flatten whitespace and cap it.
+function cleanMarkerReason(raw: string | undefined): string {
+  if (!raw) return '';
+  const flattened = raw.replace(/\s+/g, ' ').trim();
+  return flattened.length > 120 ? `${flattened.slice(0, 120)}…` : flattened;
+}
+
+// Parse balance marker from content: the delta, plus why it moved
+function parseBalanceMarker(content: string): { delta: number; reason: string } | null {
   const match = content.match(BALANCE_MARKER_REGEX);
-  if (match) {
-    const value = parseInt(match[1], 10);
-    if (!isNaN(value) && value >= -3 && value <= 3) {
-      return value;
-    }
-  }
-  return null;
+  if (!match) return null;
+  const delta = parseInt(match[1], 10);
+  // Out of rubric is not a rating. Clamping a slipped "+30" to +3 would record
+  // the strongest assessment in the scale for a number the rubric never
+  // defines, and feed it into both the live meter and the exported score.
+  if (Number.isNaN(delta) || delta < -3 || delta > 3) return null;
+  return { delta, reason: cleanMarkerReason(match[2]) };
 }
 
 // Strip balance marker from content for display
@@ -106,7 +114,7 @@ function stripBalanceMarker(content: string): string {
 }
 
 // Update balance state based on new delta
-function updateBalanceState(current: BalanceState, delta: number): BalanceState {
+function updateBalanceState(current: BalanceState, delta: number, reason: string): BalanceState {
   const newScore = Math.max(-10, Math.min(10, current.score + delta));
   const newConsecutiveConsuming = delta < 0 ? current.consecutiveConsuming + 1 : 0;
 
@@ -115,19 +123,17 @@ function updateBalanceState(current: BalanceState, delta: number): BalanceState 
     lastDelta: delta,
     consecutiveConsuming: newConsecutiveConsuming,
     history: [...current.history, delta],
+    reasons: [...(current.reasons ?? []), reason],
   };
 }
 
 // Parse DIKW marker from content and return the level
-function parseDIKWMarker(content: string): DIKWLevel | null {
+function parseDIKWMarker(content: string): { level: DIKWLevel; reason: string } | null {
   const match = content.match(DIKW_MARKER_REGEX);
-  if (match) {
-    const letter = match[1].toUpperCase();
-    if (letter in DIKW_MARKER_MAP) {
-      return DIKW_MARKER_MAP[letter];
-    }
-  }
-  return null;
+  if (!match) return null;
+  const letter = match[1].toUpperCase();
+  if (!(letter in DIKW_MARKER_MAP)) return null;
+  return { level: DIKW_MARKER_MAP[letter], reason: cleanMarkerReason(match[2]) };
 }
 
 // Strip DIKW marker from content for display
@@ -136,14 +142,16 @@ function stripDIKWMarker(content: string): string {
 }
 
 // Update DIKW state based on new level
-function updateDIKWState(current: DIKWState, newLevel: DIKWLevel): DIKWState {
-  const newOrder = DIKW_ORDER[newLevel];
-  const highWaterOrder = DIKW_ORDER[current.highWaterMark];
+function updateDIKWState(current: DIKWState, newLevel: DIKWLevel, reason: string): DIKWState {
+  const history = [...current.history, newLevel];
 
   return {
     current: newLevel,
-    highWaterMark: newOrder > highWaterOrder ? newLevel : current.highWaterMark,
-    history: [...current.history, newLevel],
+    // Earned by reaching the level twice, not by touching it once — see
+    // confirmedPeak. A stray reading no longer crowns the session.
+    highWaterMark: confirmedPeak(history),
+    history,
+    reasons: [...(current.reasons ?? []), reason],
   };
 }
 
@@ -320,15 +328,17 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, provi
         },
         onComplete: () => {
           // Parse balance marker and update balance state
-          const balanceDelta = parseBalanceMarker(accumulatedContent);
-          if (balanceDelta !== null) {
-            setBalance(current => updateBalanceState(current, balanceDelta));
+          const balanceReading = parseBalanceMarker(accumulatedContent);
+          if (balanceReading !== null) {
+            setBalance(current =>
+              updateBalanceState(current, balanceReading.delta, balanceReading.reason)
+            );
           }
 
           // Parse DIKW marker and update DIKW state
-          const dikwLevel = parseDIKWMarker(accumulatedContent);
-          if (dikwLevel !== null) {
-            setDikw(current => updateDIKWState(current, dikwLevel));
+          const dikwReading = parseDIKWMarker(accumulatedContent);
+          if (dikwReading !== null) {
+            setDikw(current => updateDIKWState(current, dikwReading.level, dikwReading.reason));
           }
 
           // Parse phase-advance marker — fire callback at most once per message.

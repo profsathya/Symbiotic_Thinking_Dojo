@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { composeSystemPrompt } from '@/lib/prompts/composer';
+import { DEFAULT_DOJO_PROMPT } from '@/lib/prompts/defaults/dojo';
 import { DojoConfig } from '@/lib/types';
 import { PracticeDojoContext, TopicConfig, PhaseSelfCheck, KataResult } from '@/lib/practice-dojo/types';
 
@@ -52,6 +53,30 @@ function compose(phaseSelfChecks: PhaseSelfCheck[] = [], kataResults: KataResult
     practiceDojoContext: makeContext(phaseSelfChecks, kataResults),
   });
 }
+
+describe('the thinking-metric rubrics', () => {
+  it('rates the student\'s message, with evidence, not the exchange\'s mood', () => {
+    // Balance: a rating you cannot point at is 0
+    expect(DEFAULT_DOJO_PROMPT).toContain('Rate the STUDENT\'S LAST MESSAGE');
+    expect(DEFAULT_DOJO_PROMPT).toContain('You may only claim a rating you can point at');
+    expect(DEFAULT_DOJO_PROMPT).toContain('Agreeing with you is not creating');
+    // DIKW: the most common way this reading goes wrong
+    expect(DEFAULT_DOJO_PROMPT).toContain('Rate what the student wrote, never the question you asked');
+  });
+
+  it('omits the DIKW marker on an unrated turn instead of repeating the level', () => {
+    // Repeating counted as a second sighting, so one real Wisdom answer
+    // followed by an "ok" registered as a confirmed Wisdom session
+    expect(DEFAULT_DOJO_PROMPT).toContain('omit the DIKW marker entirely for that turn');
+    expect(DEFAULT_DOJO_PROMPT).toContain('Do not repeat their previous level to fill the slot');
+    expect(DEFAULT_DOJO_PROMPT).not.toContain('**At the end of EVERY response**, also include a DIKW marker');
+  });
+
+  it('asks for the reason alongside every rating', () => {
+    expect(DEFAULT_DOJO_PROMPT).toContain('[BALANCE: X | why]');
+    expect(DEFAULT_DOJO_PROMPT).toContain('[DIKW: X | why]');
+  });
+});
 
 describe('phase transition instructions', () => {
   const phase = { phaseId: 1, title: 'Stage', purpose: 'p', hasCheckpoint: false, contentGuidance: 'g' };
