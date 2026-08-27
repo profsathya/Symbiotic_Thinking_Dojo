@@ -64,6 +64,14 @@ describe('the thinking-metric rubrics', () => {
     expect(DEFAULT_DOJO_PROMPT).toContain('Rate what the student wrote, never the question you asked');
   });
 
+  it('omits the DIKW marker on an unrated turn instead of repeating the level', () => {
+    // Repeating counted as a second sighting, so one real Wisdom answer
+    // followed by an "ok" registered as a confirmed Wisdom session
+    expect(DEFAULT_DOJO_PROMPT).toContain('omit the DIKW marker entirely for that turn');
+    expect(DEFAULT_DOJO_PROMPT).toContain('Do not repeat their previous level to fill the slot');
+    expect(DEFAULT_DOJO_PROMPT).not.toContain('**At the end of EVERY response**, also include a DIKW marker');
+  });
+
   it('asks for the reason alongside every rating', () => {
     expect(DEFAULT_DOJO_PROMPT).toContain('[BALANCE: X | why]');
     expect(DEFAULT_DOJO_PROMPT).toContain('[DIKW: X | why]');

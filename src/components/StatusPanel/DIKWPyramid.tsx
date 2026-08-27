@@ -15,7 +15,11 @@ export function DIKWPyramid({ dikwState }: DIKWPyramidProps) {
   // Bars fill to wherever the conversation is now, so the display stays
   // responsive even before a level has been confirmed twice.
   const fillIndex = Math.max(currentIndex, highWaterIndex);
-  const lastReason = [...(dikwState.reasons ?? [])].reverse().find((r) => r.length > 0) ?? '';
+  // Aligned with the latest history entry, so a bare marker shows no reason
+  // rather than the stale one from an earlier turn (see CreatingConsumingBalance)
+  const dikwReasons = dikwState.reasons ?? [];
+  const lastReason =
+    dikwReasons.length === dikwState.history.length ? dikwReasons[dikwReasons.length - 1] ?? '' : '';
 
 
   return (

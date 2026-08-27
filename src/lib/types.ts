@@ -140,7 +140,11 @@ export const BALANCE_MARKER_REGEX = /\[BALANCE:\s*([+-]?\d+)(?:\s*\|\s*([^\]]*))
  * happening now, which is the only thing a formative nudge can act on.
  */
 export function recentBalance(history: number[], window = 5): { mean: number; count: number } {
-  const recent = history.slice(-window);
+  // Only real ratings count. An imported or hand-edited session can carry a
+  // non-numeric entry, and one NaN in the window turns the needle into
+  // rotate(NaNdeg) — a meter that silently stops meaning anything.
+  const rated = history.filter((delta) => Number.isFinite(delta) && delta >= -3 && delta <= 3);
+  const recent = rated.slice(-window);
   if (recent.length === 0) return { mean: 0, count: 0 };
   const sum = recent.reduce((total, delta) => total + delta, 0);
   return { mean: sum / recent.length, count: recent.length };

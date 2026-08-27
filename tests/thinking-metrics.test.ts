@@ -61,6 +61,27 @@ describe('when a DIKW level counts as reached', () => {
   });
 });
 
+describe('ratings that should not count at all', () => {
+  it('ignores a delta outside the rubric rather than clamping it', () => {
+    // A slipped "+30" clamped to +3 would record the strongest assessment in
+    // the scale for a number the rubric never defines
+    const match = '[BALANCE: +30 | huge]'.match(BALANCE_MARKER_REGEX)!;
+    const delta = parseInt(match[1], 10);
+    expect(delta < -3 || delta > 3).toBe(true);
+  });
+
+  it('keeps a non-numeric history entry off the needle', () => {
+    // An imported or hand-edited file can carry one; one NaN in the window
+    // turns the meter into rotate(NaNdeg)
+    const withJunk = [2, Number.NaN, 2];
+    expect(recentBalance(withJunk)).toEqual({ mean: 2, count: 2 });
+  });
+
+  it('ignores out-of-range entries in a restored history', () => {
+    expect(recentBalance([2, 99, 2])).toEqual({ mean: 2, count: 2 });
+  });
+});
+
 describe('markers carrying their reason', () => {
   it('reads a balance delta with the move that earned it', () => {
     const match = 'Got it.\n[BALANCE: +2 | revised her sleep number]'.match(BALANCE_MARKER_REGEX)!;

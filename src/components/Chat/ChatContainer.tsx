@@ -55,8 +55,14 @@ export function ChatContainer({
   defaultCodeLanguage,
 }: ChatContainerProps) {
   const overlayOpacity = getOverlayOpacity(balance);
-  const isConsuming = balance.score < 0 && balance.history.length >= 2;
-  const isCreating = balance.score > 2 && balance.history.length >= 2;
+  // Direction comes from the SAME recent window as the opacity. Reading one
+  // from the window and the other from the cumulative score let a session tint
+  // green while fading in on five negative turns — or carry an opacity with no
+  // colour class at all.
+  const { mean: recentMean } = recentBalance(balance.history);
+  const enoughHistory = balance.history.length >= 2;
+  const isConsuming = enoughHistory && recentMean < 0;
+  const isCreating = enoughHistory && recentMean >= 1;
 
   return (
     <div className="flex-1 flex flex-col bg-gray-950 overflow-hidden relative" data-tour="chat">

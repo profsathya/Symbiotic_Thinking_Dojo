@@ -25,8 +25,12 @@ export function CreatingConsumingBalance({
   // Deltas run -3..+3, so the mean maps straight onto the beam's ±30°
   const tiltAngle = -(mean / 3) * 30;
   const weight = Math.min(1, Math.abs(mean) / 3);
-  // The most recent reason the model gave for a move, if it gave one
-  const lastReason = [...(balance.reasons ?? [])].reverse().find((r) => r.length > 0) ?? '';
+  // The reason for the LATEST rated turn — not the latest turn that happened to
+  // have one. Searching backwards for the most recent non-empty reason meant a
+  // bare marker moved the needle while the meter still displayed the
+  // explanation for a turn two exchanges ago.
+  const reasons = balance.reasons ?? [];
+  const lastReason = reasons.length === balance.history.length ? reasons[reasons.length - 1] ?? '' : '';
 
   // A claim about engagement needs more than a turn or two behind it
   const enoughToJudge = count >= 4;

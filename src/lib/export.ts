@@ -1,6 +1,6 @@
 // Session export utilities for Symbiotic Thinking Dojo
 
-import { Message, Construct, SparringPartner, BalanceState, DIKWState, CONSTRUCT_INFO, DIKW_LEVELS } from './types';
+import { Message, Construct, SparringPartner, BalanceState, DIKWState, CONSTRUCT_INFO, DIKW_LEVELS, confirmedPeak } from './types';
 
 export interface SessionExport {
   version: '1.0';
@@ -447,8 +447,14 @@ export function parseImportedSession(jsonContent: string): ImportResult {
     speaker: (msg.speaker as Message['speaker']) || (msg.role === 'user' ? 'user' : 'sensei'),
   }));
 
-  // Reconstruct balance state
-  const balanceHistory = Array.isArray(balanceData.history) ? balanceData.history.map(Number) : [];
+  // Reconstruct balance state. Every entry must be a real rating: a
+  // hand-edited or malformed file otherwise puts NaN straight into the live
+  // meter's average.
+  const balanceHistory = Array.isArray(balanceData.history)
+    ? balanceData.history
+        .map(Number)
+        .filter((delta: number) => Number.isFinite(delta) && delta >= -3 && delta <= 3)
+    : [];
   const balance: BalanceState = {
     score: Number(balanceData.finalScore) || 0,
     lastDelta: balanceHistory[balanceHistory.length - 1] || 0,
@@ -464,7 +470,10 @@ export function parseImportedSession(jsonContent: string): ImportResult {
     ? dikwData.history.filter(isValidDIKWLevel)
     : [];
   const currentDikw = isValidDIKWLevel(dikwData.finalLevel) ? dikwData.finalLevel : 'data';
-  const highWaterDikw = isValidDIKWLevel(dikwData.highWaterMark) ? dikwData.highWaterMark : currentDikw;
+  // Recomputed, never trusted from the file. A session exported before the
+  // twice-reached rule recorded its peak on first sight, so importing the
+  // stored value would restore a Wisdom peak that one stray reading created.
+  const highWaterDikw = confirmedPeak(dikwHistory);
 
   const dikw: DIKWState = {
     current: currentDikw,

@@ -101,8 +101,11 @@ function parseBalanceMarker(content: string): { delta: number; reason: string } 
   const match = content.match(BALANCE_MARKER_REGEX);
   if (!match) return null;
   const delta = parseInt(match[1], 10);
-  if (Number.isNaN(delta)) return null;
-  return { delta: Math.max(-3, Math.min(3, delta)), reason: cleanMarkerReason(match[2]) };
+  // Out of rubric is not a rating. Clamping a slipped "+30" to +3 would record
+  // the strongest assessment in the scale for a number the rubric never
+  // defines, and feed it into both the live meter and the exported score.
+  if (Number.isNaN(delta) || delta < -3 || delta > 3) return null;
+  return { delta, reason: cleanMarkerReason(match[2]) };
 }
 
 // Strip balance marker from content for display
