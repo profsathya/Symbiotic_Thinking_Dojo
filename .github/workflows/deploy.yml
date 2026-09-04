@@ -66,8 +66,8 @@ jobs:
             --platform managed \
             --allow-unauthenticated \
             --set-env-vars "NEXT_PUBLIC_STATS_API_URL=${{ vars.NEXT_PUBLIC_STATS_API_URL || 'https://dojo-stats-api.netlify.app' }}" \
-            --set-env-vars "COMMONS_PROVIDER=${{ vars.COMMONS_PROVIDER || 'gemini' }}" \
-            --set-env-vars "COMMONS_MODEL=${{ vars.COMMONS_MODEL || 'gemini-2.5-flash' }}" \
+            --set-env-vars "COMMONS_PROVIDER=${{ vars.COMMONS_PROVIDER || 'anthropic' }}" \
+            --set-env-vars "COMMONS_MODEL=${{ vars.COMMONS_MODEL || 'claude-sonnet-5' }}" \
             --set-secrets "COMMONS_API_KEY=commons-api-key:latest" \
             --quiet
 
