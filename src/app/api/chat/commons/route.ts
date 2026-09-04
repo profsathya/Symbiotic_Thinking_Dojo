@@ -90,8 +90,10 @@ function checkAuth(
 // --- Configuration ---
  
 const COMMONS_API_KEY = process.env.COMMONS_API_KEY || '';
-const COMMONS_MODEL = process.env.COMMONS_MODEL || 'gemini-2.5-flash';
-const COMMONS_PROVIDER = process.env.COMMONS_PROVIDER || 'gemini'; // 'gemini' | 'anthropic'
+const COMMONS_MODEL = process.env.COMMONS_MODEL || 'claude-sonnet-5';
+// Provider selects the SDK, so it moves with the model: a Claude model id
+// routed through the Gemini client is not a working configuration.
+const COMMONS_PROVIDER = process.env.COMMONS_PROVIDER || 'anthropic'; // 'gemini' | 'anthropic'
 const COMMONS_MAX_TOKENS = parseInt(process.env.COMMONS_MAX_TOKENS || '4096', 10);
  
 // Rate limiting: requests per window per IP
