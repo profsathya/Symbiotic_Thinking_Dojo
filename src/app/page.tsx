@@ -228,11 +228,13 @@ export default function Home() {
   const dikwRef = useRef(dikw);
   const activePartnersRef = useRef(activePartners);
   const activeConstructRef = useRef(activeConstruct);
+  const showThinkingMetricsRef = useRef(true);
 
   useEffect(() => { messagesRef.current = messages; }, [messages]);
   useEffect(() => { dikwRef.current = dikw; }, [dikw]);
   useEffect(() => { activePartnersRef.current = activePartners; }, [activePartners]);
   useEffect(() => { activeConstructRef.current = activeConstruct; }, [activeConstruct]);
+  useEffect(() => { showThinkingMetricsRef.current = showThinkingMetrics; }, [showThinkingMetrics]);
 
   // Track session end when user closes/navigates away from the page
   useEffect(() => {
@@ -240,7 +242,7 @@ export default function Home() {
       if (messagesRef.current.length > 1) {
         stats.trackSessionEndBeacon({
           messageCount: messagesRef.current.length,
-          dikwState: dikwRef.current,
+          dikwState: showThinkingMetricsRef.current ? dikwRef.current : undefined,
           partnersUsed: activePartnersRef.current,
           construct: activeConstructRef.current,
         });
@@ -273,7 +275,7 @@ export default function Home() {
     if (messages.length > 1) {
       stats.trackSessionEnd({
         messageCount: messages.length,
-        dikwState: dikw,
+        dikwState: showThinkingMetrics ? dikw : undefined,
         partnersUsed: activePartners,
         construct: activeConstruct,
       });
@@ -442,7 +444,7 @@ export default function Home() {
     if (messages.length > 1) {
       stats.trackSessionEnd({
         messageCount: messages.length,
-        dikwState: dikw,
+        dikwState: showThinkingMetrics ? dikw : undefined,
         partnersUsed: activePartners,
         construct: activeConstruct,
       });
@@ -460,7 +462,7 @@ export default function Home() {
     setTimeout(() => {
       isExitingPracticeDojoRef.current = false;
     }, 100);
-  }, [practiceDojoState, resetChat, messages.length, getSerializedMessages, stats, dikw, activePartners, activeConstruct]);
+  }, [practiceDojoState, resetChat, messages.length, getSerializedMessages, stats, dikw, activePartners, activeConstruct, showThinkingMetrics]);
 
   // Complete the activity from the final phase's self-check gate. Mirrors
   // handleExitPracticeDojo, but records the topic as completed and clears the
@@ -472,7 +474,7 @@ export default function Home() {
     if (messages.length > 1) {
       stats.trackSessionEnd({
         messageCount: messages.length,
-        dikwState: dikw,
+        dikwState: showThinkingMetrics ? dikw : undefined,
         partnersUsed: activePartners,
         construct: activeConstruct,
       });
@@ -491,7 +493,7 @@ export default function Home() {
     setTimeout(() => {
       isExitingPracticeDojoRef.current = false;
     }, 100);
-  }, [topicId, practiceDojoState, resetChat, messages.length, stats, dikw, activePartners, activeConstruct]);
+  }, [topicId, practiceDojoState, resetChat, messages.length, stats, dikw, activePartners, activeConstruct, showThinkingMetrics]);
 
   // Wrap sendMessage to track interactions in Practice Dojo mode
   const handleSendMessage = useCallback((message: string) => {
@@ -500,9 +502,12 @@ export default function Home() {
       practiceDojoState.incrementInteractionCount();
     }
     // Track interaction for analytics (captures usage even if tab dies without beforeunload)
-    stats.trackInteraction(dikw.current, activePartners[0]);
+    // A topic that suppresses thinking metrics never emits [DIKW:] markers, so
+    // dikw.current would still be its initial "data" value — reporting it would
+    // record every message of the activity as Data and skew the aggregate.
+    stats.trackInteraction(showThinkingMetrics ? dikw.current : undefined, activePartners[0]);
     sendMessage(message);
-  }, [isInPracticeDojo, practiceDojoState, sendMessage, stats, dikw.current, activePartners]);
+  }, [isInPracticeDojo, practiceDojoState, sendMessage, stats, dikw.current, activePartners, showThinkingMetrics]);
 
   // After the student advances at the self-check gate, immediately open the
   // new phase with a model turn: their gate response becomes the next user
@@ -595,7 +600,9 @@ export default function Home() {
             onExit={handleExitPracticeDojo}
             senseiReady={senseiSignaledPhases.includes(currentPhaseIndex) || activityFinished}
             finalPhase={currentPhaseIndex + 1 >= currentTopic.phases.length}
-            onRequestPhaseCheck={() => setPhaseCheckOpen(true)}
+            onRequestPhaseCheck={
+              currentTopic.suppressPhaseGate ? undefined : () => setPhaseCheckOpen(true)
+            }
           />
         )}
         {/* Record strip (What Are My Priorities?): where the conversation

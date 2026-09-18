@@ -169,9 +169,12 @@ export function useStats() {
   }, []);
 
   // Track session end
+  // dikwState is optional for the same reason as trackInteraction's
+  // dikwLevel: a topic that suppresses thinking metrics has no level to
+  // report, and its unchanged initial state would skew the aggregate.
   const trackSessionEnd = useCallback((data: {
     messageCount: number;
-    dikwState: DIKWState;
+    dikwState?: DIKWState;
     partnersUsed: string[];
     construct: string;
   }) => {
@@ -179,7 +182,7 @@ export function useStats() {
       type: 'session_end',
       data: {
         messageCount: data.messageCount,
-        dikwLevels: dikwStateToScores(data.dikwState),
+        ...(data.dikwState ? { dikwLevels: dikwStateToScores(data.dikwState) } : {}),
         partnersUsed: data.partnersUsed,
         construct: data.construct,
       },
@@ -189,7 +192,7 @@ export function useStats() {
   // Track session end using sendBeacon (for page unload)
   const trackSessionEndBeacon = useCallback((data: {
     messageCount: number;
-    dikwState: DIKWState;
+    dikwState?: DIKWState;
     partnersUsed: string[];
     construct: string;
   }) => {
@@ -199,7 +202,7 @@ export function useStats() {
       type: 'session_end',
       data: {
         messageCount: data.messageCount,
-        dikwLevels: dikwStateToScores(data.dikwState),
+        ...(data.dikwState ? { dikwLevels: dikwStateToScores(data.dikwState) } : {}),
         partnersUsed: data.partnersUsed,
         construct: data.construct,
       },
@@ -220,10 +223,13 @@ export function useStats() {
   }, [trackEvent]);
 
   // Track user interaction (message sent)
-  const trackInteraction = useCallback((dikwLevel: DIKWLevel, partnerId?: string) => {
+  // dikwLevel is optional: a topic that suppresses thinking metrics has no
+  // meaningful level to report, and sending its initial value would record
+  // every interaction as Data.
+  const trackInteraction = useCallback((dikwLevel?: DIKWLevel, partnerId?: string) => {
     trackEvent({
       type: 'interaction',
-      data: { dikwLevel, partnerId },
+      data: dikwLevel ? { dikwLevel, partnerId } : { partnerId },
     });
   }, [trackEvent]);
 

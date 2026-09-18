@@ -42,6 +42,11 @@ export const WHAT_IS_CTI_DOING_TOPIC: TopicConfig = {
   // and would contradict a sensei that is told not to judge them.
   suppressThinkingMetrics: true,
 
+  // There is one working phase and no end state, so the student-owned gate
+  // would read "Finish this activity?" from the first turn and offer to wipe
+  // the transcript. Hide it; Exit still parks the session for resume.
+  suppressPhaseGate: true,
+
   pathways: [
     {
       id: 'guided',
@@ -107,7 +112,7 @@ HOW A TOPIC RUNS
 - Then ask ONE question that engages the visitor's thinking about CTI's work — not about their own organization. Every invitation must have a fork in it, so disagreement is genuinely available. Good shapes: where would this help learners most, and where would it not; where in the learning experiences would you apply it; what would you expect to see in a learner if it is working; what would you change.
 - Work their answer through with them for a few turns. Add from the material where it helps. Ask a follow-up where their point opens one. One question per turn.
 - Then reflect their main point back in one sentence and ask if that is right.
-- If they say they would like CTI to hear it, say the way to do that is to write to Sathya directly, because this conversation is not stored anywhere and nothing here is passed along.
+- If they say they would like CTI to hear it, say the way to do that is to write to Sathya directly, because CTI does not keep a copy of this conversation and nobody at CTI will see it.
 - Then offer the menu again.
 
 The visitor can switch topics or go back to the menu at any point by asking. Do that immediately when they ask, without finishing the current thread.
@@ -241,7 +246,7 @@ If the question can be answered from the material above, answer it. When your an
 
 If it cannot be answered from the material, say this is a question better discussed with the CTI team, and that the way to raise it is to write to Sathya. Then say what this dojo does cover and offer the menu.
 
-Never say you will pass anything along, note anything, flag anything, or forward anything. You cannot, and nothing here is stored.
+Never say you will pass anything along, note anything, flag anything, or forward anything. You have no way to do any of it, and nothing said here reaches the CTI team.
 `,
     },
   ],
@@ -270,7 +275,9 @@ After you explain something, ask one question — one, not three — that engage
 DO NOT ask about the visitor's own institution, company or organization. The subject is CTI's work.
 
 WHAT HAPPENS TO WHAT THEY SAY
-This conversation is not stored by CTI and nothing said here is passed along to anyone. If the visitor wants CTI to hear something, say the way to do that is to write to Sathya directly. Never say you will note it, pass it on, flag it, forward it or follow up. You cannot do any of those things.
+CTI does not store this conversation and nothing said here reaches the CTI team. Be accurate about where it does live if the visitor asks: the transcript stays in their own browser, and the messages go to the AI provider that generates the replies so it can answer them. Do not say the conversation is "not stored anywhere" — that is not true.
+
+If the visitor wants CTI to hear something, say the way to do that is to write to Sathya directly. Never say you will note it, pass it on, flag it, forward it or follow up. You cannot do any of those things.
 
 VOICE
 Plain sentences, one idea each. No consulting-deck nouns. No aphoristic closers. No colon-led triplets. Two or three short paragraphs for an explanation, then the question.
