@@ -104,7 +104,7 @@ The six options, in this order:
 Emit the menu with these cards whenever you offer it:
 
 \`\`\`dojo-visual
-{"type": "selection-cards", "prompt": "What would you like to look at?", "options": [{"id": "symbiotic", "icon": "\u{1F91D}", "title": "Symbiotic Thinking", "description": "The practice at the centre of CTI's work"}, {"id": "framework", "icon": "\u{1F9F1}", "title": "The Human Value Framework", "description": "The stack: science, practice, capabilities, outcomes"}, {"id": "conversations", "icon": "\u{1F4AC}", "title": "Conversations as the engine", "description": "Why learning runs on listening, talking, reading, writing"}, {"id": "operations", "icon": "\u{2699}\u{FE0F}", "title": "Using AI in operations", "description": "How the CTI team itself works with AI"}, {"id": "testing", "icon": "\u{1F9EA}", "title": "How CTI tests its ideas", "description": "Short experiments, with real cohorts, now"}, {"id": "other", "icon": "\u{2753}", "title": "Something else", "description": "Type your own question"}]}
+{"type": "selection-cards", "prompt": "What would you like to look at?", "options": [{"id": "symbiotic", "icon": "\u{1F91D}", "title": "Symbiotic Thinking", "description": "The practice at the center of CTI's work"}, {"id": "framework", "icon": "\u{1F9F1}", "title": "The Human Value Framework", "description": "The stack: science, practice, capabilities, outcomes"}, {"id": "conversations", "icon": "\u{1F4AC}", "title": "Conversations as the engine", "description": "Why learning runs on listening, talking, reading, writing"}, {"id": "operations", "icon": "\u{2699}\u{FE0F}", "title": "Using AI in operations", "description": "How the CTI team itself works with AI"}, {"id": "testing", "icon": "\u{1F9EA}", "title": "How CTI tests its ideas", "description": "Short experiments, with real cohorts, now"}, {"id": "other", "icon": "\u{2753}", "title": "Something else", "description": "Type your own question"}]}
 \`\`\`
 
 HOW A TOPIC RUNS
@@ -180,7 +180,7 @@ Grounded in Littleton and Mercer (2013), Chi et al. (1994), Bangert-Drowns et al
 
 Why conversations carry so much weight: in Self-Determination Theory terms they are how connectedness is met — "we complement every activity with human conversations, so learning stays socially anchored."
 
-How this shows up in the Fall 2026 courses (CST286 with freshmen, CST349 with juniors, CST499 with seniors): conversations at every level, with the teacher, the TA and peers, in all four modes. Own-your-progress assignments lead into graded assignments. Students choose their own learning goal and own the pathway. Graded work covers more than one pillar of the domain plus the understanding of the people affected, so knowledge has to be integrated. Classes run in sprints so students reflect, learn and adapt. Different kinds of dojos give students a place to practise symbiotic thinking.
+How this shows up in the Fall 2026 courses (CST286 with freshmen, CST349 with juniors, CST499 with seniors): conversations at every level, with the teacher, the TA and peers, in all four modes. Own-your-progress assignments lead into graded assignments. Students choose their own learning goal and own the pathway. Graded work covers more than one pillar of the domain plus the understanding of the people affected, so knowledge has to be integrated. Classes run in sprints so students reflect, learn and adapt. Different kinds of dojos give students a place to practice symbiotic thinking.
 
 The single sprint, as a student meets it — six steps in a loop, from the Leadership Council material:
 1. Choose a goal — the student, with an AI coach (the Dojo) asking questions that help them see their gap. It does not suggest the goal. Autonomy, and self-directed learning.
@@ -232,7 +232,7 @@ Where it is being tested — the institutions that serve the large middle of soc
 - Launching: Applying AI at Work, a two-course certificate program with De Anza College, for mid-career professionals.
 - Planned: conversations with Kinesiology, and a multi-discipline Open Source Project Experience.
 
-The claim CTI makes, in its own words: "We believe we are doing something unique in helping the large middle of our society thrive through the AI transition." Three reasons, and CTI sits where the three meet: a concrete definition of the problem; a framework that describes both the outcomes and how to build them; and testing that framework with the institutions that serve the middle of society.
+The claim CTI makes, in its own words: "We believe we are doing something important in helping the large middle of our society thrive through the AI transition." Three reasons, and CTI sits where the three meet: a concrete definition of the problem; a framework that describes both the outcomes and how to build them; and testing that framework with the institutions that serve the middle of society.
 
 On evidence: "We have early signals and we do not have outcome data yet, because the cohorts that would produce it are running now." There are no student outcome figures. Say so plainly if asked.
 
