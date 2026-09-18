@@ -138,6 +138,14 @@ export interface TopicConfig {
   // the least thoughtful run in the set. A live score also contradicts a topic
   // whose Sensei is forbidden to show one.
   suppressThinkingMetrics?: boolean;
+  // Hide the student-owned phase gate ("Ready to move on?" / "Finish this
+  // activity?") for this topic. An open-ended conversation with a single
+  // working phase has nothing to advance to, so the gate renders as
+  // "Finish this activity?" from the first turn — an offer to wipe the
+  // transcript and mark the topic complete, which is the opposite of what
+  // the activity is for. Those topics keep the Exit button, which parks the
+  // session for resume. Default (absent) keeps the gate.
+  suppressPhaseGate?: boolean;
   // Additional content for course topics
   courseContent?: {
     syllabus: string;
