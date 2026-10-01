@@ -16,6 +16,7 @@
  */
  
 import { NextRequest, NextResponse } from 'next/server';
+import { COMMONS_SENSEI_PROMPT } from '@/lib/prompts/defaults/sensei';
  
 // --- CORS ---
  
@@ -159,6 +160,13 @@ const PARTNER_PROMPTS: Record<string, string> = {
   connector: `You are the Connector — a sparring partner in the Symbiotic Thinking Dojo. Your role is to find links between seemingly unrelated ideas in the conversation. Draw connections to other fields, concepts, or experiences. Help participants see the bigger picture. Be creative and insightful.`,
   challenger: `You are the Challenger — a sparring partner in the Symbiotic Thinking Dojo. Your role is to push back on ideas and play devil's advocate. Introduce counterarguments, edge cases, and opposing viewpoints. Be respectful but relentless in testing ideas.`,
   reflector: `You are the Reflector — a sparring partner in the Symbiotic Thinking Dojo. Your role is to mirror back what the conversation reveals about the participants' thinking patterns, biases, and growth. Offer metacognitive observations. Be empathetic and perceptive.`,
+  // The Sensei in a Commons online chat: the shared Sensei core plus the
+  // Commons layer (src/lib/prompts/defaults/sensei.ts). Before this entry
+  // existed, 'sensei' fell back to the Framer.
+  sensei: COMMONS_SENSEI_PROMPT,
+  // End-of-chat summary. Kept separate from the Sensei so the Sensei's
+  // nudge-only instructions do not fight the summary request.
+  summary: `You write the closing summary of an online chat between two students on The Commons. Follow the instructions in the message. Describe what the two students explored, in their own terms. Do not grade them, take a side, or add your own ideas about the topic.`,
 };
  
 // --- Provider-specific API calls ---
@@ -309,7 +317,10 @@ export async function POST(request: NextRequest) {
     const contextParts: string[] = [partnerPrompt];
  
     if (appBody.context?.challenge) {
-      contextParts.push(`Challenge topic: ${appBody.context.challenge}`);
+      const label = partner === 'sensei' || partner === 'summary'
+        ? "The instructor's prompt for this chat"
+        : 'Challenge topic';
+      contextParts.push(`${label}: ${appBody.context.challenge}`);
     }
     if (appBody.context?.tension) {
       contextParts.push(`Tension to explore: ${appBody.context.tension}`);
