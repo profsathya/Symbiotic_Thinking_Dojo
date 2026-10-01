@@ -29,7 +29,7 @@ steps:
       - '--set-env-vars'
       - 'NEXT_PUBLIC_STATS_API_URL=${_NEXT_PUBLIC_STATS_API_URL},COMMONS_PROVIDER=${_COMMONS_PROVIDER},COMMONS_MODEL=${_COMMONS_MODEL}'
       - '--set-secrets'
-      - 'COMMONS_API_KEY=commons-api-key:latest'
+      - 'COMMONS_API_KEY=commons-api-key:latest,COMMONS_AUTH_TOKEN=commons-auth-token:latest'
  
 substitutions:
   _SERVICE_NAME: symbiotic-thinking-dojo
