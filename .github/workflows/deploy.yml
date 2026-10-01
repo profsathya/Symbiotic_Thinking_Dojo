@@ -68,7 +68,7 @@ jobs:
             --set-env-vars "NEXT_PUBLIC_STATS_API_URL=${{ vars.NEXT_PUBLIC_STATS_API_URL || 'https://dojo-stats-api.netlify.app' }}" \
             --set-env-vars "COMMONS_PROVIDER=${{ vars.COMMONS_PROVIDER || 'gemini' }}" \
             --set-env-vars "COMMONS_MODEL=${{ vars.COMMONS_MODEL || 'gemini-2.5-flash' }}" \
-            --set-secrets "COMMONS_API_KEY=commons-api-key:latest" \
+            --set-secrets "COMMONS_API_KEY=commons-api-key:latest,COMMONS_AUTH_TOKEN=commons-auth-token:latest" \
             --quiet
 
       - name: Show deployment URL
