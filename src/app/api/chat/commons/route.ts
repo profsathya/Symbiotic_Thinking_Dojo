@@ -436,10 +436,10 @@ export async function POST(request: NextRequest) {
     if (errMessage.includes('overloaded') || errMessage.includes('529')) {
       status = 529;
       userMessage = 'The AI service is temporarily overloaded. Please wait a moment and try again.';
-    } else if (errMessage.includes('rate') || errMessage.includes('429')) {
+    } else if (/\b429\b|rate.?limit|quota|RESOURCE_EXHAUSTED|too many requests/i.test(errMessage)) {
       status = 429;
       userMessage = 'Too many requests to the AI service. Please wait a moment and try again.';
-    } else if (errMessage.includes('API key') || errMessage.includes('auth') || errMessage.includes('401')) {
+    } else if (/API key|API_KEY|\b401\b|\b403\b|unauthori[sz]ed|permission/i.test(errMessage)) {
       status = 502;
       userMessage = 'Server configuration error. Please try again later.';
     } else if (errMessage.includes('timeout') || errMessage.includes('ETIMEDOUT')) {
