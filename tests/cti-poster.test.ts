@@ -93,6 +93,17 @@ describe('CTI poster dojo', () => {
     expect(CTI_POSTER_TOPIC.systemInstructions).toContain('write to Sathya, or tell the CTI team at the poster');
   });
 
+  it('names the poster, not the framework page, when it reads between the lines', () => {
+    const prompt = posterPhase + CTI_POSTER_TOPIC.systemInstructions;
+    expect(CTI_POSTER_TOPIC.systemInstructions).toContain(
+      `${material.CTI_RULE_SCOPE} "the poster doesn't say this directly; my reading is..."`
+    );
+    expect(prompt).not.toContain("the framework page doesn't say this directly");
+    expect(WHAT_IS_CTI_DOING_TOPIC.systemInstructions).toContain(
+      `${material.CTI_RULE_SCOPE} "the framework page doesn't say this directly; my reading is..."`
+    );
+  });
+
   it('welcome offers the ten boxes as cards', () => {
     const welcome = createPracticeDojoWelcome(CTI_POSTER_TOPIC, 'guided');
     expect(welcome).toContain('Which box are you looking at?');

@@ -36,7 +36,7 @@ const STORAGE_KEY = 'ctiPosterDojo';
 const WORKING_PHASE = 1;
 
 const NAVY = '#153857';
-const FONT_STACK = "'Jost', -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif";
+const FONT_STACK = "var(--font-jost), -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif";
 
 const BANDS: { band: 1 | 2 | 3; label: string; edge: string; number: string }[] = [
   { band: 1, label: 'Band 1 · 3 minutes', edge: '#2A6FAD', number: '#2A6FAD' },
@@ -45,6 +45,8 @@ const BANDS: { band: 1 | 2 | 3; label: string; edge: string; number: string }[] 
 ];
 
 const WIDE_TILE = CTI_POSTER_BOXES.find((box) => box.band === null);
+
+const NO_CHOICES: Record<string, string> = {};
 
 function loadSaved(): InspireSaved | null {
   if (typeof window === 'undefined') return null;
@@ -67,15 +69,12 @@ function saveSession(state: InspireSaved): void {
 
 export default function CtiPosterPage() {
   const { config } = useDojoConfig();
-  const { apiKey, isKeySet, provider, setProvider, setKeyForProvider } = useApiKey();
+  const { apiKey, isKeySet, provider, setProvider, setKeyForProvider, clearApiKey } = useApiKey();
 
   // Read once, so a refresh restores the conversation behind the tiles.
   const [initialSaved] = useState<InspireSaved | null>(loadSaved);
 
   const [view, setView] = useState<'poster' | 'chat'>('poster');
-  const [userChoices, setUserChoices] = useState<Record<string, string>>(
-    initialSaved?.userChoices ?? {}
-  );
   const [interactionCount, setInteractionCount] = useState(initialSaved?.interactionCount ?? 0);
   const [keyDraft, setKeyDraft] = useState('');
 
@@ -109,13 +108,17 @@ export default function CtiPosterPage() {
       currentPhase: CTI_POSTER_TOPIC.phases[WORKING_PHASE],
       pathway: 'guided' as Pathway,
       completedPhases: [0],
-      userChoices,
+      // Deliberately empty. Whatever is put here is interpolated into the
+      // system prompt on every later turn, and a card's id and title are
+      // written by the model — which can echo what the visitor typed. The
+      // picks are already in the conversation, where they belong.
+      userChoices: NO_CHOICES,
       checkpointStatuses: {},
       phaseSelfChecks: [],
       kataResults: [],
       interactionCount,
     }),
-    [userChoices, interactionCount]
+    [interactionCount]
   );
 
   const { messages, isLoading, error, sendMessage, startPracticeDojo, getSerializedMessages, restoreMessages } =
@@ -147,13 +150,13 @@ export default function CtiPosterPage() {
     saveSession({
       messages: getSerializedMessages(),
       currentPhase: WORKING_PHASE,
-      userChoices,
+      userChoices: NO_CHOICES,
       interactionCount,
       senseiReady: false,
       // Marks a snapshot taken mid-reply, so the restore drops the partial.
       inFlight: isLoading,
     });
-  }, [mounted, messages, isLoading, userChoices, interactionCount, getSerializedMessages]);
+  }, [mounted, messages, isLoading, interactionCount, getSerializedMessages]);
 
   const handleSend = useCallback(
     (message: string) => {
@@ -163,9 +166,10 @@ export default function CtiPosterPage() {
     [sendMessage]
   );
 
-  // A tile tapped while a reply is still streaming would be dropped by
-  // sendMessage (it returns early while loading). Hold it and send it as soon
-  // as the reply finishes, so the tap is never lost.
+  // A tile or a card tapped while a reply is still streaming would be dropped
+  // by sendMessage (it returns early while loading). Every tap goes through
+  // this one-slot queue instead: it is held and sent as soon as the reply
+  // finishes, so a tap is never lost and never counted without being sent.
   const [pendingChoice, setPendingChoice] = useState<string | null>(null);
   useEffect(() => {
     if (pendingChoice === null || isLoading) return;
@@ -179,11 +183,9 @@ export default function CtiPosterPage() {
   }, [pendingChoice, isLoading, handleSend]);
 
   const handlePickBox = useCallback((box: CtiPosterBox) => {
-    const label = ctiPosterBoxLabel(box);
-    setUserChoices((c) => ({ ...c, [box.id]: label }));
     setView('chat');
     // Same wording a selection card sends.
-    setPendingChoice(`I choose: ${label}`);
+    setPendingChoice(`I choose: ${ctiPosterBoxLabel(box)}`);
   }, []);
 
   const handleVisualInteraction = useCallback(
@@ -196,13 +198,19 @@ export default function CtiPosterPage() {
       }
       const spoken = data.optionTitle?.trim() || data.optionDescription?.trim() || data.optionId?.trim();
       if (!spoken) return;
-      if (data.optionId) {
-        setUserChoices((c) => ({ ...c, [data.optionId]: spoken }));
-      }
-      handleSend(`I choose: ${spoken}`);
+      setPendingChoice(`I choose: ${spoken}`);
     },
-    [handleSend]
+    []
   );
+
+  // A mistyped key passes the gate (any eight characters do) and is only
+  // rejected by the backend on the first message. This page has no settings
+  // panel, so the error banner carries the way back to the key gate. The
+  // conversation is kept.
+  const handleChangeKey = useCallback(() => {
+    setPendingChoice(null);
+    clearApiKey();
+  }, [clearApiKey]);
 
   const handleKeySubmit = () => {
     const key = keyDraft.trim();
@@ -388,8 +396,14 @@ export default function CtiPosterPage() {
         {header}
 
         {error && (
-          <div className="shrink-0 border-b border-amber-800 bg-amber-900/40 px-4 py-2 text-xs text-amber-200">
-            {error}
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-amber-800 bg-amber-900/40 px-4 py-2 text-xs text-amber-200">
+            <span className="min-w-0">{error}</span>
+            <button
+              onClick={handleChangeKey}
+              className="shrink-0 rounded border border-amber-700/60 px-2 py-1 font-semibold text-amber-100"
+            >
+              Use a different key
+            </button>
           </div>
         )}
 

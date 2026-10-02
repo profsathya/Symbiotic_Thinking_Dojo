@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import localFont from 'next/font/local';
 
 export const metadata: Metadata = {
   title: 'Talk to the Sensei about this poster — CTI at INSPIRE 2026',
@@ -14,21 +15,28 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
+// Jost, the poster's typeface, served from this app (latin subset, from the
+// @fontsource/jost package; SIL Open Font License, see fonts/LICENSE). It is
+// self-hosted on purpose: docs/PRIVACY.md promises the Dojo contacts no third
+// party except the answering AI provider, so a visit to /cti must not fetch
+// a stylesheet or font files from Google.
+const jost = localFont({
+  src: [
+    { path: './fonts/jost-latin-400-normal.woff2', weight: '400', style: 'normal' },
+    { path: './fonts/jost-latin-500-normal.woff2', weight: '500', style: 'normal' },
+    { path: './fonts/jost-latin-600-normal.woff2', weight: '600', style: 'normal' },
+    { path: './fonts/jost-latin-700-normal.woff2', weight: '700', style: 'normal' },
+  ],
+  variable: '--font-jost',
+  display: 'swap',
+});
+
 export default function CtiPosterLayout({ children }: { children: React.ReactNode }) {
+  // display: contents keeps this wrapper out of the page's layout; it only
+  // carries the font variable down to the page.
   return (
-    <>
-      {/* Jost, the poster's typeface. Loaded at run time (not next/font) so
-          the build needs no network; the font stack falls back if it fails. */}
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      {/* This font belongs to this one page, which is what the rule warns about. */}
-      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700&display=swap"
-        precedence="default"
-      />
+    <div className={jost.variable} style={{ display: 'contents' }}>
       {children}
-    </>
+    </div>
   );
 }

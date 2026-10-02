@@ -124,9 +124,13 @@ On evidence: "We have early signals and we do not have outcome data yet, because
 
 CTI also works on two things at once on purpose: serving the students in front of it now — "they do not have time to wait for us to finish figuring things out" — while doing original work on what human value looks like as AI capability grows. "What we learn from the immediate work with students teaches us about human value with AI. What we learn about human value with AI in our own work changes what we teach."`;
 
-/** Answer only from the material; no invented figures or outcomes. */
+/**
+ * Answer only from the material; no invented figures or outcomes. Ends on
+ * "say so:" — each topic finishes the sentence with the wording that names
+ * its own source (the framework page for the Council, the poster at /cti).
+ */
 export const CTI_RULE_SCOPE = `SCOPE
-Answer only from the material in the current phase. If the material has no figure, say there is no figure yet. Never invent CTI results, numbers, partners, plans or student outcomes. If you are reading between the lines of the material rather than repeating something CTI has stated, say so: "the framework page doesn't say this directly; my reading is..."`;
+Answer only from the material in the current phase. If the material has no figure, say there is no figure yet. Never invent CTI results, numbers, partners, plans or student outcomes. If you are reading between the lines of the material rather than repeating something CTI has stated, say so:`;
 
 /** The framework is a hypothesis. */
 export const CTI_RULE_HYPOTHESIS = `THE FRAMEWORK IS A HYPOTHESIS
