@@ -9,6 +9,7 @@ import { CAREER_KNOW_YOURSELF_TOPIC } from './career-know-yourself';
 import { CAREER_KNOW_MARKET_TOPIC } from './career-know-market';
 import { MAP_CURIOSITY_TOPIC } from './map-curiosity';
 import { WHAT_IS_CTI_DOING_TOPIC } from './what-is-cti-doing';
+import { CTI_POSTER_TOPIC } from './cti-poster';
 import { WHAT_ARE_MY_PRIORITIES_TOPIC } from './what-are-my-priorities';
 import { INSPIRE_DEMO_TOPIC } from './inspire-demo';
 import { PROJECT_INTERVIEW_TOPIC } from './project-interview';
@@ -21,6 +22,7 @@ export const ALL_TOPICS: TopicConfig[] = [
   IKIGAI_TOPIC,
   MAP_CURIOSITY_TOPIC,
   WHAT_IS_CTI_DOING_TOPIC,
+  CTI_POSTER_TOPIC,
   INSPIRE_DEMO_TOPIC,
   PROJECT_INTERVIEW_TOPIC,
   CST395_TOPIC,
@@ -54,6 +56,7 @@ export const TOPIC_SLUGS: Record<string, string> = {
   'ikigai': 'ikigai-discovery',
   'map-curiosity': 'map-curiosity',
   'what-is-cti-doing': 'what-is-cti-doing',
+  'cti-poster': 'cti-poster',
   'cst395': 'course-cst395-overview',
   'cst349': 'course-cst349-overview',
   'cst395-s2': 'cst395-s2-learn-solve',
@@ -79,6 +82,9 @@ export const ACTIVITY_ROUTES: Record<string, string> = {
   // (the full three-column Dojo doesn't render well on a phone), so
   // /?topic=inspire redirects there after any #key= is persisted.
   'inspire': '/inspire',
+  // The INSPIRE 2026 poster dojo opens on its own screen of ten tiles (the
+  // poster's boxes) at /cti, so /?topic=cti-poster redirects there.
+  'cti-poster': '/cti',
 };
 
 // Get topics organized by category for display
@@ -128,6 +134,7 @@ export { CAREER_KNOW_YOURSELF_TOPIC } from './career-know-yourself';
 export { CAREER_KNOW_MARKET_TOPIC } from './career-know-market';
 export { MAP_CURIOSITY_TOPIC } from './map-curiosity';
 export { WHAT_IS_CTI_DOING_TOPIC } from './what-is-cti-doing';
+export { CTI_POSTER_TOPIC } from './cti-poster';
 export { WHAT_ARE_MY_PRIORITIES_TOPIC } from './what-are-my-priorities';
 export { INSPIRE_DEMO_TOPIC } from './inspire-demo';
 export { PROJECT_INTERVIEW_TOPIC } from './project-interview';

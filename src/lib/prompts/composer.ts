@@ -3,6 +3,7 @@ import { PracticeDojoContext, TopicConfig } from '../practice-dojo/types';
 import { AIProvider } from '../providers/types';
 import { DEFAULT_CAREER_INTELLIGENCE_PROMPT } from './defaults/career-intelligence';
 import { earnedBelts, BELT_INFO } from '../practice-dojo/belt-record';
+import { ctiPosterBoxCards } from '../practice-dojo/topics/cti-poster';
 
 export interface ComposeOptions {
   isGuidedPractice?: boolean;
@@ -812,6 +813,18 @@ I'll give you a short answer and then ask what you think — that is how we work
 \`\`\`dojo-visual
 {"type": "selection-cards", "prompt": "What would you like to look at?", "options": [{"id": "symbiotic", "icon": "\u{1F91D}", "title": "Symbiotic Thinking", "description": "The practice at the center of CTI's work"}, {"id": "framework", "icon": "\u{1F9F1}", "title": "The Human Value Framework", "description": "The stack: science, practice, capabilities, outcomes"}, {"id": "conversations", "icon": "\u{1F4AC}", "title": "Conversations as the engine", "description": "Why learning runs on listening, talking, reading, writing"}, {"id": "operations", "icon": "\u{2699}\u{FE0F}", "title": "Using AI in operations", "description": "How the CTI team itself works with AI"}, {"id": "testing", "icon": "\u{1F9EA}", "title": "How CTI tests its ideas", "description": "Short experiments, with real cohorts, now"}, {"id": "other", "icon": "\u{2753}", "title": "Something else", "description": "Type your own question"}]}
 \`\`\``;
+  }
+
+  // Talk to the Sensei about this poster — on /cti the opening screen is the
+  // door and this message is never shown; it stays in the history so the
+  // model sees what the visitor was asked. Started from the main Dojo's topic
+  // picker, it IS the door: the same ten boxes, as cards.
+  if (topic.topicId === 'cti-poster') {
+    return `**Sensei:** Which box are you looking at?
+
+Tap it. I'll ask what you took from it, then go one layer deeper with you.
+
+${ctiPosterBoxCards()}`;
   }
 
   // Generic welcome for other topics
