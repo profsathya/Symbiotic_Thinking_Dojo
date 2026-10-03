@@ -39,7 +39,7 @@ describe('CTI poster dojo', () => {
     expect(getTopicById('cti-poster')).toBe(CTI_POSTER_TOPIC);
     expect(getTopicBySlug('cti-poster')).toBe(CTI_POSTER_TOPIC);
     expect(CTI_POSTER_TOPIC.enabled).toBe(true);
-    expect(CTI_POSTER_TOPIC.title).toBe('Talk to the Sensei about this poster');
+    expect(CTI_POSTER_TOPIC.title).toBe("Talk to Sensei about CTI's Human Value Framework");
     expect(ACTIVITY_ROUTES['cti-poster']).toBe('/cti');
   });
 

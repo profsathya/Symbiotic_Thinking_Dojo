@@ -2,9 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 
 export const metadata: Metadata = {
-  title: 'Talk to the Sensei about this poster — CTI at INSPIRE 2026',
-  description:
-    'Human Value that Grows with AI Capability. Pick a theme of the poster; the Sensei asks what question or reaction you have about it.',
+  title: "Talk to Sensei about CTI's Human Value Framework",
+  description: "Talk to Sensei about CTI's Human Value Framework",
 };
 
 // viewport-fit=cover makes env(safe-area-inset-*) meaningful, so the header
