@@ -53,8 +53,8 @@ describe('CTI poster dojo', () => {
 
   it('has the five themes, in order, with the boxes each covers', () => {
     expect(CTI_POSTER_THEMES.map((t) => `${t.title} — ${ctiPosterThemeLine(t)}`)).toEqual([
-      "Approach — The challenge, and CTI's three-part answer (boxes 1 and 3)",
       'Philosophy — The hypothesis, and what has to change in post-secondary learning (boxes 2 and 4)',
+      "Approach — The challenge, and CTI's three-part answer (boxes 1 and 3)",
       'Framework — The Human Value Framework and Symbiotic Thinking (box 5)',
       'Experiments — Where it is being tested, and the continuing work (boxes 6 and 9)',
       'Results — Early signals and early data (boxes 7 and 8)',
@@ -78,7 +78,8 @@ describe('CTI poster dojo', () => {
     expect(pageSource).toContain('Pick a theme.');
     expect(pageSource).toContain('`I choose: ${theme.title}`');
     expect(pageSource).toMatch(/>\s*Themes\s*<\/button>/);
-    expect(pageSource).toContain('INSPIRE 2026 poster');
+    expect(pageSource).toContain('>Human Value Framework</h1>');
+    expect(pageSource).not.toContain('INSPIRE 2026 poster</h1>');
     expect(pageSource).toContain('CTI keeps no copy of this conversation.');
     for (const gone of ['CTI_POSTER_BOXES', 'BANDS', 'WIDE_TILE', 'grid-cols-3', 'Tap the box', 'Band 1']) {
       expect(pageSource, gone).not.toContain(gone);
@@ -88,7 +89,19 @@ describe('CTI poster dojo', () => {
 
   it('runs a theme as an open conversation, not as steps', () => {
     expect(posterPhase).toContain('HOW A THEME RUNS');
-    expect(posterPhase).toContain('"What question or reaction do you have about it?"');
+    const how = posterPhase.slice(posterPhase.indexOf('\nHOW A THEME RUNS\n'), posterPhase.indexOf('\nTHE RULES\n'));
+    expect(how).toContain(
+      `Your whole first reply is one question, in these words, with X filled in: "What reactions, thoughts or questions do you have about CTI's X?"`
+    );
+    expect(how).toContain(
+      'Philosophy — philosophy\nApproach — approach\nFramework — Human Value Framework\nExperiments — experiments\nResults — results'
+    );
+    expect(how).toContain('do not mention boxes, and no cards');
+    expect(how).toContain(
+      'The opening question is the one exception to rules 1 and 10: no granting sentence before it, and it is one sentence.'
+    );
+    expect(posterPrompt).not.toContain('What question or reaction do you have about it?');
+    expect(posterPrompt).not.toContain('placing the theme');
     expect(posterPhase).toContain('There is no fixed sequence and no destination.');
     for (const gone of ['HOW A BOX RUNS', 'THE TEN BOXES', 'Step 1', 'Step 4', 'what did you take from that box']) {
       expect(posterPrompt, gone).not.toContain(gone);
@@ -176,10 +189,12 @@ describe('CTI poster dojo', () => {
   it('carries WHERE CTI STANDS, one block per theme', () => {
     const blocks = CTI_POSTER_WHERE_CTI_STANDS.split('\n\n');
     expect(blocks.length).toBe(5);
-    CTI_POSTER_THEMES.forEach((theme, i) => {
-      expect(blocks[i].startsWith(`${theme.title}. `), theme.title).toBe(true);
-      expect(blocks[i], theme.title).toContain('Honesty line:');
-    });
+    // The blocks keep the spec's order; each theme has exactly one.
+    for (const theme of CTI_POSTER_THEMES) {
+      const mine = blocks.filter((block) => block.startsWith(`${theme.title}. `));
+      expect(mine.length, theme.title).toBe(1);
+      expect(mine[0], theme.title).toContain('Honesty line:');
+    }
     expect(blocks[0]).toContain(
       'Honesty line: CTI is not sure these designs are working, but they seem to move things in the right direction.'
     );
@@ -222,9 +237,9 @@ describe('CTI poster dojo', () => {
     const closing = posterPhase.slice(posterPhase.indexOf('\nCLOSING\n'), posterPhase.indexOf('\nOFF-SCOPE QUESTIONS\n'));
     const example = closing.slice(closing.indexOf('{'), closing.indexOf('}]}') + 3);
     const cards = JSON.parse(example) as { options: { id: string; title: string }[] };
-    expect(closing).toContain('This example is for a visitor who was on Approach');
+    expect(closing).toContain('This example is for a visitor who was on Philosophy');
     expect(cards.options.map((o) => o.title)).toEqual([
-      'Philosophy', 'Framework', 'Experiments', 'Results', 'Back to the themes',
+      'Approach', 'Framework', 'Experiments', 'Results', 'Back to the themes',
     ]);
   });
 
