@@ -6,7 +6,10 @@
  *   - cti-poster.ts         (the INSPIRE 2026 poster dojo, at /cti)
  *
  * Both import from here so the two cannot drift: a correction to the
- * framework text or to a rule lands in both at once.
+ * framework text or to a rule lands in both at once. The Council dojo uses
+ * all five topic bodies. The poster dojo uses only the fragments named
+ * SYMBIOTIC_DEFINITION, SYMBIOTIC_HABITS and FRAMEWORK_PAGE, which the full
+ * bodies are composed from.
  *
  * There is no retrieval in this tool, so every source is inlined as prose.
  * The Human Value Framework text was fetched from
@@ -18,12 +21,18 @@
  * trailing newline; the topic files own the spacing and headings around it.
  */
 
-/** Symbiotic Thinking: the locked definition, the three layers, the three daily habits. */
-export const CTI_MATERIAL_SYMBIOTIC_THINKING = `The locked definition, verbatim — use these words when you define it:
+/** Symbiotic Thinking: the locked definition and the two deliberate ideas in it. */
+export const CTI_MATERIAL_SYMBIOTIC_DEFINITION = `The locked definition, verbatim — use these words when you define it:
 
 "Symbiotic thinking is the human-led practice of pursuing wisdom in partnership with other intelligences, human or artificial, that results in outcomes that go beyond what any party could reach alone."
 
-Two things in it are deliberate. Human-led: agency is part of what symbiotic thinking IS, not a clause added afterwards. Other intelligences, human or artificial: the partners are named by what they share — minds that are not your own — rather than by their familiar categories. So the practice covers human with human as well as human with AI.
+Two things in it are deliberate. Human-led: agency is part of what symbiotic thinking IS, not a clause added afterwards. Other intelligences, human or artificial: the partners are named by what they share — minds that are not your own — rather than by their familiar categories. So the practice covers human with human as well as human with AI.`;
+
+/** Symbiotic Thinking: the three daily habits on the published framework page. */
+export const CTI_MATERIAL_SYMBIOTIC_HABITS = `Three daily habits on the published page: Slow Down ("while AI brings speed, human value lies in slowing down and getting the direction right"); Know Yourself ("the starting point for everything, what you are curious about, your strengths and weaknesses, your preferences"); Take the Lead ("be proactive in directing all your work toward your chosen goal and purpose").`;
+
+/** Symbiotic Thinking: the locked definition, the three layers, the three daily habits. */
+export const CTI_MATERIAL_SYMBIOTIC_THINKING = `${CTI_MATERIAL_SYMBIOTIC_DEFINITION}
 
 "Pursuing" was chosen over "developing" in the sense of the pursuit of happiness: an ongoing orientation, not something with a finish line.
 
@@ -35,10 +44,14 @@ The practice has three layers in CTI's own framework file:
 - Metacognition — the 3Cs Protocol. Context: what do I know about this problem? Choices: what tradeoffs am I making? Confirmation: how do I validate outcomes? Look for explicit questioning before, during and after AI use.
 - Motivation — the DIKW pyramid. Data to Information to Knowledge to Wisdom. The drive toward deeper understanding rather than task completion; climbing takes deliberate effort.
 
-Three daily habits on the published page: Slow Down ("while AI brings speed, human value lies in slowing down and getting the direction right"); Know Yourself ("the starting point for everything, what you are curious about, your strengths and weaknesses, your preferences"); Take the Lead ("be proactive in directing all your work toward your chosen goal and purpose").`;
+${CTI_MATERIAL_SYMBIOTIC_HABITS}`;
 
-/** The Human Value Framework page text (fetched 2026-09-18) plus Point A / Point B from the Leadership Council material. */
-export const CTI_MATERIAL_FRAMEWORK = `Text from https://computingtalentinitiative.org/framework/ as of 2026-09-18. It is a hypothesis being tested, and you should present it that way.
+/**
+ * The Human Value Framework page text only (fetched 2026-09-18): mission, the
+ * four layers, the three capabilities, the two outcome questions, the design
+ * principles.
+ */
+export const CTI_MATERIAL_FRAMEWORK_PAGE = `Text from https://computingtalentinitiative.org/framework/ as of 2026-09-18. It is a hypothesis being tested, and you should present it that way.
 
 Mission, in CTI's words: "While there is consensus forming around the durable capabilities needed for the age of AI, how to provide learning opportunities for all, not just those who started with advantages, to develop those capabilities is unclear. Our mission is to develop a discipline-neutral framework, grounded in research and tested across a wide range of audiences, to generate new knowledge on how to develop human value in the age of AI."
 
@@ -55,7 +68,10 @@ Four layers:
 
 04 — Outcomes: Superagency and Human Value. "Two questions every learner learns to answer with evidence from their own work." Superagency: "What problems are now within my reach that I would not have attempted before?" Human Value: "What would be worse about my solutions if the problem was simply handed over to AI?"
 
-Design principles the framework was built against: Layered (each layer rests on the one below, so you can trace any piece up or down); Simple (as few parts as possible, small enough to hold in your head and teach to someone else); Explanatory (it should make sense of what we actually see — why a learner is stuck, what a habit is building toward); Applied (it should describe and be applied to real learning experiences a learner can act on). And: "we ground each idea in external research, and we treat our own testing with students as the real validation: the framework earns its place by working in practice."
+Design principles the framework was built against: Layered (each layer rests on the one below, so you can trace any piece up or down); Simple (as few parts as possible, small enough to hold in your head and teach to someone else); Explanatory (it should make sense of what we actually see — why a learner is stuck, what a habit is building toward); Applied (it should describe and be applied to real learning experiences a learner can act on). And: "we ground each idea in external research, and we treat our own testing with students as the real validation: the framework earns its place by working in practice."`;
+
+/** The framework page text plus Point A / Point B from the Leadership Council material. */
+export const CTI_MATERIAL_FRAMEWORK = `${CTI_MATERIAL_FRAMEWORK_PAGE}
 
 The problem the framework answers, from the Leadership Council material. CTI has always said it takes students from Point A to Point B. Point B has moved. Point A: short tasks, with guidance expected at each step — "What should I do next?" Point B: given a goal, choose the next task, learn from it, adapt your approach, and choose the next task again, staying in that loop until the goal is met. Handling a goal used to be the expectation of a senior professional; because AI makes it possible for a new graduate, it is becoming the expectation of a new graduate. The other half of the problem is on the education side: higher education is structurally built to train for short tasks — weekly assignments, grades, even the design of the learning management system.
 
