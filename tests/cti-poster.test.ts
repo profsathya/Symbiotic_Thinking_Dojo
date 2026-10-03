@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { createHash } from 'crypto';
 import {
   ACTIVITY_ROUTES,
   getTopicById,
@@ -20,6 +21,9 @@ const posterPhase = CTI_POSTER_TOPIC.phases[1].contentGuidance;
 const councilPhase = WHAT_IS_CTI_DOING_TOPIC.phases[1].contentGuidance;
 
 const words = (text: string) => text.split(/\s+/).filter(Boolean).length;
+
+// Phase guidance plus system instructions. The first build (PR #117) was 7,044 words.
+const BUDGET = 5500;
 
 describe('CTI poster dojo', () => {
   it('is registered, enabled, and served on its own route', () => {
@@ -76,16 +80,67 @@ describe('CTI poster dojo', () => {
     );
     expect(CTI_POSTER_TEXT).toContain('What would be worse about my solutions if I had simply handed the problem to AI?');
     expect(posterPhase.indexOf(CTI_POSTER_TEXT)).toBeLessThan(
-      posterPhase.indexOf(material.CTI_MATERIAL_SYMBIOTIC_THINKING)
+      posterPhase.indexOf(material.CTI_MATERIAL_SYMBIOTIC_DEFINITION)
     );
+  });
+
+  it('carries a lean SOURCE 2: the definition, the daily habits and the framework page only', () => {
+    for (const kept of [
+      material.CTI_MATERIAL_SYMBIOTIC_DEFINITION,
+      material.CTI_MATERIAL_SYMBIOTIC_HABITS,
+      material.CTI_MATERIAL_FRAMEWORK_PAGE,
+    ]) {
+      expect(kept.length).toBeGreaterThan(200);
+      expect(posterPhase).toContain(kept);
+    }
+    expect(posterPhase).toContain('Two things in it are deliberate. Human-led:');
+    expect(posterPhase).toContain('Four layers:');
+    expect(posterPhase).toContain('Design principles the framework was built against');
+    // The Council deck, the operations material and the testing commitments stay out.
+    for (const dropped of [
+      material.CTI_MATERIAL_SYMBIOTIC_THINKING,
+      material.CTI_MATERIAL_FRAMEWORK,
+      material.CTI_MATERIAL_CONVERSATIONS,
+      material.CTI_MATERIAL_OPERATIONS,
+      material.CTI_MATERIAL_TESTING,
+    ]) {
+      expect(posterPhase).not.toContain(dropped);
+    }
+    for (const phrase of ['Athena', 'Point A', 'The single sprint', 'Four commitments', 'Leadership Council']) {
+      expect(posterPhase, phrase).not.toContain(phrase);
+    }
+  });
+
+  it('never opens a reply with an evaluation of the visitor', () => {
+    expect(CTI_POSTER_TOPIC.systemInstructions).toContain(
+      `Never open a reply with an evaluation of the visitor or their answer — no "Good", "Exactly", "That's right", "Sharp", "Great point", "Fair". Start with the substance.`
+    );
+    expect(posterPhase).toContain('Never praise the reading.');
+  });
+
+  it('states what is not solved at Step 4 rather than asking', () => {
+    const step4 = posterPhase.slice(posterPhase.indexOf('Step 4 —'), posterPhase.indexOf('Step 5 and Step 6'));
+    expect(step4).toContain('This is a statement you make');
+    expect(step4).toContain('Never turn it into a question');
+    expect(step4).toContain('Say "Box 4 points at this", not "Box 4 answers it".');
+    expect(step4).toContain('One follow-up question at most.');
+    expect(step4).not.toContain('where CTI addresses it');
+  });
+
+  it('always puts Symbiotic Thinking on the closing cards', () => {
+    const step6 = posterPhase.slice(posterPhase.indexOf('Step 6 —'), posterPhase.indexOf('MOVING AROUND'));
+    expect(step6).toContain('The Symbiotic Thinking card is not optional');
+    expect(step6).toContain('left out only when Symbiotic Thinking is the current box');
+    expect(step6).toContain('"id": "symbiotic"');
+    expect(step6.indexOf('"id": "symbiotic"')).toBeLessThan(step6.indexOf('"id": "poster"'));
   });
 
   it('keeps staff email addresses out of the prompt', () => {
     expect(posterPhase + CTI_POSTER_TOPIC.systemInstructions).not.toMatch(/[\w.]+@[\w.]+\.\w+/);
   });
 
-  it('stays within the context budget of roughly 7,000 words', () => {
-    expect(words(posterPhase) + words(CTI_POSTER_TOPIC.systemInstructions ?? '')).toBeLessThan(7200);
+  it('stays within the lean context budget (about half the first build)', () => {
+    expect(words(posterPhase) + words(CTI_POSTER_TOPIC.systemInstructions ?? '')).toBeLessThan(BUDGET);
   });
 
   it('sends off-scope and comparison questions to the CTI team at the poster', () => {
@@ -133,12 +188,20 @@ describe('material shared by the Council dojo and the poster dojo', () => {
     material.CTI_RULE_NEVER_NEXT_PHASE,
   ];
 
-  it('both topics carry all five topic bodies', () => {
+  it('the Council dojo carries all five topic bodies', () => {
     for (const body of bodies) {
       expect(body.length).toBeGreaterThan(200);
       expect(councilPhase).toContain(body);
-      expect(posterPhase).toContain(body);
     }
+  });
+
+  it('the Council dojo is unchanged by the lean poster context', () => {
+    // sha256 of JSON.stringify(WHAT_IS_CTI_DOING_TOPIC) on main at 7377955,
+    // before the shared bodies were split into fragments. A deliberate change
+    // to the Council dojo should update this hash in the same commit.
+    expect(createHash('sha256').update(JSON.stringify(WHAT_IS_CTI_DOING_TOPIC)).digest('hex')).toBe(
+      '200ad8e899b10661ed9a6cc2ef1d01e33aaf2b11a588ae1efc2085e3e344fcf8'
+    );
   });
 
   it('both topics carry every shared sensei rule', () => {
