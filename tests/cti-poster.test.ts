@@ -136,15 +136,68 @@ describe('CTI poster dojo', () => {
 
   it('carries the poster text with the new Point B in green', () => {
     expect(posterPhase).toContain(CTI_POSTER_TEXT);
-    expect(CTI_POSTER_TEXT).toContain('with a second B further out in green to mark the challenge.');
+    expect(CTI_POSTER_TEXT).toContain('with a second B further out in green.');
     expect(CTI_POSTER_TEXT).toContain(
-      '- B (new, green): Now: start with a goal, make choices, learn, adapt and iterate to reach the goal'
+      '- B (new, green): Now: Start with a goal, learn, adapt and iterate to reach the goal.'
     );
     expect(posterPrompt.toLowerCase()).not.toContain('orange');
-    expect(CTI_POSTER_TEXT).toContain(
-      'Human value will grow as AI capability grows if students learn to think with AI and use it strategically.'
+  });
+
+  it('carries the poster as printed, with none of the draft wording', () => {
+    for (const printed of [
+      'Lede: Human value can grow with AI capability if students learn to think with AI and to decide where to use it and where not to.',
+      '- Rising curve: Humans thinking symbiotically with AI',
+      'Navigating the Jagged Technological Frontier',
+      'Title: Our Approach',
+      'Item 1: A precise, actionable definition of the problem',
+      'Item 2: A well-defined, teachable framework of capabilities',
+      'Item 3: A rigorous, adaptive experimental process',
+      'We need: Shorter learning experiences that we can test and improve quickly',
+      '- Integrative Solver (IS): Connect humans, domains, and perspectives to frame the real problem.',
+      '- Applying AI at Work Certificate with De Anza Community College:',
+      'Text: We look for evidence of these six qualities in the work students submit to meet the course learning outcomes.',
+      '- Owning the outcome 40%',
+      "- Working with uncertainty: Current data doesn't measure this",
+      'While the early data represented is based on real student work, it is not verified.',
+      'A rigorous human-value-in-the-loop process is being developed to build and track such change.',
+      'Learning from other disciplines. We are working closely with faculty from Kinesiology.',
+      'Learning through collaboration.',
+      'Scan to experience Symbiotic Thinking',
+    ]) {
+      expect(CTI_POSTER_TEXT, printed).toContain(printed);
+    }
+    for (const draft of [
+      'will grow',
+      'use it strategically',
+      'Our unique approach',
+      'theory of change',
+      'Problem Framing with AI',
+      'Owning the outcome 43%',
+      'Working with uncertainty 70%',
+      'control group',
+      'baseline',
+      'Building in public',
+      'builds in public',
+      'cheap to correct',
+      'process is needed',
+    ]) {
+      expect(posterPrompt, draft).not.toContain(draft);
+    }
+  });
+
+  it('WHERE CTI STANDS agrees with the printed poster', () => {
+    const stands = CTI_POSTER_WHERE_CTI_STANDS;
+    expect(stands).toContain(
+      'human value can grow with AI capability only if students learn to think with AI and to decide where to use it and where not to'
     );
-    expect(CTI_POSTER_TEXT).toContain('What would be worse about my solutions if I had simply handed the problem to AI?');
+    expect(stands).toContain(
+      'a precise, actionable definition of the problem, a well-defined, teachable framework of capabilities, and a rigorous, adaptive experimental process'
+    );
+    expect(stands).toContain('the Applying AI at Work Certificate with De Anza');
+    expect(stands).toContain(
+      'Self-knowledge 88%, Self-regulation 57%, Owning the outcome 40%, Initiative 43% and Adaptability 42%; current data does not measure Working with uncertainty'
+    );
+    expect(stands).toContain('"is not verified"');
   });
 
   it('carries the four sources in order', () => {
