@@ -315,7 +315,7 @@ Why: the visitor asked about CTI's framing, so the sensei asks for the visitor's
 
 export const CTI_POSTER_TOPIC: TopicConfig = {
   topicId: 'cti-poster',
-  title: 'Talk to the Sensei about this poster',
+  title: "Talk to Sensei about CTI's Human Value Framework",
   description: "Pick a theme of CTI's INSPIRE poster and think it through with the Sensei",
   estimatedTime: '3 minutes',
   category: 'general',
