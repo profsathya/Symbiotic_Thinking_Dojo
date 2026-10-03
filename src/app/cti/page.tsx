@@ -235,7 +235,7 @@ export default function CtiPosterPage() {
         style={{ height: 30, width: 'auto' }}
       />
       <div className="min-w-0 flex-1">
-        <h1 className="text-[15.5px] font-semibold leading-tight">INSPIRE 2026 poster</h1>
+        <h1 className="text-[15.5px] font-semibold leading-tight">Human Value Framework</h1>
       </div>
       {view === 'chat' && (
         <button

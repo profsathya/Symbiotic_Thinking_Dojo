@@ -49,6 +49,8 @@ export interface CtiPosterTheme {
   title: string;
   /** What the theme covers on the poster. */
   covers: string;
+  /** How the sensei's opening question names it: "... about CTI's <subject>?" */
+  subject: string;
   /** The poster boxes it covers. */
   boxes: number[];
 }
@@ -59,16 +61,35 @@ export interface CtiPosterTheme {
  * sensei does not know.
  */
 export const CTI_POSTER_THEMES: CtiPosterTheme[] = [
-  { id: 'approach', title: 'Approach', covers: "The challenge, and CTI's three-part answer", boxes: [1, 3] },
   {
     id: 'philosophy',
     title: 'Philosophy',
     covers: 'The hypothesis, and what has to change in post-secondary learning',
+    subject: 'philosophy',
     boxes: [2, 4],
   },
-  { id: 'framework', title: 'Framework', covers: 'The Human Value Framework and Symbiotic Thinking', boxes: [5] },
-  { id: 'experiments', title: 'Experiments', covers: 'Where it is being tested, and the continuing work', boxes: [6, 9] },
-  { id: 'results', title: 'Results', covers: 'Early signals and early data', boxes: [7, 8] },
+  {
+    id: 'approach',
+    title: 'Approach',
+    covers: "The challenge, and CTI's three-part answer",
+    subject: 'approach',
+    boxes: [1, 3],
+  },
+  {
+    id: 'framework',
+    title: 'Framework',
+    covers: 'The Human Value Framework and Symbiotic Thinking',
+    subject: 'Human Value Framework',
+    boxes: [5],
+  },
+  {
+    id: 'experiments',
+    title: 'Experiments',
+    covers: 'Where it is being tested, and the continuing work',
+    subject: 'experiments',
+    boxes: [6, 9],
+  },
+  { id: 'results', title: 'Results', covers: 'Early signals and early data', subject: 'results', boxes: [7, 8] },
 ];
 
 /** "boxes 1 and 3", or "box 5". */
@@ -337,7 +358,11 @@ ${CTI_POSTER_THEMES.map((theme) => `${theme.title} — ${ctiPosterThemeLine(them
 HOW A THEME RUNS
 =====================================================================
 
-The first user message names the theme. Your first reply is one sentence placing the theme on the poster (which boxes), then, in these words: "What question or reaction do you have about it?" Nothing else, and no cards.
+The first user message names the theme. Your whole first reply is one question, in these words, with X filled in: "What reactions, thoughts or questions do you have about CTI's X?" X is:
+
+${CTI_POSTER_THEMES.map((theme) => `${theme.title} — ${theme.subject}`).join('\n')}
+
+Nothing else in that reply. Do not place the theme on the poster, do not mention boxes, and no cards.
 
 If the visitor's reply is vague ("interesting", "not sure"), ask one narrowing question about what caught their eye, or what they expected to see and did not.
 
