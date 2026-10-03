@@ -240,8 +240,7 @@ export default function CtiPosterPage() {
         style={{ height: 30, width: 'auto' }}
       />
       <div className="min-w-0 flex-1">
-        <h1 className="text-[15.5px] font-semibold leading-tight">Talk to the Sensei about this poster</h1>
-        <p className="text-[11px] leading-tight opacity-70">Human Value that Grows with AI Capability</p>
+        <h1 className="text-[15.5px] font-semibold leading-tight">INSPIRE 2026 poster</h1>
       </div>
       {view === 'chat' && (
         <button
@@ -314,20 +313,12 @@ export default function CtiPosterPage() {
         <div className="flex h-full w-full max-w-[430px] flex-col bg-white text-[#1c2b33]">
           {header}
           <main className="flex-1 overflow-y-auto" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-            <div className="px-[22px] pb-1 pt-[22px] text-center">
-              <span className="mb-[10px] inline-block text-[11.5px] font-bold uppercase tracking-[.11em] text-[#2A6FAD]">
-                3 minutes
-              </span>
-              <h2 className="mb-[6px] text-[23px] font-bold leading-[1.18]" style={{ color: NAVY }}>
-                Which box are you looking at?
-              </h2>
-              <p className="text-[14.5px] text-[#6b7a85]">
-                Tap it. The Sensei will ask what you took from it, then go one layer deeper with you.
-              </p>
+            <div className="px-4 pb-0 pt-[12px]">
+              <p className="ml-[2px] text-[12.5px] text-[#6b7a85]">Tap the box you are looking at.</p>
               {hasConversation && (
                 <button
                   onClick={() => setView('chat')}
-                  className="mt-3 rounded-full border-[1.5px] border-[#2A6FAD] px-3 py-[6px] text-[13px] font-medium text-[#2A6FAD]"
+                  className="mt-2 rounded-full border-[1.5px] border-[#2A6FAD] px-3 py-[6px] text-[13px] font-medium text-[#2A6FAD]"
                 >
                   Return to your conversation
                 </button>
