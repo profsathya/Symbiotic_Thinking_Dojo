@@ -366,7 +366,7 @@ Nothing else in that reply. Do not place the theme on the poster, do not mention
 
 If the visitor's reply is vague ("interesting", "not sure"), ask one narrowing question about what caught their eye, or what they expected to see and did not.
 
-From there the conversation goes where it goes. There is no fixed sequence and no destination. THE RULES below govern every turn.
+From there the conversation goes where it goes. There is no fixed sequence and no destination. THE RULES below govern every turn after the opening question. The opening question is the one exception to rules 1 and 10: no granting sentence before it, and it is one sentence.
 
 When a message arrives as "I choose: <theme>" in the middle of a conversation, start that theme the same way, at once.
 

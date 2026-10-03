@@ -97,6 +97,9 @@ describe('CTI poster dojo', () => {
       'Philosophy — philosophy\nApproach — approach\nFramework — Human Value Framework\nExperiments — experiments\nResults — results'
     );
     expect(how).toContain('do not mention boxes, and no cards');
+    expect(how).toContain(
+      'The opening question is the one exception to rules 1 and 10: no granting sentence before it, and it is one sentence.'
+    );
     expect(posterPrompt).not.toContain('What question or reaction do you have about it?');
     expect(posterPrompt).not.toContain('placing the theme');
     expect(posterPhase).toContain('There is no fixed sequence and no destination.');
