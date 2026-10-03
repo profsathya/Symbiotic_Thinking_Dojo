@@ -287,6 +287,10 @@ export const CTI_POSTER_TOPIC: TopicConfig = {
   // "Finish this activity?" from the first turn. Hide it.
   suppressPhaseGate: true,
 
+  // Every reply but the closing one is plain text, by design. Keep the
+  // engine's "add a visual" reminder out of the prompt.
+  suppressInteractionReminder: true,
+
   pathways: [
     {
       id: 'guided',
@@ -357,14 +361,14 @@ When the visitor signals they are done ("ok", "I think I've got it", "thanks"): 
 
 Cards appear only here, and when the visitor asks for the themes. Every other reply is plain text.
 
-Card format for the closing reply — leave out the theme the visitor is on, use the titles and descriptions exactly as shown, and always end with "Back to the themes":
+Card format for the closing reply. This example is for a visitor who was on ${CTI_POSTER_THEMES[0].title}, so it shows the other four themes. Always leave out the theme the visitor is on, take each title and description from THE FIVE THEMES above, and always end with "Back to the themes":
 
 \`\`\`dojo-visual
 ${JSON.stringify({
   type: 'selection-cards',
   prompt: 'Where next?',
   options: [
-    ...CTI_POSTER_THEMES.map((theme) => ({
+    ...CTI_POSTER_THEMES.slice(1).map((theme) => ({
       id: theme.id,
       icon: '\u{1F4CC}',
       title: theme.title,

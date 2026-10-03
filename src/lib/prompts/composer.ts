@@ -88,7 +88,7 @@ export function composeSystemPrompt(
   }
 
   // 5. Interactive learning encouragement (when threshold exceeded)
-  if (consecutiveTextOnlyResponses >= interactionThreshold) {
+  if (consecutiveTextOnlyResponses >= interactionThreshold && !practiceDojoContext?.topic.suppressInteractionReminder) {
     // Escalate urgency based on how many text-only responses
     const isUrgent = consecutiveTextOnlyResponses >= interactionThreshold + 2;
 

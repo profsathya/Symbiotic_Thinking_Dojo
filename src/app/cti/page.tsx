@@ -29,7 +29,9 @@ import { urlHasKey, validKeyFromUrl, stripKeyFromUrl } from '@/lib/url-key';
  * shared usePracticeDojoState, so a visitor's refresh resumes their
  * conversation and nothing here can touch a student's saved Dojo progress.
  */
-const STORAGE_KEY = 'ctiPosterDojo';
+// "V2": a conversation saved by the first build holds box cards the sensei no
+// longer knows, so it is left behind rather than restored.
+const STORAGE_KEY = 'ctiPosterDojoV2';
 
 // The topic has one working phase (phases[0] is the welcome placeholder).
 const WORKING_PHASE = 1;

@@ -20,7 +20,7 @@ import {
   ctiPosterThemeLine,
 } from '@/lib/practice-dojo/topics/cti-poster';
 import * as material from '@/lib/practice-dojo/topics/cti-material';
-import { createPracticeDojoWelcome } from '@/lib/prompts/composer';
+import { createPracticeDojoWelcome, composeSystemPrompt } from '@/lib/prompts/composer';
 import { isBackToThemesCard, visiblePosterMessages } from '@/lib/cti-poster-session';
 
 const posterPhase = CTI_POSTER_TOPIC.phases[1].contentGuidance;
@@ -218,6 +218,42 @@ describe('CTI poster dojo', () => {
     expect(posterPhase.split('```dojo-visual').length - 1).toBe(2);
   });
 
+  it('shows a closing-card example with four themes, not the one the visitor is on', () => {
+    const closing = posterPhase.slice(posterPhase.indexOf('\nCLOSING\n'), posterPhase.indexOf('\nOFF-SCOPE QUESTIONS\n'));
+    const example = closing.slice(closing.indexOf('{'), closing.indexOf('}]}') + 3);
+    const cards = JSON.parse(example) as { options: { id: string; title: string }[] };
+    expect(closing).toContain('This example is for a visitor who was on Approach');
+    expect(cards.options.map((o) => o.title)).toEqual([
+      'Philosophy', 'Framework', 'Experiments', 'Results', 'Back to the themes',
+    ]);
+  });
+
+  it('is never told to add a visual after a run of plain-text replies', () => {
+    const compose = (topic: typeof CTI_POSTER_TOPIC, n: number) =>
+      composeSystemPrompt({ dojoPrompt: 'D', senseiPrompt: 'S', ikigaiPrompt: 'I', constructs: [], partners: [] }, 'learn', [], {
+        consecutiveTextOnlyResponses: n,
+        practiceDojoContext: {
+          topic,
+          currentPhase: topic.phases[1],
+          pathway: 'guided',
+          completedPhases: [0],
+          userChoices: {},
+          checkpointStatuses: {},
+          phaseSelfChecks: [],
+          kataResults: [],
+          interactionCount: n,
+        },
+      });
+    for (const n of [3, 5, 9]) {
+      const prompt = compose(CTI_POSTER_TOPIC, n);
+      expect(prompt, String(n)).not.toContain('LEARNING DESIGN REMINDER');
+      expect(prompt, String(n)).not.toContain('ENGAGEMENT NEEDED');
+    }
+    // Other topics keep the reminder.
+    expect(compose(WHAT_IS_CTI_DOING_TOPIC, 3)).toContain('LEARNING DESIGN REMINDER');
+    expect(compose(WHAT_IS_CTI_DOING_TOPIC, 5)).toContain('ENGAGEMENT NEEDED');
+  });
+
   it('keeps staff email addresses out of the prompt', () => {
     expect(posterPrompt).not.toMatch(/[\w.]+@[\w.]+\.\w+/);
   });
@@ -327,8 +363,6 @@ describe('/cti page helpers', () => {
   it('recognizes the Back to the themes card by id or by title', () => {
     expect(isBackToThemesCard({ optionId: CTI_POSTER_BACK_CARD.id, optionTitle: 'anything' })).toBe(true);
     expect(isBackToThemesCard({ optionId: 'back', optionTitle: ' Back to the themes ' })).toBe(true);
-    // A conversation saved before v2 can still hold the first build's card.
-    expect(isBackToThemesCard({ optionId: 'poster', optionTitle: 'Back to the poster' })).toBe(true);
     expect(isBackToThemesCard({ optionId: 'philosophy', optionTitle: 'Philosophy' })).toBe(false);
   });
 
