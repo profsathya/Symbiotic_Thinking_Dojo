@@ -122,7 +122,9 @@ describe('CTI poster dojo', () => {
     const step4 = posterPhase.slice(posterPhase.indexOf('Step 4 —'), posterPhase.indexOf('Step 5 and Step 6'));
     expect(step4).toContain('This is a statement you make');
     expect(step4).toContain('Never turn it into a question');
-    expect(step4).toContain('Say "Box 4 points at this", not "Box 4 answers it".');
+    expect(step4).toContain(
+      `The wording is "Box N points at this", never "Box N answers it", where N is a box from this box's own POINTS TO line and no other.`
+    );
     expect(step4).toContain('One follow-up question at most.');
     expect(step4).not.toContain('where CTI addresses it');
   });
