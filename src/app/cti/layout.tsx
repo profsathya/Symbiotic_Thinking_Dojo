@@ -4,7 +4,7 @@ import localFont from 'next/font/local';
 export const metadata: Metadata = {
   title: 'Talk to the Sensei about this poster — CTI at INSPIRE 2026',
   description:
-    'Human Value that Grows with AI Capability. Pick the box you are looking at; the Sensei asks what you took from it, then goes one layer deeper with you.',
+    'Human Value that Grows with AI Capability. Pick a theme of the poster; the Sensei asks what question or reaction you have about it.',
 };
 
 // viewport-fit=cover makes env(safe-area-inset-*) meaningful, so the header

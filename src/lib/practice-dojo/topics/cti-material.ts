@@ -9,7 +9,9 @@
  * framework text or to a rule lands in both at once. The Council dojo uses
  * all five topic bodies. The poster dojo uses only the fragments named
  * SYMBIOTIC_DEFINITION, SYMBIOTIC_HABITS and FRAMEWORK_PAGE, which the full
- * bodies are composed from.
+ * bodies are composed from. Of the rules, the poster dojo takes SCOPE,
+ * HYPOTHESIS, STORAGE, NO_FORWARDING, NO_NOTING and NEVER_NEXT_PHASE; its
+ * voice comes from its own ten rules (see cti-poster.ts).
  *
  * There is no retrieval in this tool, so every source is inlined as prose.
  * The Human Value Framework text was fetched from

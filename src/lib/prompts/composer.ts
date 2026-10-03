@@ -3,7 +3,7 @@ import { PracticeDojoContext, TopicConfig } from '../practice-dojo/types';
 import { AIProvider } from '../providers/types';
 import { DEFAULT_CAREER_INTELLIGENCE_PROMPT } from './defaults/career-intelligence';
 import { earnedBelts, BELT_INFO } from '../practice-dojo/belt-record';
-import { ctiPosterBoxCards } from '../practice-dojo/topics/cti-poster';
+import { ctiPosterThemeCards } from '../practice-dojo/topics/cti-poster';
 
 export interface ComposeOptions {
   isGuidedPractice?: boolean;
@@ -88,7 +88,7 @@ export function composeSystemPrompt(
   }
 
   // 5. Interactive learning encouragement (when threshold exceeded)
-  if (consecutiveTextOnlyResponses >= interactionThreshold) {
+  if (consecutiveTextOnlyResponses >= interactionThreshold && !practiceDojoContext?.topic.suppressInteractionReminder) {
     // Escalate urgency based on how many text-only responses
     const isUrgent = consecutiveTextOnlyResponses >= interactionThreshold + 2;
 
@@ -818,13 +818,11 @@ I'll give you a short answer and then ask what you think — that is how we work
   // Talk to the Sensei about this poster — on /cti the opening screen is the
   // door and this message is never shown; it stays in the history so the
   // model sees what the visitor was asked. Started from the main Dojo's topic
-  // picker, it IS the door: the same ten boxes, as cards.
+  // picker, it IS the door: the same five themes, as cards.
   if (topic.topicId === 'cti-poster') {
-    return `**Sensei:** Which box are you looking at?
+    return `**Sensei:** Pick a theme.
 
-Tap it. I'll ask what you took from it, then go one layer deeper with you.
-
-${ctiPosterBoxCards()}`;
+${ctiPosterThemeCards()}`;
   }
 
   // Generic welcome for other topics

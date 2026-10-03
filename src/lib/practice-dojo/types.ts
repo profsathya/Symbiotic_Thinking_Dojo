@@ -146,6 +146,12 @@ export interface TopicConfig {
   // the activity is for. Those topics keep the Exit button, which parks the
   // session for resume. Default (absent) keeps the gate.
   suppressPhaseGate?: boolean;
+  // Leave out the composer's reminder to add an interactive element after
+  // several text-only replies (LEARNING DESIGN REMINDER / ENGAGEMENT NEEDED).
+  // For a topic whose Sensei is told to reply in plain text, the reminder
+  // would contradict the topic's own instructions after three ordinary turns.
+  // Default (absent) keeps the reminder.
+  suppressInteractionReminder?: boolean;
   // Additional content for course topics
   courseContent?: {
     syllabus: string;
