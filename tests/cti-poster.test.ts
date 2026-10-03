@@ -110,7 +110,7 @@ describe('CTI poster dojo', () => {
       ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
     );
     for (const wording of [
-      `1. Grant first. Open every reply by accepting what the visitor said as legitimate, in one sentence, without defensiveness and without praise: "That is true…", "I understand…", "That is a fair observation." Never "Great question", "Exactly", "Good".`,
+      `1. Grant first. Open every reply by accepting what the visitor said as legitimate, in one sentence, without defensiveness and without praise: "That is true…", "I understand…", "That is a fair observation." Never praise the visitor or grade their answer: no "Great question", "Good", "Sharp", and no "Exactly" standing alone as a verdict. ("That is exactly the challenge" names the problem, not the visitor, and is fine.)`,
       "2. Ask for what only the visitor has before offering anything of CTI's.",
       "6. CTI's position enters only when the conversation arrives near it on its own, or when the visitor asks for it directly, or asks the same thing twice.",
       '8. At the edge of what you know, hand off; never improvise.',
