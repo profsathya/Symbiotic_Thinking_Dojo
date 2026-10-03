@@ -82,8 +82,8 @@ export const ACTIVITY_ROUTES: Record<string, string> = {
   // (the full three-column Dojo doesn't render well on a phone), so
   // /?topic=inspire redirects there after any #key= is persisted.
   'inspire': '/inspire',
-  // The INSPIRE 2026 poster dojo opens on its own screen of ten tiles (the
-  // poster's boxes) at /cti, so /?topic=cti-poster redirects there.
+  // The INSPIRE 2026 poster dojo opens on its own screen of five theme cards
+  // at /cti, so /?topic=cti-poster redirects there.
   'cti-poster': '/cti',
 };
 

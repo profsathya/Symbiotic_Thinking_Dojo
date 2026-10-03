@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createHash } from 'crypto';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import {
   ACTIVITY_ROUTES,
   getTopicById,
@@ -7,18 +9,25 @@ import {
   WHAT_IS_CTI_DOING_TOPIC,
   CTI_POSTER_TOPIC,
 } from '@/lib/practice-dojo/topics';
+import * as poster from '@/lib/practice-dojo/topics/cti-poster';
 import {
-  CTI_POSTER_BOXES,
+  CTI_POSTER_THEMES,
   CTI_POSTER_TEXT,
+  CTI_POSTER_RULES,
+  CTI_POSTER_WHERE_CTI_STANDS,
+  CTI_POSTER_EXAMPLE_CONVERSATION,
   CTI_POSTER_BACK_CARD,
-  ctiPosterBoxLabel,
+  ctiPosterThemeLine,
 } from '@/lib/practice-dojo/topics/cti-poster';
 import * as material from '@/lib/practice-dojo/topics/cti-material';
 import { createPracticeDojoWelcome } from '@/lib/prompts/composer';
-import { isBackToPosterCard, visiblePosterMessages } from '@/lib/cti-poster-session';
+import { isBackToThemesCard, visiblePosterMessages } from '@/lib/cti-poster-session';
 
 const posterPhase = CTI_POSTER_TOPIC.phases[1].contentGuidance;
+const posterSystem = CTI_POSTER_TOPIC.systemInstructions ?? '';
+const posterPrompt = posterPhase + posterSystem;
 const councilPhase = WHAT_IS_CTI_DOING_TOPIC.phases[1].contentGuidance;
+const pageSource = readFileSync(join(__dirname, '../src/app/cti/page.tsx'), 'utf8');
 
 const words = (text: string) => text.split(/\s+/).filter(Boolean).length;
 
@@ -39,49 +48,106 @@ describe('CTI poster dojo', () => {
     expect(CTI_POSTER_TOPIC.suppressThinkingMetrics).toBe(true);
     expect(CTI_POSTER_TOPIC.suppressPhaseGate).toBe(true);
     expect(posterPhase).toContain('NEVER emit [NEXT_PHASE]');
-    expect(CTI_POSTER_TOPIC.systemInstructions).toContain('NEVER emit [NEXT_PHASE]');
+    expect(posterSystem).toContain('NEVER emit [NEXT_PHASE]');
   });
 
-  it('has the nine poster boxes in three bands, plus Symbiotic Thinking', () => {
-    expect(CTI_POSTER_BOXES.length).toBe(10);
-    expect(CTI_POSTER_BOXES.filter((b) => b.number !== null).map((b) => b.number)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9,
+  it('has the five themes, in order, with the boxes each covers', () => {
+    expect(CTI_POSTER_THEMES.map((t) => `${t.title} — ${ctiPosterThemeLine(t)}`)).toEqual([
+      "Approach — The challenge, and CTI's three-part answer (boxes 1 and 3)",
+      'Philosophy — The hypothesis, and what has to change in post-secondary learning (boxes 2 and 4)',
+      'Framework — The Human Value Framework and Symbiotic Thinking (box 5)',
+      'Experiments — Where it is being tested, and the continuing work (boxes 6 and 9)',
+      'Results — Early signals and early data (boxes 7 and 8)',
     ]);
-    for (const band of [1, 2, 3]) {
-      expect(CTI_POSTER_BOXES.filter((b) => b.band === band).length).toBe(3);
-    }
-    expect(ctiPosterBoxLabel(CTI_POSTER_BOXES[0])).toBe('Box 1 · The Challenge');
-    expect(ctiPosterBoxLabel(CTI_POSTER_BOXES[9])).toBe('Symbiotic Thinking');
+    // Every poster box belongs to exactly one theme.
+    expect(CTI_POSTER_THEMES.flatMap((t) => t.boxes).sort()).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
   });
 
-  it('gives the sensei every label a tile can send', () => {
-    for (const box of CTI_POSTER_BOXES) {
-      const label = ctiPosterBoxLabel(box);
-      // In the per-box section, and on the fallback picker card.
-      expect(posterPhase, label).toContain(`\n${label}`);
-      expect(posterPhase, label).toContain(`"title":"${label}"`);
+  it('gives the sensei every theme a card can send', () => {
+    for (const theme of CTI_POSTER_THEMES) {
+      expect(posterPhase, theme.title).toContain(`\n${theme.title} — ${ctiPosterThemeLine(theme)}`);
+      expect(posterPhase, theme.title).toContain(`"title":"${theme.title}"`);
+    }
+    expect(posterPhase).toContain('it arrives as "I choose: Approach"');
+  });
+
+  it('opens on five theme cards: no box tiles, no Symbiotic Thinking tile', () => {
+    expect('CTI_POSTER_BOXES' in poster).toBe(false);
+    expect('ctiPosterBoxCards' in poster).toBe(false);
+    expect(pageSource).toContain('CTI_POSTER_THEMES.map(');
+    expect(pageSource).toContain('Pick a theme.');
+    expect(pageSource).toContain('`I choose: ${theme.title}`');
+    expect(pageSource).toMatch(/>\s*Themes\s*<\/button>/);
+    expect(pageSource).toContain('INSPIRE 2026 poster');
+    expect(pageSource).toContain('CTI keeps no copy of this conversation.');
+    for (const gone of ['CTI_POSTER_BOXES', 'BANDS', 'WIDE_TILE', 'grid-cols-3', 'Tap the box', 'Band 1']) {
+      expect(pageSource, gone).not.toContain(gone);
+    }
+    expect(pageSource).not.toMatch(/>\s*Poster\s*<\/button>/);
+  });
+
+  it('runs a theme as an open conversation, not as steps', () => {
+    expect(posterPhase).toContain('HOW A THEME RUNS');
+    expect(posterPhase).toContain('"What question or reaction do you have about it?"');
+    expect(posterPhase).toContain('There is no fixed sequence and no destination.');
+    for (const gone of ['HOW A BOX RUNS', 'THE TEN BOXES', 'Step 1', 'Step 4', 'what did you take from that box']) {
+      expect(posterPrompt, gone).not.toContain(gone);
+    }
+    for (const gone of ['THE DESIGN-CHOICE QUESTION', 'DESIGN CHOICES', 'Start with the substance']) {
+      expect(posterPrompt, gone).not.toContain(gone);
     }
   });
 
-  it('carries one design choice, placing line, reading and neighbors per box', () => {
-    for (const marker of ['PLACING:', 'READING:', 'DESIGN CHOICE:', 'POINTS TO:', 'NOT SOLVED:', 'NEIGHBORS:']) {
-      expect(posterPhase.split(`\n${marker}`).length - 1, marker).toBe(10);
+  it('drops every per-box line', () => {
+    for (const marker of ['PLACING', 'READING:', 'DESIGN CHOICE', 'POINTS TO', 'NOT SOLVED', 'NEIGHBORS']) {
+      expect(posterPrompt, marker).not.toContain(marker);
     }
-    expect(posterPhase).toContain(
-      'CTI defined the new Point B as handling a goal, not as a list of AI skills or tools.'
+  });
+
+  it('carries the ten rules in the wording given', () => {
+    expect(posterPhase).toContain(CTI_POSTER_RULES);
+    expect(CTI_POSTER_RULES.split('\n\n').map((r) => r.slice(0, r.indexOf('. ')))).toEqual(
+      ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
     );
-    expect(posterPhase).toContain('"Human-led" is inside the definition rather than a rule added afterwards.');
+    for (const wording of [
+      `1. Grant first. Open every reply by accepting what the visitor said as legitimate, in one sentence, without defensiveness and without praise: "That is true…", "I understand…", "That is a fair observation." Never "Great question", "Exactly", "Good".`,
+      "2. Ask for what only the visitor has before offering anything of CTI's.",
+      "6. CTI's position enters only when the conversation arrives near it on its own, or when the visitor asks for it directly, or asks the same thing twice.",
+      '8. At the edge of what you know, hand off; never improvise.',
+      '9. Disagreement is a fine place to end.',
+      '10. Register and length. Two to four sentences per turn.',
+    ]) {
+      expect(CTI_POSTER_RULES).toContain(wording);
+    }
   });
 
-  it('carries the poster text first, then the shared material', () => {
+  it('carries the poster text with the new Point B in green', () => {
     expect(posterPhase).toContain(CTI_POSTER_TEXT);
+    expect(CTI_POSTER_TEXT).toContain('with a second B further out in green to mark the challenge.');
+    expect(CTI_POSTER_TEXT).toContain(
+      '- B (new, green): Now: start with a goal, make choices, learn, adapt and iterate to reach the goal'
+    );
+    expect(posterPrompt.toLowerCase()).not.toContain('orange');
     expect(CTI_POSTER_TEXT).toContain(
       'Human value will grow as AI capability grows if students learn to think with AI and use it strategically.'
     );
     expect(CTI_POSTER_TEXT).toContain('What would be worse about my solutions if I had simply handed the problem to AI?');
-    expect(posterPhase.indexOf(CTI_POSTER_TEXT)).toBeLessThan(
-      posterPhase.indexOf(material.CTI_MATERIAL_SYMBIOTIC_DEFINITION)
-    );
+  });
+
+  it('carries the four sources in order', () => {
+    const at = (text: string) => posterPhase.indexOf(text);
+    const order = [
+      at('SOURCE 1 — THE POSTER, VERBATIM'),
+      at(CTI_POSTER_TEXT),
+      at('SOURCE 2 — BACKGROUND MATERIAL FROM CTI'),
+      at(material.CTI_MATERIAL_SYMBIOTIC_DEFINITION),
+      at('SOURCE 3 — WHERE CTI STANDS'),
+      at(CTI_POSTER_WHERE_CTI_STANDS),
+      at('SOURCE 4 — EXAMPLE CONVERSATION'),
+      at(CTI_POSTER_EXAMPLE_CONVERSATION),
+    ];
+    expect(order.every((i) => i >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
   it('carries a lean SOURCE 2: the definition, the daily habits and the framework page only', () => {
@@ -93,10 +159,6 @@ describe('CTI poster dojo', () => {
       expect(kept.length).toBeGreaterThan(200);
       expect(posterPhase).toContain(kept);
     }
-    expect(posterPhase).toContain('Two things in it are deliberate. Human-led:');
-    expect(posterPhase).toContain('Four layers:');
-    expect(posterPhase).toContain('Design principles the framework was built against');
-    // The Council deck, the operations material and the testing commitments stay out.
     for (const dropped of [
       material.CTI_MATERIAL_SYMBIOTIC_THINKING,
       material.CTI_MATERIAL_FRAMEWORK,
@@ -111,62 +173,82 @@ describe('CTI poster dojo', () => {
     }
   });
 
-  it('never opens a reply with an evaluation of the visitor', () => {
-    expect(CTI_POSTER_TOPIC.systemInstructions).toContain(
-      `Never open a reply with an evaluation of the visitor or their answer — no "Good", "Exactly", "That's right", "Sharp", "Great point", "Fair". Start with the substance.`
+  it('carries WHERE CTI STANDS, one block per theme', () => {
+    const blocks = CTI_POSTER_WHERE_CTI_STANDS.split('\n\n');
+    expect(blocks.length).toBe(5);
+    CTI_POSTER_THEMES.forEach((theme, i) => {
+      expect(blocks[i].startsWith(`${theme.title}. `), theme.title).toBe(true);
+      expect(blocks[i], theme.title).toContain('Honesty line:');
+    });
+    expect(blocks[0]).toContain(
+      'Honesty line: CTI is not sure these designs are working, but they seem to move things in the right direction.'
     );
-    expect(posterPhase).toContain('Never praise the reading.');
+    expect(blocks[4]).toContain('Give the numbers only as box 8 gives them.');
+    expect(posterPhase).toContain('Draw on a block only when the conversation arrives there (rule 6).');
   });
 
-  it('states what is not solved at Step 4 rather than asking', () => {
-    const step4 = posterPhase.slice(posterPhase.indexOf('Step 4 —'), posterPhase.indexOf('Step 5 and Step 6'));
-    expect(step4).toContain('This is a statement you make');
-    expect(step4).toContain('Never turn it into a question');
-    expect(step4).toContain(
-      `The wording is "Box N points at this", never "Box N answers it", where N is a box from this box's own POINTS TO line and no other.`
+  it('carries the example conversation under the heading given', () => {
+    expect(posterPhase).toContain(
+      "EXAMPLE — a conversation at the poster, in the register the Sensei matches. Not a script; the visitor's words will differ."
     );
-    expect(step4).toContain('One follow-up question at most.');
-    expect(step4).not.toContain('where CTI addresses it');
+    const turns = CTI_POSTER_EXAMPLE_CONVERSATION.split('\n\n');
+    expect(turns.map((t) => t.slice(0, t.indexOf(':')))).toEqual([
+      'Dean', 'Sensei', 'Dean', 'Sensei', 'Dean', 'Sensei', 'Dean', 'Sensei',
+    ]);
+    expect(turns[0]).toContain("What's the part I couldn't get from the other forty posters?");
+    expect(turns[1]).toBe(
+      'Sensei: That is true, there are a lot of very similar-sounding words and statements in this topic. Would you mind sharing the best description of the challenge that you found precise, in all the posters?'
+    );
+    expect(turns[7]).toBe(
+      'Sensei: That is a fair observation. I would encourage looking at the course and reaching out to Sathya. One thing I know is that we are scrupulous in how we approach each of these ideas and are very interested in learning from your questions and experience.'
+    );
+    expect(CTI_POSTER_EXAMPLE_CONVERSATION).not.toContain('**');
   });
 
-  it('always puts Symbiotic Thinking on the closing cards', () => {
-    const step6 = posterPhase.slice(posterPhase.indexOf('Step 6 —'), posterPhase.indexOf('MOVING AROUND'));
-    expect(step6).toContain('The Symbiotic Thinking card is not optional');
-    expect(step6).toContain('left out only when Symbiotic Thinking is the current box');
-    expect(step6).toContain('"id": "symbiotic"');
-    expect(step6.indexOf('"id": "symbiotic"')).toBeLessThan(step6.indexOf('"id": "poster"'));
+  it('closes with the other themes as cards, and shows cards nowhere else', () => {
+    const closing = posterPhase.slice(posterPhase.indexOf('\nCLOSING\n'), posterPhase.indexOf('\nOFF-SCOPE QUESTIONS\n'));
+    expect(closing).toContain('one sentence reflecting their main point');
+    expect(closing).toContain('"If you want CTI to hear it, write to Sathya, or tell the CTI team at the poster."');
+    expect(closing).toContain('the other four themes, and "Back to the themes" last');
+    expect(closing).toContain('Cards appear only here, and when the visitor asks for the themes.');
+    expect(closing).toContain(`"id":"${CTI_POSTER_BACK_CARD.id}"`);
+    expect(closing).toContain(`"title":"${CTI_POSTER_BACK_CARD.title}"`);
+    expect(posterSystem).toContain('Every other reply is plain text with no cards');
+    // The first reply and the off-scope redirect carry no cards.
+    expect(posterPhase.split('```dojo-visual').length - 1).toBe(2);
   });
 
   it('keeps staff email addresses out of the prompt', () => {
-    expect(posterPhase + CTI_POSTER_TOPIC.systemInstructions).not.toMatch(/[\w.]+@[\w.]+\.\w+/);
+    expect(posterPrompt).not.toMatch(/[\w.]+@[\w.]+\.\w+/);
   });
 
-  it('stays within the lean context budget (about half the first build)', () => {
-    expect(words(posterPhase) + words(CTI_POSTER_TOPIC.systemInstructions ?? '')).toBeLessThan(BUDGET);
+  it('stays within the context budget', () => {
+    expect(words(posterPhase) + words(posterSystem)).toBeLessThan(BUDGET);
   });
 
   it('sends off-scope and comparison questions to the CTI team at the poster', () => {
     expect(posterPhase).toContain('better discussed with the CTI team — they are at the poster, or write to Sathya');
-    expect(CTI_POSTER_TOPIC.systemInstructions).toContain('write to Sathya, or tell the CTI team at the poster');
+    expect(posterPhase).toContain('Do not draw the comparison yourself');
+    expect(posterSystem).toContain('write to Sathya, or tell the CTI team at the poster');
   });
 
   it('names the poster, not the framework page, when it reads between the lines', () => {
-    const prompt = posterPhase + CTI_POSTER_TOPIC.systemInstructions;
-    expect(CTI_POSTER_TOPIC.systemInstructions).toContain(
+    expect(posterSystem).toContain(
       `${material.CTI_RULE_SCOPE} "the poster doesn't say this directly; my reading is..."`
     );
-    expect(prompt).not.toContain("the framework page doesn't say this directly");
+    expect(posterPrompt).not.toContain("the framework page doesn't say this directly");
     expect(WHAT_IS_CTI_DOING_TOPIC.systemInstructions).toContain(
       `${material.CTI_RULE_SCOPE} "the framework page doesn't say this directly; my reading is..."`
     );
   });
 
-  it('welcome offers the ten boxes as cards', () => {
+  it('welcome offers the five themes as cards', () => {
     const welcome = createPracticeDojoWelcome(CTI_POSTER_TOPIC, 'guided');
-    expect(welcome).toContain('Which box are you looking at?');
+    expect(welcome).toContain('Pick a theme.');
     const json = welcome.slice(welcome.indexOf('{'), welcome.lastIndexOf('}') + 1);
-    const cards = JSON.parse(json) as { options: { id: string; title: string }[] };
-    expect(cards.options.map((o) => o.title)).toEqual(CTI_POSTER_BOXES.map(ctiPosterBoxLabel));
+    const cards = JSON.parse(json) as { options: { id: string; title: string; description: string }[] };
+    expect(cards.options.map((o) => o.title)).toEqual(CTI_POSTER_THEMES.map((t) => t.title));
+    expect(cards.options.map((o) => o.description)).toEqual(CTI_POSTER_THEMES.map(ctiPosterThemeLine));
   });
 });
 
@@ -178,16 +260,21 @@ describe('material shared by the Council dojo and the poster dojo', () => {
     material.CTI_MATERIAL_OPERATIONS,
     material.CTI_MATERIAL_TESTING,
   ];
+  // Kept by both dojos.
   const rules = [
     material.CTI_RULE_SCOPE,
     material.CTI_RULE_HYPOTHESIS,
     material.CTI_RULE_STORAGE,
     material.CTI_RULE_NO_FORWARDING,
+    material.CTI_RULE_NO_NOTING,
+    material.CTI_RULE_NEVER_NEXT_PHASE,
+  ];
+  // The Council's voice rules. The poster dojo's own ten rules replace them:
+  // "grant first" opens with wording these would rule out.
+  const councilVoice = [
     material.CTI_RULE_PLAIN_VOICE,
     material.CTI_RULE_NO_COMPARISONS,
-    material.CTI_RULE_NO_NOTING,
     material.CTI_RULE_NO_PRAISE,
-    material.CTI_RULE_NEVER_NEXT_PHASE,
   ];
 
   it('the Council dojo carries all five topic bodies', () => {
@@ -213,6 +300,13 @@ describe('material shared by the Council dojo and the poster dojo', () => {
     }
   });
 
+  it('the Council voice rules stay with the Council dojo', () => {
+    for (const rule of councilVoice) {
+      expect(WHAT_IS_CTI_DOING_TOPIC.systemInstructions).toContain(rule);
+      expect(CTI_POSTER_TOPIC.systemInstructions).not.toContain(rule);
+    }
+  });
+
   it('never claims the conversation is stored nowhere', () => {
     expect(material.CTI_RULE_STORAGE).toContain('Do not say the conversation is "not stored anywhere"');
     expect(material.CTI_RULE_STORAGE).toContain('their own browser');
@@ -222,7 +316,7 @@ describe('material shared by the Council dojo and the poster dojo', () => {
   it('the Council dojo keeps its own shape', () => {
     expect(councilPhase).toContain('HOW A TOPIC RUNS');
     expect(councilPhase).toContain('6. SOMETHING ELSE — THE OPEN BOX');
-    expect(councilPhase).not.toContain('HOW A BOX RUNS');
+    expect(councilPhase).not.toContain('HOW A THEME RUNS');
     expect(createPracticeDojoWelcome(WHAT_IS_CTI_DOING_TOPIC, 'guided')).toContain(
       'This is a place to explore what CTI is doing'
     );
@@ -230,10 +324,12 @@ describe('material shared by the Council dojo and the poster dojo', () => {
 });
 
 describe('/cti page helpers', () => {
-  it('recognizes the Back to the poster card by id or by title', () => {
-    expect(isBackToPosterCard({ optionId: CTI_POSTER_BACK_CARD.id, optionTitle: 'anything' })).toBe(true);
-    expect(isBackToPosterCard({ optionId: 'back', optionTitle: ' Back to the poster ' })).toBe(true);
-    expect(isBackToPosterCard({ optionId: 'box4', optionTitle: 'Box 4 · Transformation is needed' })).toBe(false);
+  it('recognizes the Back to the themes card by id or by title', () => {
+    expect(isBackToThemesCard({ optionId: CTI_POSTER_BACK_CARD.id, optionTitle: 'anything' })).toBe(true);
+    expect(isBackToThemesCard({ optionId: 'back', optionTitle: ' Back to the themes ' })).toBe(true);
+    // A conversation saved before v2 can still hold the first build's card.
+    expect(isBackToThemesCard({ optionId: 'poster', optionTitle: 'Back to the poster' })).toBe(true);
+    expect(isBackToThemesCard({ optionId: 'philosophy', optionTitle: 'Philosophy' })).toBe(false);
   });
 
   it('hides the welcome message and nothing else', () => {

@@ -8,23 +8,22 @@ import { MessageList } from '@/components/Chat/MessageList';
 import { ChatInput } from '@/components/Chat/ChatInput';
 import {
   CTI_POSTER_TOPIC,
-  CTI_POSTER_BOXES,
-  CtiPosterBox,
-  ctiPosterBoxLabel,
+  CTI_POSTER_THEMES,
+  CtiPosterTheme,
+  ctiPosterThemeLine,
 } from '@/lib/practice-dojo/topics/cti-poster';
 import { PracticeDojoContext, Pathway } from '@/lib/practice-dojo/types';
 import { InspireSaved, restorableMessages } from '@/lib/inspire-session';
-import { isBackToPosterCard, visiblePosterMessages } from '@/lib/cti-poster-session';
+import { isBackToThemesCard, visiblePosterMessages } from '@/lib/cti-poster-session';
 import { isCtiEnabled } from '@/lib/providers';
 import { urlHasKey, validKeyFromUrl, stripKeyFromUrl } from '@/lib/url-key';
 
 /**
  * /cti — the INSPIRE 2026 poster dojo. A standalone mobile page, like
- * /inspire: the opening screen is the poster's nine boxes plus Symbiotic
- * Thinking as tiles; a tap starts the ordinary dojo chat on the `cti-poster`
- * topic with that box sent as the first user message, as a selection card
- * would send it. "Poster" in the header returns to the tiles without
- * clearing the conversation.
+ * /inspire: the opening screen is five theme cards; a tap starts the
+ * ordinary dojo chat on the `cti-poster` topic with that theme sent as the
+ * first user message, as a selection card would send it. "Themes" in the
+ * header returns to the cards without clearing the conversation.
  *
  * The session persists under this page's OWN localStorage key, never the
  * shared usePracticeDojoState, so a visitor's refresh resumes their
@@ -38,13 +37,7 @@ const WORKING_PHASE = 1;
 const NAVY = '#153857';
 const FONT_STACK = "var(--font-jost), -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif";
 
-const BANDS: { band: 1 | 2 | 3; label: string; edge: string; number: string }[] = [
-  { band: 1, label: 'Band 1 · 3 minutes', edge: '#2A6FAD', number: '#2A6FAD' },
-  { band: 2, label: 'Band 2 · 5 more minutes', edge: '#2D875E', number: '#2D875E' },
-  { band: 3, label: 'Band 3 · The detail', edge: '#9db6cb', number: '#5f7f99' },
-];
-
-const WIDE_TILE = CTI_POSTER_BOXES.find((box) => box.band === null);
+const BLUE = '#2A6FAD';
 
 const NO_CHOICES: Record<string, string> = {};
 
@@ -71,10 +64,10 @@ export default function CtiPosterPage() {
   const { config } = useDojoConfig();
   const { apiKey, isKeySet, provider, setProvider, setKeyForProvider, clearApiKey } = useApiKey();
 
-  // Read once, so a refresh restores the conversation behind the tiles.
+  // Read once, so a refresh restores the conversation behind the theme cards.
   const [initialSaved] = useState<InspireSaved | null>(loadSaved);
 
-  const [view, setView] = useState<'poster' | 'chat'>('poster');
+  const [view, setView] = useState<'themes' | 'chat'>('themes');
   const [interactionCount, setInteractionCount] = useState(initialSaved?.interactionCount ?? 0);
   const [keyDraft, setKeyDraft] = useState('');
 
@@ -166,7 +159,7 @@ export default function CtiPosterPage() {
     [sendMessage]
   );
 
-  // A tile or a card tapped while a reply is still streaming would be dropped
+  // A theme or a card tapped while a reply is still streaming would be dropped
   // by sendMessage (it returns early while loading). Every tap goes through
   // this one-slot queue instead: it is held and sent as soon as the reply
   // finishes, so a tap is never lost and never counted without being sent.
@@ -182,18 +175,18 @@ export default function CtiPosterPage() {
     return () => clearTimeout(timer);
   }, [pendingChoice, isLoading, handleSend]);
 
-  const handlePickBox = useCallback((box: CtiPosterBox) => {
+  const handlePickTheme = useCallback((theme: CtiPosterTheme) => {
     setView('chat');
     // Same wording a selection card sends.
-    setPendingChoice(`I choose: ${ctiPosterBoxLabel(box)}`);
+    setPendingChoice(`I choose: ${theme.title}`);
   }, []);
 
   const handleVisualInteraction = useCallback(
     (action: string, data: Record<string, string>) => {
       if (action !== 'select') return;
-      // "Back to the poster" is navigation, not a message.
-      if (isBackToPosterCard(data)) {
-        setView('poster');
+      // "Back to the themes" is navigation, not a message.
+      if (isBackToThemesCard(data)) {
+        setView('themes');
         return;
       }
       const spoken = data.optionTitle?.trim() || data.optionDescription?.trim() || data.optionId?.trim();
@@ -244,11 +237,11 @@ export default function CtiPosterPage() {
       </div>
       {view === 'chat' && (
         <button
-          onClick={() => setView('poster')}
+          onClick={() => setView('themes')}
           className="shrink-0 rounded-full px-[11px] py-[7px] text-[12.5px] font-semibold text-white"
           style={{ background: 'rgba(255,255,255,.12)' }}
         >
-          Poster
+          Themes
         </button>
       )}
     </header>
@@ -307,14 +300,14 @@ export default function CtiPosterPage() {
     );
   }
 
-  if (view === 'poster') {
+  if (view === 'themes') {
     return (
       <div className="flex h-[100dvh] justify-center bg-[#c9d4db]" style={{ fontFamily: FONT_STACK }}>
         <div className="flex h-full w-full max-w-[430px] flex-col bg-white text-[#1c2b33]">
           {header}
           <main className="flex-1 overflow-y-auto" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
             <div className="px-4 pb-0 pt-[12px]">
-              <p className="ml-[2px] text-[12.5px] text-[#6b7a85]">Tap the box you are looking at.</p>
+              <p className="ml-[2px] text-[12.5px] text-[#6b7a85]">Pick a theme.</p>
               {hasConversation && (
                 <button
                   onClick={() => setView('chat')}
@@ -325,50 +318,23 @@ export default function CtiPosterPage() {
               )}
             </div>
 
-            {BANDS.map(({ band, label, edge, number }) => (
-              <section key={band} className="px-4 pt-[10px]" aria-label={label}>
-                <p className="mb-[6px] ml-[2px] text-[10.5px] font-bold uppercase tracking-[.1em] text-[#6b7a85]">
-                  {label}
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                  {CTI_POSTER_BOXES.filter((box) => box.band === band).map((box) => (
-                    <button
-                      key={box.id}
-                      onClick={() => handlePickBox(box)}
-                      className="flex min-h-[84px] flex-col rounded-xl border-[1.5px] border-[#e6edf1] bg-white px-[9px] pb-[9px] pt-[10px] text-left transition-transform active:scale-[.97]"
-                      style={{ borderTop: `4px solid ${edge}` }}
-                    >
-                      <span className="text-[10.5px] font-bold tracking-[.06em]" style={{ color: number }}>
-                        {box.number}
-                      </span>
-                      <span className="mt-[2px] text-[13px] font-semibold leading-[1.2]" style={{ color: NAVY }}>
-                        {box.title}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ))}
-
-            {WIDE_TILE && (
-              <div className="px-4 pt-[10px]">
+            <div className="flex flex-col gap-[10px] px-4 pt-[12px]">
+              {CTI_POSTER_THEMES.map((theme) => (
                 <button
-                  onClick={() => handlePickBox(WIDE_TILE)}
-                  className="flex w-full items-center gap-3 rounded-xl border-[1.5px] border-[#e6edf1] bg-white px-[14px] py-[11px] text-left transition-transform active:scale-[.98]"
-                  style={{ borderLeft: '5px solid #d9782a' }}
+                  key={theme.id}
+                  onClick={() => handlePickTheme(theme)}
+                  className="w-full rounded-xl border-[1.5px] border-[#e6edf1] bg-white px-[14px] py-[13px] text-left transition-transform active:scale-[.98]"
+                  style={{ borderLeft: `5px solid ${BLUE}` }}
                 >
-                  <span className="text-[20px]" aria-hidden="true">
-                    🤝
+                  <span className="block text-[16px] font-semibold leading-tight" style={{ color: NAVY }}>
+                    {theme.title}
                   </span>
-                  <span>
-                    <span className="block text-[14.5px] font-semibold" style={{ color: NAVY }}>
-                      {WIDE_TILE.title}
-                    </span>
-                    <span className="block text-[12.5px] text-[#6b7a85]">{WIDE_TILE.description}</span>
+                  <span className="mt-[3px] block text-[13px] leading-[1.3] text-[#6b7a85]">
+                    {ctiPosterThemeLine(theme)}
                   </span>
                 </button>
-              </div>
-            )}
+              ))}
+            </div>
 
             <p className="px-[26px] pb-[22px] pt-[14px] text-center text-[12px] text-[#6b7a85]">
               CTI keeps no copy of this conversation. To tell us something,{' '}
