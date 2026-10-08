@@ -19,7 +19,12 @@ import { InspireSaved, restorableMessages } from '@/lib/inspire-session';
 import { isBackToThemesCard, visiblePosterMessages } from '@/lib/cti-poster-session';
 import { isCtiEnabled } from '@/lib/providers';
 import { urlHasKey, validKeyFromUrl, stripKeyFromUrl } from '@/lib/url-key';
-import { ctiPosterDefaultKey } from '@/lib/cti-poster-default-key';
+import {
+  ctiPosterDefaultKey,
+  planConferenceKey,
+  readAppliedConferenceKey,
+  rememberAppliedConferenceKey,
+} from '@/lib/cti-poster-default-key';
 
 /**
  * /cti — the INSPIRE 2026 poster dojo. A standalone mobile page, like
@@ -74,7 +79,7 @@ function saveSession(state: InspireSaved): void {
 
 export default function CtiPosterPage() {
   const { config } = useDojoConfig();
-  const { apiKey, isKeySet, provider, setProvider, setKeyForProvider, hasKeyForProvider, clearApiKey } =
+  const { apiKey, isKeySet, provider, setProvider, setKeyForProvider, getKeyForProvider, clearApiKey } =
     useApiKey();
 
   // Read once, so a refresh restores the conversation behind the theme cards.
@@ -97,8 +102,9 @@ export default function CtiPosterPage() {
   //
   // The printed poster's QR code is the bare /cti address, with no key in it
   // (Sathya, 2026-10-08: a key in the printed URL "will look funny"). So a
-  // visitor who arrives with no key in the link and none saved gets the
-  // conference key this build was given, and goes straight to the themes.
+  // visitor who arrives with no key in the link and no working key saved gets
+  // the conference key this build was given, and goes straight to the themes.
+  // Someone who already has their own active key keeps it (see planConferenceKey).
   // Runs once: "Use a different key" must still be able to reach the gate.
   const keyProcessedRef = useRef(false);
   useEffect(() => {
@@ -114,12 +120,19 @@ export default function CtiPosterPage() {
         return;
       }
     }
-    const conferenceKey = ctiPosterDefaultKey();
-    if (conferenceKey && isCtiEnabled() && !hasKeyForProvider('cti')) {
-      setKeyForProvider('cti', conferenceKey);
-      setProvider('cti');
+    if (!isCtiEnabled()) return;
+    const plan = planConferenceKey({
+      conferenceKey: ctiPosterDefaultKey(),
+      activeKey: apiKey,
+      ctiKey: getKeyForProvider('cti'),
+      applied: readAppliedConferenceKey(),
+    });
+    if (plan.setKey) {
+      setKeyForProvider('cti', plan.setKey);
+      rememberAppliedConferenceKey(plan.setKey);
     }
-  }, [provider, setKeyForProvider, setProvider, hasKeyForProvider]);
+    if (plan.switchToCti) setProvider('cti');
+  }, [provider, apiKey, setKeyForProvider, setProvider, getKeyForProvider]);
 
   const practiceDojoContext = useMemo<PracticeDojoContext>(
     () => ({
