@@ -19,6 +19,7 @@ import { InspireSaved, restorableMessages } from '@/lib/inspire-session';
 import { isBackToThemesCard, visiblePosterMessages } from '@/lib/cti-poster-session';
 import { isCtiEnabled } from '@/lib/providers';
 import { urlHasKey, validKeyFromUrl, stripKeyFromUrl } from '@/lib/url-key';
+import { ctiPosterDefaultKey } from '@/lib/cti-poster-default-key';
 
 /**
  * /cti — the INSPIRE 2026 poster dojo. A standalone mobile page, like
@@ -73,7 +74,8 @@ function saveSession(state: InspireSaved): void {
 
 export default function CtiPosterPage() {
   const { config } = useDojoConfig();
-  const { apiKey, isKeySet, provider, setProvider, setKeyForProvider, clearApiKey } = useApiKey();
+  const { apiKey, isKeySet, provider, setProvider, setKeyForProvider, hasKeyForProvider, clearApiKey } =
+    useApiKey();
 
   // Read once, so a refresh restores the conversation behind the theme cards.
   const [initialSaved] = useState<InspireSaved | null>(loadSaved);
@@ -92,19 +94,32 @@ export default function CtiPosterPage() {
 
   // Accept a key from the URL (#key= preferred, ?key= legacy) the same way
   // / and /inspire do: store it, switch to it, strip it from the visible URL.
+  //
+  // The printed poster's QR code is the bare /cti address, with no key in it
+  // (Sathya, 2026-10-08: a key in the printed URL "will look funny"). So a
+  // visitor who arrives with no key in the link and none saved gets the
+  // conference key this build was given, and goes straight to the themes.
+  // Runs once: "Use a different key" must still be able to reach the gate.
   const keyProcessedRef = useRef(false);
   useEffect(() => {
     if (keyProcessedRef.current) return;
     keyProcessedRef.current = true;
-    if (!urlHasKey()) return;
-    const key = validKeyFromUrl();
-    stripKeyFromUrl();
-    if (key) {
-      const target = isCtiEnabled() ? 'cti' : provider;
-      setKeyForProvider(target, key);
-      setProvider(target);
+    if (urlHasKey()) {
+      const key = validKeyFromUrl();
+      stripKeyFromUrl();
+      if (key) {
+        const target = isCtiEnabled() ? 'cti' : provider;
+        setKeyForProvider(target, key);
+        setProvider(target);
+        return;
+      }
     }
-  }, [provider, setKeyForProvider, setProvider]);
+    const conferenceKey = ctiPosterDefaultKey();
+    if (conferenceKey && isCtiEnabled() && !hasKeyForProvider('cti')) {
+      setKeyForProvider('cti', conferenceKey);
+      setProvider('cti');
+    }
+  }, [provider, setKeyForProvider, setProvider, hasKeyForProvider]);
 
   const practiceDojoContext = useMemo<PracticeDojoContext>(
     () => ({
@@ -299,7 +314,8 @@ export default function CtiPosterPage() {
     );
   }
 
-  // Key gate — the poster's QR code carries the key, so this is the fallback.
+  // Key gate — the fallback. A poster visitor normally never sees it: the
+  // build's conference key is applied above when the link carries none.
   if (!isKeySet) {
     return (
       <div className="flex h-[100dvh] flex-col bg-white text-[#1c2b33]" style={{ fontFamily: FONT_STACK }}>
@@ -310,7 +326,7 @@ export default function CtiPosterPage() {
               Enter your key to begin
             </h2>
             <p className="mt-1 text-center text-sm text-[#6b7a85]">
-              The QR code on the poster usually carries it for you. No key? Ask the CTI team at the poster.
+              No key? Ask the CTI team at the poster.
             </p>
             <label className="sr-only" htmlFor="cti-key">
               Key
