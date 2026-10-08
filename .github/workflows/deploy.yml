@@ -49,6 +49,7 @@ jobs:
             --build-arg NEXT_PUBLIC_STATS_API_URL=${{ vars.NEXT_PUBLIC_STATS_API_URL || 'https://dojo-stats-api.netlify.app' }} \
             --build-arg NEXT_PUBLIC_CTI_BACKEND_URL=${{ vars.NEXT_PUBLIC_CTI_BACKEND_URL || '' }} \
             --build-arg NEXT_PUBLIC_COMMONS_ENABLED=${{ vars.NEXT_PUBLIC_COMMONS_ENABLED || 'false' }} \
+            --build-arg NEXT_PUBLIC_CTI_POSTER_KEY=${{ secrets.CTI_POSTER_KEY || '' }} \
             -t ${{ env.IMAGE }}:${{ github.sha }} \
             -t ${{ env.IMAGE }}:latest \
             .
