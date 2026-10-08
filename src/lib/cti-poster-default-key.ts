@@ -9,9 +9,14 @@
  * Like a key printed in a QR code, this value ships to every visitor's
  * browser, so it is NOT a secret: it must be a key made for the conference,
  * with its own spending cap, and never a personal or admin key. It is kept
- * out of the repository (it is a deploy-time value) so it can be rotated or
- * withdrawn by rebuilding, without a code change. Unset or implausible, the
- * page falls back to the key gate.
+ * out of the repository (it is a deploy-time value) so it can be rotated by
+ * rebuilding, without a code change. Unset or implausible, the page falls
+ * back to the key gate for new visitors.
+ *
+ * To WITHDRAW the key (after the conference, or if it is abused), deactivate
+ * it in the backend (`manage_prod_keys.sh deactivate --key <uuid>`). That is
+ * the only real stop: browsers that already hold the key keep it until then,
+ * and removing the build value alone does not take it back from them.
  */
 
 const MIN_KEY_LENGTH = 8;
