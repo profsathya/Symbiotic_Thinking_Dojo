@@ -33,8 +33,10 @@ const pageSource = readFileSync(join(__dirname, '../src/app/cti/page.tsx'), 'utf
 
 const words = (text: string) => text.split(/\s+/).filter(Boolean).length;
 
-// Phase guidance plus system instructions. The first build (PR #117) was 7,044 words.
-const BUDGET = 5500;
+// Phase guidance plus system instructions. The first build (PR #117) was 7,044 words;
+// SOURCE 5 (the six qualities, 2026-10-08, about 1,190 words verbatim) raised the
+// budget from 5,500; the prompt was then 6,663 words.
+const BUDGET = 6700;
 
 describe('CTI poster dojo', () => {
   it('is registered, enabled, and served on its own route', () => {
@@ -167,6 +169,32 @@ describe('CTI poster dojo', () => {
     const openTheme = pageSource.slice(pageSource.indexOf('const openTheme'), pageSource.indexOf('[appendLocalMessages]'));
     expect(openTheme).not.toContain('handleSend');
     expect(openTheme).not.toContain('sendMessage');
+  });
+
+  it('carries SOURCE 5, the six definitions verbatim and no level text', () => {
+    expect(posterPhase).toContain('SOURCE 5 — THE SIX QUALITIES AND HOW CTI NURTURE-TRACKS THEM\n');
+    expect(posterPhase.indexOf('SOURCE 5 —')).toBeGreaterThan(posterPhase.indexOf('SOURCE 4 —'));
+    expect(posterPhase).toContain(poster.CTI_POSTER_SIX_QUALITIES);
+    expect(posterPrompt).not.toContain('(for the /cti sensei');
+    expect(posterPrompt).not.toMatch(/^#/m);
+    for (const definition of [
+      `Self-knowledge — "Seeing yourself accurately — what pulls you, what you're like, and whether your read on yourself holds up."`,
+      `Self-regulation — "Managing your attention, effort, emotions and routines so you stay with something you chose, including saying no to what gets in its way."`,
+      `Owning the outcome — "Understanding the outcome the tasks add up to and doing each task for that outcome, checking that the work is aligning toward it and adjusting or reaching out when it is not, rather than just completing the tasks."`,
+      `Initiative — "Thinking ahead, setting a goal, and taking the first step toward it."`,
+      `Working with uncertainty — "Willingness to act even without all questions answered, cultivating the skill to find the right point to act."`,
+      `Adaptability — "Looking at your work as an opportunity to learn, learning precisely what the experience of the work is teaching, and identifying the level at which the lesson should be applied to make changes in the next iteration."`,
+    ]) {
+      expect(posterPhase, definition).toContain(`\n- ${definition}`);
+    }
+    // The process names four levels; the prompt carries no level text.
+    for (const line of posterPrompt.split('\n')) {
+      expect(line, line).not.toMatch(/\blevel\s*[1-4]\b/i);
+    }
+    expect(posterSystem).toContain(
+      'Questions about what one of the six qualities means, or how CTI tracks them, are answered from SOURCE 5, quoting the definitions as written.'
+    );
+    expect(CTI_POSTER_WHERE_CTI_STANDS).toMatch(/What a quality means, and how it is tracked, is in SOURCE 5\.$/);
   });
 
   it('drops every per-box line', () => {
