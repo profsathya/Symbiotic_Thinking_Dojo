@@ -36,7 +36,9 @@ const words = (text: string) => text.split(/\s+/).filter(Boolean).length;
 // Phase guidance plus system instructions. The first build (PR #117) was 7,044 words;
 // SOURCE 5 (the six qualities, 2026-10-08, about 1,190 words verbatim) raised the
 // budget from 5,500; the prompt was then 6,663 words.
-const BUDGET = 6700;
+// The poster as printed (2026-10-08: third line in box 2, exam-backed box 8,
+// Learning through building in box 9) added about 120 words.
+const BUDGET = 6900;
 
 describe('CTI poster dojo', () => {
   it('is registered, enabled, and served on its own route', () => {
@@ -231,8 +233,10 @@ describe('CTI poster dojo', () => {
 
   it('carries the poster as printed, with none of the draft wording', () => {
     for (const printed of [
-      'Lede: Human value can grow with AI capability if students learn to think with AI and to decide where to use it and where not to.',
-      '- Rising curve: Humans thinking symbiotically with AI',
+      'Lede: Human value can grow with AI capability if students learn to think with AI and each other.',
+      '- Rising green line: Humans thinking symbiotically, with AI and each other',
+      '- Flattening grey dashed line: Humans using AI as a tool to complete tasks',
+      'Humans using AI as an answering machine',
       'Navigating the Jagged Technological Frontier',
       'Title: Our Approach',
       'Item 1: A precise, actionable definition of the problem',
@@ -242,13 +246,16 @@ describe('CTI poster dojo', () => {
       '- Integrative Solver (IS): Connect humans, domains, and perspectives to frame the real problem.',
       '- Applying AI at Work Certificate with De Anza Community College:',
       'Text: We look for evidence of these six qualities in the work students submit to meet the course learning outcomes.',
-      '- Owning the outcome 40%',
+      '- Self-knowledge 60%',
+      '- Owning the outcome 24%',
       "- Working with uncertainty: Current data doesn't measure this",
-      'While the early data represented is based on real student work, it is not verified.',
-      'A rigorous human-value-in-the-loop process is being developed to build and track such change.',
+      'The analysis shown was done primarily by AI on real student work, and human review is in progress.',
+      'We are developing a rigorous human-in-the-loop process to nurture and track these qualities.',
+      'allowing us to test and refine the framework through quick iterations.',
+      'Learning through building. We are building the AI Dojo and The Commons',
       'Learning from other disciplines. We are working closely with faculty from Kinesiology.',
       'Learning through collaboration.',
-      'Scan to experience Symbiotic Thinking',
+      'Experience it: QR code — Talk to the Sensei about CTI',
     ]) {
       expect(CTI_POSTER_TEXT, printed).toContain(printed);
     }
@@ -258,6 +265,15 @@ describe('CTI poster dojo', () => {
       'Our unique approach',
       'theory of change',
       'Problem Framing with AI',
+      'where to use it and where not to',
+      'Humans using AI as a tool\n',
+      'Self-knowledge 88%',
+      'Owning the outcome 40%',
+      'is not verified',
+      'human-value-in-the-loop',
+      'at least once',
+      'while it is still easy to change',
+      'Scan to experience Symbiotic Thinking',
       'Owning the outcome 43%',
       'Working with uncertainty 70%',
       'control group',
@@ -274,16 +290,16 @@ describe('CTI poster dojo', () => {
   it('WHERE CTI STANDS agrees with the printed poster', () => {
     const stands = CTI_POSTER_WHERE_CTI_STANDS;
     expect(stands).toContain(
-      'human value can grow with AI capability only if students learn to think with AI and to decide where to use it and where not to'
+      'human value can grow with AI capability only if students learn to think with AI and each other; it does not grow on its own'
     );
     expect(stands).toContain(
       'a precise, actionable definition of the problem, a well-defined, teachable framework of capabilities, and a rigorous, adaptive experimental process'
     );
     expect(stands).toContain('the Applying AI at Work Certificate with De Anza');
     expect(stands).toContain(
-      'Self-knowledge 88%, Self-regulation 57%, Owning the outcome 40%, Initiative 43% and Adaptability 42%; current data does not measure Working with uncertainty'
+      'Self-knowledge 60%, Self-regulation 22%, Owning the outcome 24%, Initiative 27% and Adaptability 24%; current data does not measure Working with uncertainty'
     );
-    expect(stands).toContain('"is not verified"');
+    expect(stands).toContain('"human review is in progress"');
   });
 
   it('carries the four sources in order', () => {

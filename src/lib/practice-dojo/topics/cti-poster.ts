@@ -186,13 +186,14 @@ Figure labels:
 
 BOX 2
 Title: Our Hypothesis
-Lede: Human value can grow with AI capability if students learn to think with AI and to decide where to use it and where not to.
-Figure: two axes and two curves.
+Lede: Human value can grow with AI capability if students learn to think with AI and each other.
+Figure: two axes and three lines.
 Figure labels:
 - Y axis: Human Value
 - X axis: AI Capability
-- Rising curve: Humans thinking symbiotically with AI
-- Flattening curve: Humans using AI as a tool
+- Rising green line: Humans thinking symbiotically, with AI and each other
+- Flattening grey dashed line: Humans using AI as a tool to complete tasks
+- Falling red dashed line, dropping faster than the green line rises: Humans using AI as an answering machine
 Reference at the bottom of the box: Jagged frontier: Dell'Acqua, F. et al. Navigating the Jagged Technological Frontier. Harvard Business School Working Paper 24-013, 2023.
 
 BOX 3
@@ -247,28 +248,32 @@ How a rating is made. Selected assignments are evaluated against a rubric to ide
 
 BOX 8
 Title: Early Data We Have Seen
-Lede: This image shows the share of 129 students across two Cal State Monterey Bay fall 2026 courses whose submitted work showed each quality at least once through September 19. It is an early snapshot of student work, not yet a measure of growth.*
+Line across the top of the box: This chart shows what we have seen so far in tracking these qualities in students:
+Beside the chart:
+- 129 students in two Cal State Monterey Bay courses (first-year and junior)
+- Each percentage is the share where we saw signals for the quality twice: in take-home reflections and in a proctored, handwritten exam
+Text: This chart demonstrates the potential of AI analysis to track students' growth on the six qualities, based on their work in the course. The analysis shown was done primarily by AI on real student work, and human review is in progress.
 Figure: a radar chart, inward-facing half and outward-facing half.
-- Self-knowledge 88%
-- Self-regulation 57%
-- Owning the outcome 40%
-- Initiative 43%
+- Self-knowledge 60%
+- Self-regulation 22%
+- Owning the outcome 24%
+- Initiative 27%
 - Working with uncertainty: Current data doesn't measure this
-- Adaptability 42%
-Side note: This chart is shown as a template in this poster to demonstrate the possibilities. While the early data represented is based on real student work, it is not verified.
-Footnote: * The analysis presented is primarily done by AI, shown here to demonstrate the possibilities we are working on. A rigorous human-value-in-the-loop process is being developed to build and track such change.
+- Adaptability 24%
+Line across the bottom of the box: We are developing a rigorous human-in-the-loop process to nurture and track these qualities.
 
 BOX 9
 Title: Continuing Work
 Lede: There is a lot we do not know. We are excited about building on our current work:
 Learning by watching and reading. We follow the work in this space carefully, from the research on how people learn with AI to what other programs are trying, and we use it to change our own thinking.
-Learning through doing. We experiment in our own work and in the learning experiences we offer students to better understand AI and its impact. We use short experiments as early signals, allowing us to test and refine the framework while it is still easy to change.
+Learning through doing. We experiment in our own work and in the learning experiences we offer students to better understand AI and its impact. We use short experiments as early signals, allowing us to test and refine the framework through quick iterations.
+Learning through building. We are building the AI Dojo and The Commons as two tools that make AI a support for Symbiotic Thinking and human connection: dojo.symbioticthinking.ai and the-commons.symbioticthinking.ai
 Learning from other disciplines. We are working closely with faculty from Kinesiology. We are also extending our open-source work-based learning experience program to serve students from other disciplines.
 Learning through collaboration. Our course pages, assignment designs and analysis are publicly available while the courses run. We believe transparency and collaboration will help us all learn and improve more quickly.
 Link: profsathya.github.io/Common-Curriculum/home.html
 
 FOOTER
-Try it: QR code — Scan to experience Symbiotic Thinking
+Experience it: QR code — Talk to the Sensei about CTI — dojo.symbioticthinking.ai/cti
 Contact us: Michelle Skoor, Partnerships Manager; Leslie Maxwell, Associate Director; Sathya Narayanan, Director. Their email addresses are printed in the poster footer; point the visitor there rather than reciting an address.
 Tagline: Learn. Connect. Solve.
 Institute line: Computing Talent Initiative, an institute at California State University, Monterey Bay
@@ -308,13 +313,13 @@ export const CTI_POSTER_RULES = `
 export const CTI_POSTER_WHERE_CTI_STANDS = `
 Approach. CTI believes three things are needed, and is working on all three — a precise, actionable definition of the problem, a well-defined, teachable framework of capabilities, and a rigorous, adaptive experimental process. The problem definition comes first: students move from completing assigned tasks to pursuing long-term, complex goals with AI, starting with a goal, learning, adapting and iterating to reach it. What is open: how to give students autonomy over goals early, inside courses whose requirements are fixed. Example to look at: the freshman physics course (CST286) on the Common-Curriculum pages. Honesty line: CTI is not sure these designs are working, but they seem to move things in the right direction.
 
-Philosophy. CTI's hypothesis is conditional: human value can grow with AI capability only if students learn to think with AI and to decide where to use it and where not to; it does not grow on its own. The grounding is self-determination theory — people develop when they have autonomy, connectedness and competence. What is open: whether post-secondary learning built around weekly tasks, semester- and year-long units and disciplinary silos can be restructured toward long-term goals, shorter learning experiences that can be tested and improved quickly, and a cross-discipline framework, and what deciding where to use AI and where not to looks like in a student's actual work. Example: the from/to list in box 4; courses run in sprints. Honesty line: this is a hypothesis; the early snapshot in box 8 is not yet a measure of growth.
+Philosophy. CTI's hypothesis is conditional: human value can grow with AI capability only if students learn to think with AI and each other; it does not grow on its own. Box 2 draws three lines: thinking symbiotically, with AI and each other, rises; using AI as a tool to complete tasks flattens; using AI as an answering machine falls. The grounding is self-determination theory — people develop when they have autonomy, connectedness and competence. What is open: whether post-secondary learning built around weekly tasks, semester- and year-long units and disciplinary silos can be restructured toward long-term goals, shorter learning experiences that can be tested and improved quickly, and a cross-discipline framework, and what thinking with AI and each other looks like in a student's actual work. Example: the from/to list in box 4; courses run in sprints. Honesty line: this is a hypothesis; the early data in box 8 is not yet a measure of growth.
 
 Framework. CTI proposes Symbiotic Thinking — the human-led practice of pursuing wisdom in partnership with other intelligences, human or artificial — as the practice that leads to three capabilities (Self-Directed Learner, Integrative Solver, Adaptive Builder) and to two outcomes, Superagency and Human Value. The framework page puts the outcomes as two questions a learner answers with evidence from their own work: what problems are now within my reach that I would not have attempted before, and what would be worse about my solutions if the problem was simply handed over to AI. What is open: whether the layers hold up in practice; the poster calls the framework "proposed". Example: the framework page at computingtalentinitiative.org/framework. Honesty line: the framework earns its place by working in practice, and that test is running now.
 
-Experiments. CTI tests the framework with different audiences at the same time — working professionals and career changers in the Applying AI at Work Certificate with De Anza, seniors and recent graduates in the Career Intelligence workshop, freshmen through seniors at CSUMB — and learns primarily through conversations, Dojo transcripts and responses to guided activities. Its course pages, assignment designs and analysis are publicly available while the courses run. What is open: box 9 begins "There is a lot we do not know." Example: the Common-Curriculum home page linked in box 9. Honesty line: these are short experiments used as early signals, so the framework can be tested and refined while it is still easy to change.
+Experiments. CTI tests the framework with different audiences at the same time — working professionals and career changers in the Applying AI at Work Certificate with De Anza, seniors and recent graduates in the Career Intelligence workshop, freshmen through seniors at CSUMB — and learns primarily through conversations, Dojo transcripts and responses to guided activities. It is also building two tools, the AI Dojo and The Commons, to make AI a support for Symbiotic Thinking and human connection. Its course pages, assignment designs and analysis are publicly available while the courses run. What is open: box 9 begins "There is a lot we do not know." Example: the Common-Curriculum home page linked in box 9. Honesty line: these are short experiments used as early signals, so the framework can be tested and refined through quick iterations.
 
-Results. CTI tracks six qualities as early signals of the three capabilities — inward facing: self-knowledge, self-regulation, owning the outcome; outward facing: initiative, working with uncertainty, adaptability — looking for evidence in the work students submit, with selected assignments evaluated against a rubric. Box 8 shows an early snapshot of 129 students across two CSUMB courses: the share whose submitted work showed each quality at least once, not yet a measure of growth. The numbers are Self-knowledge 88%, Self-regulation 57%, Owning the outcome 40%, Initiative 43% and Adaptability 42%; current data does not measure Working with uncertainty. What is open, in the poster's own words: the chart is shown as a template to demonstrate the possibilities; the data is based on real student work but "is not verified"; the analysis is primarily done by AI and a rigorous human-value-in-the-loop process is being developed. Give the numbers only as box 8 gives them. Honesty line: this is an early snapshot shown as a template, not a result. What a quality means, and how it is tracked, is in SOURCE 5.
+Results. CTI tracks six qualities as early signals of the three capabilities — inward facing: self-knowledge, self-regulation, owning the outcome; outward facing: initiative, working with uncertainty, adaptability — looking for evidence in the work students submit, with selected assignments evaluated against a rubric. Box 8 shows what CTI has seen so far in 129 students in two CSUMB courses (first-year and junior): each percentage is the share where signals for the quality were seen twice, in take-home reflections and in a proctored, handwritten exam. The numbers are Self-knowledge 60%, Self-regulation 22%, Owning the outcome 24%, Initiative 27% and Adaptability 24%; current data does not measure Working with uncertainty. A student not counted for a quality is a student where the two signals were not both seen, not a student who lacks the quality. What is open, in the poster's own words: the chart "demonstrates the potential of AI analysis to track students' growth"; the analysis was done primarily by AI on real student work, and "human review is in progress"; CTI is developing a rigorous human-in-the-loop process to nurture and track these qualities. Give the numbers only as box 8 gives them. Honesty line: this is early data that shows what the tracking could do, not a result and not yet a measure of growth. What a quality means, and how it is tracked, is in SOURCE 5.
 `.trim();
 
 /**
@@ -393,7 +398,7 @@ For each quality on each selected assignment, the team writes a short scale of f
 
 The rules the team holds itself to: missing evidence or a missing opportunity is never read as a low level — it is left unrated with the reason; the strongest relevant passage is used and the reason is written down, with any passage that points the other way; keeping a view after checking it counts the same as changing it; only words attributable to the student count, and a visibly assistant-written passage cannot show the student's reasoning; a reading from one scale is never compared with a reading from another, and no trend is claimed unless two readings are demonstrably comparable. Every reading is reviewed by a second reader, and disagreements are worked through rather than overridden. The principle Sathya set: be conservative in measuring these qualities at this stage.
 
-Box 8 is the first snapshot that process produced: the share of 129 students whose submitted work showed each quality at least once, read primarily by AI, not verified, and not a measure of growth. What the sensei can say about it is exactly what box 8 says. What the sensei must not do: give or paraphrase any level description, any rubric text, any student passage, or any individual rating. If a visitor asks for those, say the rubrics and the student evidence behind them are being reviewed by the team and are not public, and point to Sathya at the poster.
+Box 8 is the first snapshot that process produced: for 129 students, the share where signals for each quality were seen twice, in take-home reflections and in a proctored, handwritten exam, read primarily by AI, with human review in progress, and not a measure of growth. What the sensei can say about it is exactly what box 8 says. What the sensei must not do: give or paraphrase any level description, any rubric text, any student passage, or any individual rating. If a visitor asks for those, say the rubrics and the student evidence behind them are being reviewed by the team and are not public, and point to Sathya at the poster.
 `.trim();
 
 export const CTI_POSTER_TOPIC: TopicConfig = {
@@ -533,7 +538,7 @@ ${CTI_POSTER_TEXT}
 SOURCE 2 — BACKGROUND MATERIAL FROM CTI
 =====================================================================
 
-Use this when the conversation arrives at Symbiotic Thinking or the framework, and for questions the visitor asks directly. It has no student outcome figures. The percentages in Box 8 are an early snapshot of student work, "not yet a measure of growth"; give them only as Box 8 gives them, with its side note and footnote.
+Use this when the conversation arrives at Symbiotic Thinking or the framework, and for questions the visitor asks directly. It has no student outcome figures. The percentages in Box 8 are early data, not yet a measure of growth; give them only as Box 8 gives them, with its two caveats: the analysis was done primarily by AI and human review is in progress, and each percentage counts only students where signals were seen twice.
 
 --- Symbiotic Thinking ---
 
