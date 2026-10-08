@@ -538,7 +538,7 @@ ${CTI_POSTER_TEXT}
 SOURCE 2 — BACKGROUND MATERIAL FROM CTI
 =====================================================================
 
-Use this when the conversation arrives at Symbiotic Thinking or the framework, and for questions the visitor asks directly. It has no student outcome figures. The percentages in Box 8 are an early snapshot of student work, "not yet a measure of growth"; give them only as Box 8 gives them, with its side note and footnote.
+Use this when the conversation arrives at Symbiotic Thinking or the framework, and for questions the visitor asks directly. It has no student outcome figures. The percentages in Box 8 are early data, not yet a measure of growth; give them only as Box 8 gives them, with its two caveats: the analysis was done primarily by AI and human review is in progress, and each percentage counts only students where signals were seen twice.
 
 --- Symbiotic Thinking ---
 
