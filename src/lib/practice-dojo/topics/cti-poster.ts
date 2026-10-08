@@ -32,13 +32,13 @@ import {
  * theme arrives as the first user message, "I choose: <theme title>", exactly
  * as a selection card would send it.
  *
- * CONTEXT. Inlined prose, four sources: the poster text verbatim (from
+ * CONTEXT. Inlined prose, five sources: the poster text verbatim (from
  * cowork/alan/inspire-poster-review/inspire-poster-text.md, the poster as
  * printed, 2026-10-03;
  * it will go stale silently, so when the poster changes, change it here); a
  * lean slice of the CTI material shared with the Council dojo
- * (cti-material.ts); WHERE CTI STANDS, one block per theme; and the example
- * conversation. The sensei's ten rules replace the shared voice rules
+ * (cti-material.ts); WHERE CTI STANDS, one block per theme; the example
+ * conversation; and the six qualities with how CTI tracks them. The sensei's ten rules replace the shared voice rules
  * (plain voice, no comparisons, no praise) that the first build imported:
  * rules 1 and 10 cover the same ground in this dojo's own register, and
  * "grant first" opens with wording those rules ruled out.
@@ -314,7 +314,7 @@ Framework. CTI proposes Symbiotic Thinking — the human-led practice of pursuin
 
 Experiments. CTI tests the framework with different audiences at the same time — working professionals and career changers in the Applying AI at Work Certificate with De Anza, seniors and recent graduates in the Career Intelligence workshop, freshmen through seniors at CSUMB — and learns primarily through conversations, Dojo transcripts and responses to guided activities. Its course pages, assignment designs and analysis are publicly available while the courses run. What is open: box 9 begins "There is a lot we do not know." Example: the Common-Curriculum home page linked in box 9. Honesty line: these are short experiments used as early signals, so the framework can be tested and refined while it is still easy to change.
 
-Results. CTI tracks six qualities as early signals of the three capabilities — inward facing: self-knowledge, self-regulation, owning the outcome; outward facing: initiative, working with uncertainty, adaptability — looking for evidence in the work students submit, with selected assignments evaluated against a rubric. Box 8 shows an early snapshot of 129 students across two CSUMB courses: the share whose submitted work showed each quality at least once, not yet a measure of growth. The numbers are Self-knowledge 88%, Self-regulation 57%, Owning the outcome 40%, Initiative 43% and Adaptability 42%; current data does not measure Working with uncertainty. What is open, in the poster's own words: the chart is shown as a template to demonstrate the possibilities; the data is based on real student work but "is not verified"; the analysis is primarily done by AI and a rigorous human-value-in-the-loop process is being developed. Give the numbers only as box 8 gives them. Honesty line: this is an early snapshot shown as a template, not a result.
+Results. CTI tracks six qualities as early signals of the three capabilities — inward facing: self-knowledge, self-regulation, owning the outcome; outward facing: initiative, working with uncertainty, adaptability — looking for evidence in the work students submit, with selected assignments evaluated against a rubric. Box 8 shows an early snapshot of 129 students across two CSUMB courses: the share whose submitted work showed each quality at least once, not yet a measure of growth. The numbers are Self-knowledge 88%, Self-regulation 57%, Owning the outcome 40%, Initiative 43% and Adaptability 42%; current data does not measure Working with uncertainty. What is open, in the poster's own words: the chart is shown as a template to demonstrate the possibilities; the data is based on real student work but "is not verified"; the analysis is primarily done by AI and a rigorous human-value-in-the-loop process is being developed. Give the numbers only as box 8 gives them. Honesty line: this is an early snapshot shown as a template, not a result. What a quality means, and how it is tracked, is in SOURCE 5.
 `.trim();
 
 /**
@@ -354,6 +354,46 @@ Avoid: That's a fair question to sit with. Before I say how CTI frames it — wh
 Give: Do you have a framing of the problem that you felt was good? Even if you don't have a specific one, what are some good qualities of the framing that you would look for?
 
 Why: the visitor asked about CTI's framing, so the sensei asks for the visitor's own framing or their standard for one. It does not move to the underlying topic, does not ask about their field, and asks one thing. "A fair question to sit with" is also the kind of phrase to leave out — plain words only.
+`.trim();
+
+/**
+ * SOURCE 5 — the six qualities and how CTI nurture-tracks them, verbatim from
+ * cowork/alan/cti-poster-source5-six-qualities.md (2026-10-08), without its
+ * markdown title. It carries the definitions and the process, and no rubric
+ * or level text.
+ */
+export const CTI_POSTER_SIX_QUALITIES = `
+Use this when a visitor asks what one of the six qualities means, or how CTI tracks them. The definitions are quoted from CTI's public landscape page; quote them, do not reword them. Do not describe or invent any rubric wording, level descriptions, or student submissions — none are in this material, and the sensei never has them.
+
+THE SIX, IN CTI's WORDS
+
+CTI calls these qualities, not skills. They are the learner qualities of self-directed action, tracked as early signals of the three capabilities (Self-Directed Learner, Integrative Solver, Adaptive Builder). Agency is the umbrella they sit under, in the OECD's definition: "the capacity to set a goal, reflect and act responsibly to effect change — acting rather than being acted upon." Sathya's own framing to the team: "I am not sure these are the right six. I am starting with them to see what comes back."
+
+Inward facing — what changes is you. "The three qualities we nurture and track to change you — toward what you want to be."
+
+- Self-knowledge — "Seeing yourself accurately — what pulls you, what you're like, and whether your read on yourself holds up." Care folds in as its first part: "noticing what pulls you, letting it matter, and working to make it good." Many students have real care they cannot yet name; little found is read as "care not yet surfaced," never "low care." The rest is calibration about yourself: knowing whether something is inside or outside your reach, where you are likely to struggle, when you need another source or person. Seen in behavior and in the match between what a student says and what their evidence shows, never a questionnaire alone. Definition in progress.
+- Self-regulation — "Managing your attention, effort, emotions and routines so you stay with something you chose, including saying no to what gets in its way." Maturity is low-cost consistency plus the ability to redesign a routine that has stopped working; maximum automaticity is not the goal. Changing the goal itself belongs to adaptability. Definition in progress.
+- Owning the outcome — "Understanding the outcome the tasks add up to and doing each task for that outcome, checking that the work is aligning toward it and adjusting or reaching out when it is not, rather than just completing the tasks." The intent is the bigger view of the tasks: tying each one to the outcome they add up to, rather than checking tasks off. Definition in progress.
+
+Outward facing — what changes is the work or the world. "The three qualities we nurture and track to change how you work in the world."
+
+- Initiative — "Thinking ahead, setting a goal, and taking the first step toward it." Definition locked. Two faces that can be told apart: aiming (thinking ahead) and starting (making the move), because students who start without aiming and students who aim without starting need opposite help.
+- Working with uncertainty — "Willingness to act even without all questions answered, cultivating the skill to find the right point to act." Renamed from "comfort with uncertainty": feeling the discomfort and proceeding anyway counts. The disposition behind knowing when to trust an AI's output. Definition in progress. The poster marks this one "Current data doesn't measure this": the current reading of written plans does not reach it.
+- Adaptability — "Looking at your work as an opportunity to learn, learning precisely what the experience of the work is teaching, and identifying the level at which the lesson should be applied to make changes in the next iteration." Owns revising the goal or strategy when evidence and conditions change. Definition in progress.
+
+HOW THEY ARE READ
+
+The target is whether a response fitted the situation, not how much of a quality a student displayed. Each of the six has a version that goes too far — care into an inability to let go, self-regulation into rigidity, owning the outcome into dwelling on what is done, initiative into steamrolling, adaptability into churn, working with uncertainty into skipping the checks. So the situations used include moments where the capable move is to pause, ask for help, stop, hold a sound plan, or decline a risk, and those count as capable.
+
+HOW CTI NURTURE-TRACKS THEM (the process, not the instruments)
+
+"Nurture-track" is CTI's word for growing a quality and watching it at the same time. It runs throughout a course, never as a pre-test and post-test: each activity carries a named subset of the six, chosen by what that activity is about, and the team watches how, or whether, those qualities move in that activity's work. A course is a progression through the six.
+
+For each quality on each selected assignment, the team writes a short scale of four levels. Each level is described by what is observable in the student's own text — what the writing shows, not what the student claims about themselves. The levels are drawn from what the cohort actually wrote, so they describe this cohort's work, not the ceiling of the quality. The same quality is read from different kinds of submissions — a plan, a look-back on work done, a conversation transcript with the AI Dojo or with a peer — and the kind of evidence is recorded with the reading (performed, planned, reflective, dialogue), because a change a student reports having made and a strategy they propose for later answer different questions and are never merged.
+
+The rules the team holds itself to: missing evidence or a missing opportunity is never read as a low level — it is left unrated with the reason; the strongest relevant passage is used and the reason is written down, with any passage that points the other way; keeping a view after checking it counts the same as changing it; only words attributable to the student count, and a visibly assistant-written passage cannot show the student's reasoning; a reading from one scale is never compared with a reading from another, and no trend is claimed unless two readings are demonstrably comparable. Every reading is reviewed by a second reader, and disagreements are worked through rather than overridden. The principle Sathya set: be conservative in measuring these qualities at this stage.
+
+Box 8 is the first snapshot that process produced: the share of 129 students whose submitted work showed each quality at least once, read primarily by AI, not verified, and not a measure of growth. What the sensei can say about it is exactly what box 8 says. What the sensei must not do: give or paraphrase any level description, any rubric text, any student passage, or any individual rating. If a visitor asks for those, say the rubrics and the student evidence behind them are being reviewed by the team and are not public, and point to Sathya at the poster.
 `.trim();
 
 export const CTI_POSTER_TOPIC: TopicConfig = {
@@ -524,6 +564,12 @@ ${CTI_POSTER_EXAMPLE_CONVERSATION}
 EXAMPLE — a single exchange, with the reply to avoid and the reply to give
 
 ${CTI_POSTER_EXAMPLE_EXCHANGE}
+
+=====================================================================
+SOURCE 5 — THE SIX QUALITIES AND HOW CTI NURTURE-TRACKS THEM
+=====================================================================
+
+${CTI_POSTER_SIX_QUALITIES}
 `,
     },
   ],
@@ -535,6 +581,7 @@ THE JOB
 Be a thinking partner on the theme the visitor picked. First understand what they already hold; nudge and challenge their thinking; bring in CTI's position only as THE RULES in the current phase allow. Follow HOW A THEME RUNS and THE RULES in the current phase on every turn.
 
 ${CTI_RULE_SCOPE} "the poster doesn't say this directly; my reading is..."
+Questions about what one of the six qualities means, or how CTI tracks them, are answered from SOURCE 5, quoting the definitions as written.
 
 The poster text in the current phase is the primary source. Where the poster has no answer, use the background material and WHERE CTI STANDS. Where none of them has one, hand off as rule 8 says.
 
