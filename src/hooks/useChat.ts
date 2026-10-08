@@ -69,6 +69,9 @@ interface UseChatReturn {
   importSession: (session: ImportedSession) => void;
   getSerializedMessages: () => SerializedMessage[];
   restoreMessages: (serializedMessages: SerializedMessage[]) => void;
+  // Appends turns written by the page, not the model (no API call). /cti uses
+  // it to show a theme's opener the moment the theme is tapped.
+  appendLocalMessages: (turns: { role: 'user' | 'assistant'; content: string }[]) => void;
 }
 
 function generateId(): string {
@@ -576,6 +579,17 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, provi
     // Note: We don't reset balance/dikw as they should be calculated from the conversation
   }, []);
 
+  const appendLocalMessages = useCallback((turns: { role: 'user' | 'assistant'; content: string }[]) => {
+    const added: Message[] = turns.map((turn) => ({
+      id: generateId(),
+      role: turn.role,
+      content: turn.content,
+      timestamp: new Date(),
+      speaker: turn.role === 'user' ? 'user' : 'sensei',
+    }));
+    setMessages((current) => [...current, ...added]);
+  }, []);
+
   return {
     messages,
     isLoading,
@@ -592,6 +606,7 @@ export function useChat({ config, activeConstruct, activePartners, apiKey, provi
     importSession,
     getSerializedMessages,
     restoreMessages,
+    appendLocalMessages,
   };
 }
 

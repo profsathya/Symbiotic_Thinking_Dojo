@@ -18,6 +18,8 @@ import {
   CTI_POSTER_EXAMPLE_CONVERSATION,
   CTI_POSTER_BACK_CARD,
   ctiPosterThemeLine,
+  pickCtiPosterOpener,
+  findCtiPosterTheme,
 } from '@/lib/practice-dojo/topics/cti-poster';
 import * as material from '@/lib/practice-dojo/topics/cti-material';
 import { createPracticeDojoWelcome, composeSystemPrompt } from '@/lib/prompts/composer';
@@ -90,16 +92,17 @@ describe('CTI poster dojo', () => {
   it('runs a theme as an open conversation, not as steps', () => {
     expect(posterPhase).toContain('HOW A THEME RUNS');
     const how = posterPhase.slice(posterPhase.indexOf('\nHOW A THEME RUNS\n'), posterPhase.indexOf('\nTHE RULES\n'));
-    expect(how).toContain(
-      `Your whole first reply is one question, in these words, with X filled in: "What reactions, thoughts or questions do you have about CTI's X?"`
-    );
-    expect(how).toContain(
-      'Philosophy — philosophy\nApproach — approach\nFramework — Human Value Framework\nExperiments — experiments\nResults — results'
-    );
-    expect(how).toContain('do not mention boxes, and no cards');
-    expect(how).toContain(
-      'The opening question is the one exception to rules 1 and 10: no granting sentence before it, and it is one sentence.'
-    );
+    // The opener is no longer one fixed sentence dictated to the model.
+    expect(posterPrompt).not.toContain('What reactions, thoughts or questions do you have about');
+    expect(how).toContain('Your first reply responds to that answer under THE RULES');
+    expect(how).toContain('ask one narrowing question');
+    expect(how).toContain('the page shows an opener for the new theme');
+    // Fallback when no opener was shown: one of the theme's openers, verbatim.
+    expect(how).toContain("your whole reply is one of that theme's openers below, word for word");
+    expect(how).toContain('This is the one exception to rules 1 and 10.');
+    for (const theme of CTI_POSTER_THEMES) {
+      for (const opener of theme.openers) expect(how, opener).toContain(`- ${opener}`);
+    }
     expect(posterPrompt).not.toContain('What question or reaction do you have about it?');
     expect(posterPrompt).not.toContain('placing the theme');
     expect(posterPhase).toContain('There is no fixed sequence and no destination.');
@@ -109,6 +112,61 @@ describe('CTI poster dojo', () => {
     for (const gone of ['THE DESIGN-CHOICE QUESTION', 'DESIGN CHOICES', 'Start with the substance']) {
       expect(posterPrompt, gone).not.toContain(gone);
     }
+  });
+
+  it('has three openers per theme, in the wording given', () => {
+    expect(Object.fromEntries(CTI_POSTER_THEMES.map((t) => [t.id, t.openers]))).toEqual({
+      philosophy: [
+        "Anything in particular caught your attention about CTI's philosophy?",
+        "Did something about CTI's philosophy strike you as right, or as not quite right?",
+        "Is there a part of CTI's philosophy you would like to think through?",
+      ],
+      approach: [
+        "Did you find something curious about CTI's approach you would like to explore?",
+        "Is there a part of CTI's approach you would push on?",
+        "What stood out to you in CTI's approach, if anything?",
+      ],
+      framework: [
+        'Is there a part of the Human Value Framework you would like to look at more closely?',
+        'Did anything in the Human Value Framework raise a question for you?',
+        'Which piece of the Human Value Framework would you want to test first?',
+      ],
+      experiments: [
+        "Is there one of CTI's experiments you would like to dig into?",
+        'Did anything about how CTI is testing its ideas catch your attention?',
+        "What would you want to know about CTI's experiments before you trusted them?",
+      ],
+      results: [
+        "Did anything in CTI's early results surprise you?",
+        "Is there a number or a signal in CTI's results you would like to question?",
+        'What did you make of what CTI is showing as early data?',
+      ],
+    });
+  });
+
+  it('picks an opener at random from the theme', () => {
+    const [philosophy] = CTI_POSTER_THEMES;
+    expect(pickCtiPosterOpener(philosophy, () => 0)).toBe(philosophy.openers[0]);
+    expect(pickCtiPosterOpener(philosophy, () => 0.5)).toBe(philosophy.openers[1]);
+    expect(pickCtiPosterOpener(philosophy, () => 0.999)).toBe(philosophy.openers[2]);
+    for (let i = 0; i < 20; i++) expect(philosophy.openers).toContain(pickCtiPosterOpener(philosophy));
+    expect(findCtiPosterTheme(' results ')?.id).toBe('results');
+    expect(findCtiPosterTheme('framework')?.title).toBe('Framework');
+    expect(findCtiPosterTheme('Back to the themes')).toBeUndefined();
+  });
+
+  it('shows the opener on tap, with no model round-trip', () => {
+    // The tap adds the choice and a random opener locally...
+    expect(pageSource).toContain('appendLocalMessages([');
+    expect(pageSource).toContain("{ role: 'user', content: `I choose: ${theme.title}` }");
+    expect(pageSource).toContain("{ role: 'assistant', content: `**Sensei:** ${pickCtiPosterOpener(theme)}` }");
+    // ...for the opening screen and for a theme card in a reply alike.
+    expect(pageSource).toContain('setPendingChoice({ theme });');
+    expect(pageSource).toContain("if ('theme' in choice) openTheme(choice.theme);");
+    // The opener path never calls the model.
+    const openTheme = pageSource.slice(pageSource.indexOf('const openTheme'), pageSource.indexOf('[appendLocalMessages]'));
+    expect(openTheme).not.toContain('handleSend');
+    expect(openTheme).not.toContain('sendMessage');
   });
 
   it('drops every per-box line', () => {

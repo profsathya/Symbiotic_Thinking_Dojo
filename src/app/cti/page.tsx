@@ -11,6 +11,8 @@ import {
   CTI_POSTER_THEMES,
   CtiPosterTheme,
   ctiPosterThemeLine,
+  findCtiPosterTheme,
+  pickCtiPosterOpener,
 } from '@/lib/practice-dojo/topics/cti-poster';
 import { PracticeDojoContext, Pathway } from '@/lib/practice-dojo/types';
 import { InspireSaved, restorableMessages } from '@/lib/inspire-session';
@@ -21,9 +23,12 @@ import { urlHasKey, validKeyFromUrl, stripKeyFromUrl } from '@/lib/url-key';
 /**
  * /cti — the INSPIRE 2026 poster dojo. A standalone mobile page, like
  * /inspire: the opening screen is five theme cards; a tap starts the
- * ordinary dojo chat on the `cti-poster` topic with that theme sent as the
- * first user message, as a selection card would send it. "Themes" in the
- * header returns to the cards without clearing the conversation.
+ * ordinary dojo chat on the `cti-poster` topic. The tap adds two turns
+ * locally, with no model round-trip: the visitor's "I choose: <theme>", as a
+ * selection card would send it, and the Sensei's opener for that theme,
+ * chosen at random from the theme's list. The model's first turn is its reply
+ * to the visitor's answer. "Themes" in the header returns to the cards
+ * without clearing the conversation.
  *
  * The session persists under this page's OWN localStorage key, never the
  * shared usePracticeDojoState, so a visitor's refresh resumes their
@@ -42,6 +47,10 @@ const FONT_STACK = "var(--font-jost), -apple-system, 'Segoe UI', Helvetica, Aria
 const BLUE = '#2A6FAD';
 
 const NO_CHOICES: Record<string, string> = {};
+
+// A tap waiting for the current reply to finish: a theme to open, or a
+// card's words to send.
+type PendingChoice = { theme: CtiPosterTheme } | { text: string };
 
 function loadSaved(): InspireSaved | null {
   if (typeof window === 'undefined') return null;
@@ -116,8 +125,16 @@ export default function CtiPosterPage() {
     [interactionCount]
   );
 
-  const { messages, isLoading, error, sendMessage, startPracticeDojo, getSerializedMessages, restoreMessages } =
-    useChat({
+  const {
+    messages,
+    isLoading,
+    error,
+    sendMessage,
+    startPracticeDojo,
+    getSerializedMessages,
+    restoreMessages,
+    appendLocalMessages,
+  } = useChat({
       config,
       activeConstruct: 'learn',
       activePartners: [],
@@ -161,26 +178,41 @@ export default function CtiPosterPage() {
     [sendMessage]
   );
 
-  // A theme or a card tapped while a reply is still streaming would be dropped
-  // by sendMessage (it returns early while loading). Every tap goes through
-  // this one-slot queue instead: it is held and sent as soon as the reply
-  // finishes, so a tap is never lost and never counted without being sent.
-  const [pendingChoice, setPendingChoice] = useState<string | null>(null);
+  // A theme picked: the visitor's choice and the Sensei's opener, both added
+  // locally. Nothing goes to the model until the visitor answers the opener.
+  const openTheme = useCallback(
+    (theme: CtiPosterTheme) => {
+      setInteractionCount((c) => c + 1);
+      appendLocalMessages([
+        // Same wording a selection card sends.
+        { role: 'user', content: `I choose: ${theme.title}` },
+        { role: 'assistant', content: `**Sensei:** ${pickCtiPosterOpener(theme)}` },
+      ]);
+    },
+    [appendLocalMessages]
+  );
+
+  // A theme or a card tapped while a reply is still streaming would land in
+  // the middle of it (a theme) or be dropped by sendMessage, which returns
+  // early while loading (any other card). Every tap goes through this
+  // one-slot queue instead: it is held until the reply finishes, so a tap is
+  // never lost and never counted without being sent.
+  const [pendingChoice, setPendingChoice] = useState<PendingChoice | null>(null);
   useEffect(() => {
     if (pendingChoice === null || isLoading) return;
-    const text = pendingChoice;
+    const choice = pendingChoice;
     // Timer callback keeps the state updates out of the effect body.
     const timer = setTimeout(() => {
       setPendingChoice(null);
-      handleSend(text);
+      if ('theme' in choice) openTheme(choice.theme);
+      else handleSend(choice.text);
     }, 0);
     return () => clearTimeout(timer);
-  }, [pendingChoice, isLoading, handleSend]);
+  }, [pendingChoice, isLoading, handleSend, openTheme]);
 
   const handlePickTheme = useCallback((theme: CtiPosterTheme) => {
     setView('chat');
-    // Same wording a selection card sends.
-    setPendingChoice(`I choose: ${theme.title}`);
+    setPendingChoice({ theme });
   }, []);
 
   const handleVisualInteraction = useCallback(
@@ -191,9 +223,16 @@ export default function CtiPosterPage() {
         setView('themes');
         return;
       }
+      // A theme card in a Sensei reply opens that theme the same way the
+      // opening screen does.
+      const theme = findCtiPosterTheme(data.optionTitle ?? '') ?? findCtiPosterTheme(data.optionId ?? '');
+      if (theme) {
+        setPendingChoice({ theme });
+        return;
+      }
       const spoken = data.optionTitle?.trim() || data.optionDescription?.trim() || data.optionId?.trim();
       if (!spoken) return;
-      setPendingChoice(`I choose: ${spoken}`);
+      setPendingChoice({ text: `I choose: ${spoken}` });
     },
     []
   );

@@ -18,7 +18,8 @@ import {
  *
  * v2 (2026-10-03): five themes and a thinking-partner sensei. The visitor
  * picks a theme, the sensei asks what question or reaction they have about
- * it, and the conversation goes where it goes. There is no fixed sequence and
+ * it (since 2026-10-08 one of three openers per theme, shown by the page at
+ * once and chosen at random), and the conversation goes where it goes. There is no fixed sequence and
  * no destination: the sensei first understands what the visitor already
  * holds, and CTI's own position enters only when the conversation arrives
  * near it. The behaviour is taken from Sathya's own conversation at the
@@ -50,8 +51,12 @@ export interface CtiPosterTheme {
   title: string;
   /** What the theme covers on the poster. */
   covers: string;
-  /** How the sensei's opening question names it: "... about CTI's <subject>?" */
-  subject: string;
+  /**
+   * The sensei's opening questions. The /cti page shows one of them, chosen
+   * at random, the moment the theme is tapped, with no model round-trip; the
+   * prompt carries the same lists for when no opener was shown.
+   */
+  openers: readonly string[];
   /** The poster boxes it covers. */
   boxes: number[];
 }
@@ -66,31 +71,57 @@ export const CTI_POSTER_THEMES: CtiPosterTheme[] = [
     id: 'philosophy',
     title: 'Philosophy',
     covers: 'The hypothesis, and what has to change in post-secondary learning',
-    subject: 'philosophy',
+    openers: [
+      "Anything in particular caught your attention about CTI's philosophy?",
+      "Did something about CTI's philosophy strike you as right, or as not quite right?",
+      "Is there a part of CTI's philosophy you would like to think through?",
+    ],
     boxes: [2, 4],
   },
   {
     id: 'approach',
     title: 'Approach',
     covers: "The challenge, and CTI's three-part answer",
-    subject: 'approach',
+    openers: [
+      "Did you find something curious about CTI's approach you would like to explore?",
+      "Is there a part of CTI's approach you would push on?",
+      "What stood out to you in CTI's approach, if anything?",
+    ],
     boxes: [1, 3],
   },
   {
     id: 'framework',
     title: 'Framework',
     covers: 'The Human Value Framework and Symbiotic Thinking',
-    subject: 'Human Value Framework',
+    openers: [
+      'Is there a part of the Human Value Framework you would like to look at more closely?',
+      'Did anything in the Human Value Framework raise a question for you?',
+      'Which piece of the Human Value Framework would you want to test first?',
+    ],
     boxes: [5],
   },
   {
     id: 'experiments',
     title: 'Experiments',
     covers: 'Where it is being tested, and the continuing work',
-    subject: 'experiments',
+    openers: [
+      "Is there one of CTI's experiments you would like to dig into?",
+      'Did anything about how CTI is testing its ideas catch your attention?',
+      "What would you want to know about CTI's experiments before you trusted them?",
+    ],
     boxes: [6, 9],
   },
-  { id: 'results', title: 'Results', covers: 'Early signals and early data', subject: 'results', boxes: [7, 8] },
+  {
+    id: 'results',
+    title: 'Results',
+    covers: 'Early signals and early data',
+    openers: [
+      "Did anything in CTI's early results surprise you?",
+      "Is there a number or a signal in CTI's results you would like to question?",
+      "What did you make of what CTI is showing as early data?",
+    ],
+    boxes: [7, 8],
+  },
 ];
 
 /** "boxes 1 and 3", or "box 5". */
@@ -101,6 +132,18 @@ export function ctiPosterThemeBoxes(theme: CtiPosterTheme): string {
 /** The second line of a theme card: what it covers, then which boxes. */
 export function ctiPosterThemeLine(theme: CtiPosterTheme): string {
   return `${theme.covers} (${ctiPosterThemeBoxes(theme)})`;
+}
+
+/** One of the theme's openers, at random. `random` returns a number in [0, 1). */
+export function pickCtiPosterOpener(theme: CtiPosterTheme, random: () => number = Math.random): string {
+  const index = Math.min(theme.openers.length - 1, Math.floor(random() * theme.openers.length));
+  return theme.openers[index];
+}
+
+/** The theme a "I choose: <title>" message or a card title names, if any. */
+export function findCtiPosterTheme(name: string): CtiPosterTheme | undefined {
+  const wanted = name.trim().toLowerCase();
+  return CTI_POSTER_THEMES.find((theme) => theme.title.toLowerCase() === wanted || theme.id === wanted);
 }
 
 /** Card id and title of the card that returns the visitor to the opening screen. */
@@ -380,17 +423,17 @@ ${CTI_POSTER_THEMES.map((theme) => `${theme.title} — ${ctiPosterThemeLine(them
 HOW A THEME RUNS
 =====================================================================
 
-The first user message names the theme. Your whole first reply is one question, in these words, with X filled in: "What reactions, thoughts or questions do you have about CTI's X?" X is:
+The first user message names the theme. The page then shows one opening question about it, as your turn. The visitor's next message answers that opener. Your first reply responds to that answer under THE RULES; do not ask another opener.
 
-${CTI_POSTER_THEMES.map((theme) => `${theme.title} — ${theme.subject}`).join('\n')}
+If the visitor's answer is vague ("interesting", "not sure"), ask one narrowing question about what caught their eye, or what they expected to see and did not.
 
-Nothing else in that reply. Do not place the theme on the poster, do not mention boxes, and no cards.
+From there the conversation goes where it goes. There is no fixed sequence and no destination.
 
-If the visitor's reply is vague ("interesting", "not sure"), ask one narrowing question about what caught their eye, or what they expected to see and did not.
+When "I choose: <theme>" arrives mid-conversation, the same happens: the page shows an opener for the new theme, and you respond to the answer.
 
-From there the conversation goes where it goes. There is no fixed sequence and no destination. THE RULES below govern every turn after the opening question. The opening question is the one exception to rules 1 and 10: no granting sentence before it, and it is one sentence.
+If a message naming the theme is ever followed by no opener (it is the last message in the conversation), your whole reply is one of that theme's openers below, word for word, and nothing else. No granting sentence before it, do not place the theme on the poster, do not mention boxes, and no cards. This is the one exception to rules 1 and 10.
 
-When a message arrives as "I choose: <theme>" in the middle of a conversation, start that theme the same way, at once.
+${CTI_POSTER_THEMES.map((theme) => `${theme.title}:\n${theme.openers.map((opener) => `- ${opener}`).join('\n')}`).join('\n\n')}
 
 =====================================================================
 THE RULES
