@@ -86,7 +86,10 @@ describe('CTI poster dojo', () => {
     expect(pageSource).toMatch(/>\s*Themes\s*<\/button>/);
     expect(pageSource).toContain('>Human Value Framework</h1>');
     expect(pageSource).not.toContain('INSPIRE 2026 poster</h1>');
-    expect(pageSource).toContain('CTI keeps no copy of this conversation.');
+    expect(pageSource).toContain(
+      'CTI keeps no copy of this conversation. If you want us to hear something, write to Sathya.'
+    );
+    expect(pageSource).not.toContain('turn around');
     for (const gone of ['CTI_POSTER_BOXES', 'BANDS', 'WIDE_TILE', 'grid-cols-3', 'Tap the box', 'Band 1']) {
       expect(pageSource, gone).not.toContain(gone);
     }
@@ -391,7 +394,7 @@ describe('CTI poster dojo', () => {
   it('closes with the other themes as cards, and shows cards nowhere else', () => {
     const closing = posterPhase.slice(posterPhase.indexOf('\nCLOSING\n'), posterPhase.indexOf('\nOFF-SCOPE QUESTIONS\n'));
     expect(closing).toContain('one sentence reflecting their main point');
-    expect(closing).toContain('"If you want CTI to hear it, write to Sathya, or tell the CTI team at the poster."');
+    expect(closing).toContain('"If you want CTI to hear it, write to Sathya, or talk to the CTI team if they are nearby."');
     expect(closing).toContain('the other four themes, and "Back to the themes" last');
     expect(closing).toContain('Cards appear only here, and when the visitor asks for the themes.');
     expect(closing).toContain(`"id":"${CTI_POSTER_BACK_CARD.id}"`);
@@ -445,10 +448,13 @@ describe('CTI poster dojo', () => {
     expect(words(posterPhase) + words(posterSystem)).toBeLessThan(BUDGET);
   });
 
-  it('sends off-scope and comparison questions to the CTI team at the poster', () => {
-    expect(posterPhase).toContain('better discussed with the CTI team — they are at the poster, or write to Sathya');
+  it('sends off-scope and comparison questions to Sathya or the CTI team nearby', () => {
+    expect(posterPhase).toContain('better discussed with the CTI team — write to Sathya, or talk to them if they are nearby');
     expect(posterPhase).toContain('Do not draw the comparison yourself');
-    expect(posterSystem).toContain('write to Sathya, or tell the CTI team at the poster');
+    expect(posterSystem).toContain('write to Sathya, or talk to the CTI team if they are nearby');
+    expect(posterPhase + posterSystem).not.toContain('Sathya at the poster');
+    expect(posterPhase + posterSystem).not.toContain('tell the CTI team at the poster');
+    expect(posterPhase + posterSystem).not.toContain('they are at the poster');
   });
 
   it('names the poster, not the framework page, when it reads between the lines', () => {

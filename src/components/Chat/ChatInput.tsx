@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { buildCodeInsertion } from '@/lib/message-format';
+import { focusComposerAfterReply } from '@/lib/composer-focus';
 
 type CodeLang = 'java' | 'python' | 'javascript';
 const CODE_LANGS: { id: CodeLang; label: string }[] = [
@@ -66,12 +67,10 @@ export function ChatInput({
     }
   }, [value]);
 
-  // Auto-focus input when loading completes (AI response finished)
+  // Auto-focus the input when a reply finishes, but only with a mouse or
+  // trackpad: on touch devices focus would pop the keyboard over the reply.
   useEffect(() => {
-    if (wasLoadingRef.current && !isLoading) {
-      // Loading just finished, focus the input
-      textareaRef.current?.focus();
-    }
+    focusComposerAfterReply(textareaRef.current, wasLoadingRef.current, isLoading);
     wasLoadingRef.current = isLoading;
   }, [isLoading]);
 
