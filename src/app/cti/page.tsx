@@ -407,8 +407,7 @@ export default function CtiPosterPage() {
             </div>
 
             <p className="px-[26px] pb-[22px] pt-[14px] text-center text-[12px] text-[#6b7a85]">
-              CTI keeps no copy of this conversation. To tell us something,{' '}
-              <b style={{ color: NAVY }}>write to Sathya</b> — or just turn around, he is probably right there.
+              CTI keeps no copy of this conversation. If you want us to hear something, write to Sathya.
             </p>
           </main>
         </div>
