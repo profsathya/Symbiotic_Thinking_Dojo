@@ -449,7 +449,7 @@ describe('CTI poster dojo', () => {
   });
 
   it('sends off-scope and comparison questions to Sathya or the CTI team nearby', () => {
-    expect(posterPhase).toContain('better discussed with the CTI team — write to Sathya, or talk to the CTI team if they are nearby');
+    expect(posterPhase).toContain('better discussed with the CTI team — write to Sathya, or talk to them if they are nearby');
     expect(posterPhase).toContain('Do not draw the comparison yourself');
     expect(posterSystem).toContain('write to Sathya, or talk to the CTI team if they are nearby');
     expect(posterPhase + posterSystem).not.toContain('Sathya at the poster');

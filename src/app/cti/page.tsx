@@ -339,7 +339,7 @@ export default function CtiPosterPage() {
               Enter your key to begin
             </h2>
             <p className="mt-1 text-center text-sm text-[#6b7a85]">
-              No key? Ask the CTI team at the poster.
+              No key? Ask the CTI team.
             </p>
             <label className="sr-only" htmlFor="cti-key">
               Key
