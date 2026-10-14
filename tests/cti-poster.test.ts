@@ -38,7 +38,10 @@ const words = (text: string) => text.split(/\s+/).filter(Boolean).length;
 // budget from 5,500; the prompt was then 6,663 words.
 // The poster as printed (2026-10-08: third line in box 2, exam-backed box 8,
 // Learning through building in box 9) added about 120 words.
-const BUDGET = 6900;
+// Rule 11 and its three-exchange example (2026-10-13) brought the prompt to 7,187 words.
+const BUDGET = 7300;
+
+const RULE_11 = `11. Two kinds of follow-up, chosen by the situation. The ordinary follow-up asks about the visitor's view — their reason, their example, what would make the idea useful (rules 2 to 4). The other kind asks about their own thinking: what they would want to ask next, what they would need to see to change their mind, what the question underneath their question is, what they are assuming. Switch to the second kind when one of these is true: the visitor has just stated a settled view or a verdict; their question rests on an assumption they have not named; they have agreed quickly with something CTI says; or they have been vague for two turns. Stay with the ordinary kind when they have just given an example, or a reason that is still open (ask about it); a verdict delivered with its reason is a settled view, and the second kind applies, when they disagreed with a reason (work the reason), or when they asked a question of fact (answer it). Never two thinking-about-thinking questions in a row. Every such question is anchored to the exact thing they just said — never a general question about how they think — and once they name the question they would ask, answer it from the material if it is there, or say that CTI is asking the same question.`;
 
 describe('CTI poster dojo', () => {
   it('is registered, enabled, and served on its own route', () => {
@@ -200,6 +203,9 @@ describe('CTI poster dojo', () => {
       'Questions about what one of the six qualities means, or how CTI tracks them, are answered from SOURCE 5, quoting the definitions as written.'
     );
     expect(CTI_POSTER_WHERE_CTI_STANDS).toMatch(/What a quality means, and how it is tracked, is in SOURCE 5\.$/);
+    expect(poster.CTI_POSTER_SIX_QUALITIES).toContain(
+      'Box 8 is the first snapshot that process produced: for 129 students in two courses, the share where signals for a quality were seen twice, in take-home reflections and in a proctored, handwritten exam, read primarily by AI with human review in progress.'
+    );
   });
 
   it('drops every per-box line', () => {
@@ -208,10 +214,10 @@ describe('CTI poster dojo', () => {
     }
   });
 
-  it('carries the ten rules in the wording given', () => {
+  it('carries the eleven rules in the wording given', () => {
     expect(posterPhase).toContain(CTI_POSTER_RULES);
     expect(CTI_POSTER_RULES.split('\n\n').map((r) => r.slice(0, r.indexOf('. ')))).toEqual(
-      ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+      ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11']
     );
     for (const wording of [
       `1. Grant first. When the visitor has made a claim or pushed back, open by accepting it as legitimate, in one sentence, without defensiveness and without praise: "That is true…", "I understand…", "That is a fair observation." Never praise the visitor or grade their answer: no "Great question", "Good", "Sharp", and no "Exactly" standing alone as a verdict. ("That is exactly the challenge" names the problem, not the visitor, and is fine.) When the visitor has asked a question, there is nothing to grant; go straight to your question.`,
@@ -220,6 +226,7 @@ describe('CTI poster dojo', () => {
       '8. At the edge of what you know, hand off; never improvise.',
       '9. Disagreement is a fine place to end.',
       '10. Register and length. Two to four sentences per turn.',
+      RULE_11,
     ]) {
       expect(CTI_POSTER_RULES).toContain(wording);
     }
@@ -237,9 +244,7 @@ describe('CTI poster dojo', () => {
   it('carries the poster as printed, with none of the draft wording', () => {
     for (const printed of [
       'Lede: Human value can grow with AI capability if students learn to think with AI and each other.',
-      '- Rising green line: Humans thinking symbiotically, with AI and each other',
-      '- Flattening grey dashed line: Humans using AI as a tool to complete tasks',
-      'Humans using AI as an answering machine',
+      'Three curves: "Humans thinking symbiotically, with AI and each other" (rising), "Humans using AI as a tool to complete tasks" (flattening), and "Humans using AI as an answering machine" (lowest).',
       'Navigating the Jagged Technological Frontier',
       'Title: Our Approach',
       'Item 1: A precise, actionable definition of the problem',
@@ -258,7 +263,10 @@ describe('CTI poster dojo', () => {
       'Learning through building. We are building the AI Dojo and The Commons',
       'Learning from other disciplines. We are working closely with faculty from Kinesiology.',
       'Learning through collaboration.',
-      'Experience it: QR code — Talk to the Sensei about CTI',
+      'Lede: This chart shows what we have seen so far in tracking these qualities in students:\n- 129 students in two Cal State Monterey Bay courses (first-year and junior)\n- Each percentage is the share where we saw signals for the quality twice: in take-home reflections and in a proctored, handwritten exam',
+      'Learning through building. We are building the AI Dojo and The Commons as two tools that make AI a support for Symbiotic Thinking and human connection: dojo.symbioticthinking.ai and the-commons.symbioticthinking.ai',
+      'Experience it: Talk to the Sensei about CTI — dojo.symbioticthinking.ai/cti',
+      'Institute line: Computing Talent Initiative — An institute at California State University, Monterey Bay',
     ]) {
       expect(CTI_POSTER_TEXT, printed).toContain(printed);
     }
@@ -277,6 +285,10 @@ describe('CTI poster dojo', () => {
       'at least once',
       'while it is still easy to change',
       'Scan to experience Symbiotic Thinking',
+      'QR code',
+      '88%',
+      'not verified',
+      'not a result',
       'Owning the outcome 43%',
       'Working with uncertainty 70%',
       'control group',
@@ -293,7 +305,7 @@ describe('CTI poster dojo', () => {
   it('WHERE CTI STANDS agrees with the printed poster', () => {
     const stands = CTI_POSTER_WHERE_CTI_STANDS;
     expect(stands).toContain(
-      'human value can grow with AI capability only if students learn to think with AI and each other; it does not grow on its own'
+      'human value can grow with AI capability if students learn to think with AI and each other; it does not grow on its own'
     );
     expect(stands).toContain(
       'a precise, actionable definition of the problem, a well-defined, teachable framework of capabilities, and a rigorous, adaptive experimental process'
@@ -303,6 +315,10 @@ describe('CTI poster dojo', () => {
       'Self-knowledge 60%, Self-regulation 22%, Owning the outcome 24%, Initiative 27% and Adaptability 24%; current data does not measure Working with uncertainty'
     );
     expect(stands).toContain('"human review is in progress"');
+    expect(stands).toContain(
+      'Honesty line: human review is in progress; this is what the process has seen so far, not a measure of growth.'
+    );
+    expect(stands).not.toContain('only if students');
   });
 
   it('carries the four sources in order', () => {
@@ -376,6 +392,29 @@ describe('CTI poster dojo', () => {
       'Sensei: That is a fair observation. I would encourage looking at the course and reaching out to Sathya. One thing I know is that we are scrupulous in how we approach each of these ideas and are very interested in learning from your questions and experience.'
     );
     expect(CTI_POSTER_EXAMPLE_CONVERSATION).not.toContain('**');
+  });
+
+  it('carries the rule 11 example: three follow-ups of the second kind', () => {
+    expect(posterPhase).toContain(
+      `EXAMPLE — three follow-ups of the second kind, each anchored to what was just said\n\n${poster.CTI_POSTER_EXAMPLE_METACOGNITIVE}\n`
+    );
+    const pairs = poster.CTI_POSTER_EXAMPLE_METACOGNITIVE.split('\n\n');
+    expect(pairs.map((p) => p.slice(0, p.indexOf(':')))).toEqual([
+      'Visitor (on Approach, after a few turns)',
+      'Visitor (on Results)',
+      'Visitor (on Philosophy, agreeing quickly)',
+    ]);
+    expect(pairs[0]).toContain(
+      'Sensei: That is a clear place to stand. If you had five more minutes at this poster, what is the one question you would want answered before deciding whether this applies to your students?'
+    );
+    expect(pairs[1]).toContain('What are you assuming "we saw signals for the quality twice" means');
+    expect(pairs[2]).toContain(
+      `Sensei: That is also where the poster lands. Before we move on — what would you need to see in a student's work to be sure the 'depends' was going the right way, rather than just assuming it?`
+    );
+    // It comes after the single exchange, before SOURCE 5.
+    const at = (text: string) => posterPhase.indexOf(text);
+    expect(at('EXAMPLE — a single exchange')).toBeLessThan(at('EXAMPLE — three follow-ups'));
+    expect(at('EXAMPLE — three follow-ups')).toBeLessThan(at('SOURCE 5 — THE SIX QUALITIES'));
   });
 
   it('carries the single exchange with the reply to avoid and the reply to give', () => {
