@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import {
   FINE_POINTER_QUERY,
   focusComposerAfterReply,
+  focusComposerOnRequest,
   shouldAutoFocusComposer,
 } from '@/lib/composer-focus';
 
@@ -73,5 +74,30 @@ describe('focusComposerAfterReply', () => {
     const src = readFileSync('src/components/Chat/ChatInput.tsx', 'utf8');
     expect(src).toContain('focusComposerAfterReply(textareaRef.current, wasLoadingRef.current, isLoading)');
     expect(src).not.toContain('textareaRef.current?.focus()');
+  });
+});
+
+describe('focusComposerOnRequest', () => {
+  it('focuses on a request when the pointer check allows it', () => {
+    const input = { focus: vi.fn() };
+    expect(focusComposerOnRequest(input, 1, () => true)).toBe(true);
+    expect(input.focus).toHaveBeenCalledTimes(1);
+  });
+
+  it('never focuses on touch devices, with no request, or with no input', () => {
+    const input = { focus: vi.fn() };
+    focusComposerOnRequest(input, 1, () => false);
+    focusComposerOnRequest(input, 0, () => true);
+    focusComposerOnRequest(null, 1, () => true);
+    expect(focusComposerOnRequest(input, 2)).toBe(false);
+    expect(input.focus).not.toHaveBeenCalled();
+  });
+
+  it('is wired: /cti bumps the request after each opener and passes it to the composer', () => {
+    const page = readFileSync('src/app/cti/page.tsx', 'utf8');
+    expect(page).toContain('setComposerFocusRequest((n) => n + 1)');
+    expect(page).toContain('focusRequest={composerFocusRequest}');
+    const input = readFileSync('src/components/Chat/ChatInput.tsx', 'utf8');
+    expect(input).toContain('focusComposerOnRequest(textareaRef.current, focusRequest)');
   });
 });

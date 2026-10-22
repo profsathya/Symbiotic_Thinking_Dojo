@@ -206,11 +206,17 @@ export default function CtiPosterPage() {
     [sendMessage]
   );
 
+  // Bumped after each opener so a laptop visitor can type at once: the opener
+  // never toggles isLoading, so the composer's after-reply focus cannot fire.
+  // ChatInput applies the fine-pointer check, so touch devices are untouched.
+  const [composerFocusRequest, setComposerFocusRequest] = useState(0);
+
   // A theme picked: the visitor's choice and the Sensei's opener, both added
   // locally. Nothing goes to the model until the visitor answers the opener.
   const openTheme = useCallback(
     (theme: CtiPosterTheme) => {
       setInteractionCount((c) => c + 1);
+      setComposerFocusRequest((n) => n + 1);
       appendLocalMessages([
         // Same wording a selection card sends.
         { role: 'user', content: `I choose: ${theme.title}` },
@@ -440,7 +446,13 @@ export default function CtiPosterPage() {
         />
 
         <div className="shrink-0" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-          <ChatInput onSend={handleSend} isLoading={isLoading} minimal placeholder="Type your answer…" />
+          <ChatInput
+            onSend={handleSend}
+            isLoading={isLoading}
+            minimal
+            placeholder="Type your answer…"
+            focusRequest={composerFocusRequest}
+          />
           <p className="pb-2 text-center text-[11px] text-gray-500">
             Symbiotic Thinking Dojo · computingtalentinitiative.org
           </p>
