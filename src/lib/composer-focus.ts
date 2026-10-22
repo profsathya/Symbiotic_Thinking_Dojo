@@ -38,3 +38,21 @@ export function focusComposerAfterReply(
   input.focus();
   return true;
 }
+
+/**
+ * Focus the composer because the page asked for it, not because a reply
+ * finished. /cti uses this after a theme tap: the Sensei's opener is added
+ * locally with no model call, so loading never toggles and the after-reply
+ * step never runs. `request` is a counter the page bumps; 0 means no request.
+ * The same pointer check applies, so a phone keyboard never pops up.
+ * Returns whether focus was called.
+ */
+export function focusComposerOnRequest(
+  input: { focus: () => void } | null | undefined,
+  request: number,
+  allow: () => boolean = shouldAutoFocusComposer
+): boolean {
+  if (!input || request <= 0 || !allow()) return false;
+  input.focus();
+  return true;
+}

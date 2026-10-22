@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { buildCodeInsertion } from '@/lib/message-format';
-import { focusComposerAfterReply } from '@/lib/composer-focus';
+import { focusComposerAfterReply, focusComposerOnRequest } from '@/lib/composer-focus';
 
 type CodeLang = 'java' | 'python' | 'javascript';
 const CODE_LANGS: { id: CodeLang; label: string }[] = [
@@ -25,6 +25,9 @@ interface ChatInputProps {
   // Minimal mode for standalone/mobile surfaces (e.g. the INSPIRE demo):
   // hides the code toolbar and the partner-mention hint for a clean chat.
   minimal?: boolean;
+  // A counter the page bumps to ask for focus without a model reply (e.g. the
+  // locally added opener on /cti). 0 = no request. Fine pointers only.
+  focusRequest?: number;
 }
 
 export function ChatInput({
@@ -33,6 +36,7 @@ export function ChatInput({
   placeholder = 'Share your challenge or question...',
   defaultCodeLanguage,
   minimal = false,
+  focusRequest = 0,
 }: ChatInputProps) {
   const [value, setValue] = useState('');
   const [codeLang, setCodeLang] = useState<CodeLang>(() => toCodeLang(defaultCodeLanguage));
@@ -73,6 +77,11 @@ export function ChatInput({
     focusComposerAfterReply(textareaRef.current, wasLoadingRef.current, isLoading);
     wasLoadingRef.current = isLoading;
   }, [isLoading]);
+
+  // Focus on the page's request (same fine-pointer rule as above).
+  useEffect(() => {
+    focusComposerOnRequest(textareaRef.current, focusRequest);
+  }, [focusRequest]);
 
   const handleSubmit = () => {
     if (value.trim() && !isLoading) {
